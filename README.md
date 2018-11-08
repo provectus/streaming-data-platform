@@ -1,0 +1,1 @@
+# squadex-fastdata-solution
