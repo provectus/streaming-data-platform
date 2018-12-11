@@ -10,7 +10,6 @@
       "Description": "Some Licence."
     }
   },
-
   "Parameters": {
     "FDSAnalyticalDatabaseName": {
       "Type": "String",
@@ -22,28 +21,38 @@
     }
   },
   "Resources": {
-
-    "S3Bucket" : {
-      "Type" : "AWS::S3::Bucket",
-      "Properties" : {
+    "S3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
         "AccessControl": "Private",
-        "BucketName": {"Ref": "FDSS3Bucket"}
+        "BucketName": {
+          "Ref": "FDSS3Bucket"
+        }
       }
     },
-
     "LambdaExecutionRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
-          "Statement": [{
-            "Effect": "Allow",
-            "Principal": { "Service": ["lambda.amazonaws.com"] },
-            "Action": ["sts:AssumeRole"]
-          }]
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
         },
-        "ManagedPolicyArns": ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"],
-        "Policies" : [
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        ],
+        "Policies": [
           {
             "PolicyName": "KinesisPermission",
             "PolicyDocument": {
@@ -52,13 +61,23 @@
                 {
                   "Sid": "kinesis",
                   "Effect": "Allow",
-                  "Action": ["kinesis:DescribeStream", "kinesis:PutRecord", "kinesis:ListStreams",  "kinesis:PutRecords"],
+                  "Action": [
+                    "kinesis:DescribeStream",
+                    "kinesis:PutRecord",
+                    "kinesis:ListStreams",
+                    "kinesis:PutRecords"
+                  ],
                   "Resource": "*"
                 },
                 {
                   "Sid": "firehose",
                   "Effect": "Allow",
-                  "Action": ["kinesis:DescribeStream", "kinesis:PutRecord", "kinesis:ListStreams",  "kinesis:PutRecords"],
+                  "Action": [
+                    "kinesis:DescribeStream",
+                    "kinesis:PutRecord",
+                    "kinesis:ListStreams",
+                    "kinesis:PutRecords"
+                  ],
                   "Resource": "*"
                 }
               ]
@@ -67,23 +86,37 @@
         ]
       }
     },
-
     "KinesisAnalyticsRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
-          "Statement": [{
-            "Effect": "Allow",
-            "Principal": { "Service": ["kinesisanalytics.amazonaws.com"] },
-            "Action": ["sts:AssumeRole"]
-          },{
-            "Effect": "Allow",
-            "Principal": { "Service": ["firehose.amazonaws.com"] },
-            "Action": ["sts:AssumeRole"]
-          }]
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "kinesisanalytics.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "firehose.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
         },
-        "Policies" : [
+        "Policies": [
           {
             "PolicyName": "KinesisAnalyticsPermission",
             "PolicyDocument": {
@@ -117,7 +150,8 @@
                     "kinesis:RegisterStreamConsumer",
                     "kinesis:RemoveTagsFromStream",
                     "kinesis:SplitShard",
-                    "kinesis:UpdateShardCount"],
+                    "kinesis:UpdateShardCount"
+                  ],
                   "Resource": "*"
                 }
               ]
@@ -126,41 +160,34 @@
         ]
       }
     },
-
-    "BcnsStream" : {
-      "Type" : "AWS::Kinesis::Stream",
-      "Properties" : {
+    "BcnsStream": {
+      "Type": "AWS::Kinesis::Stream",
+      "Properties": {
         "Name": "bcns",
-        "ShardCount" : "2"
+        "ShardCount": "2"
       }
     },
-
-    "ClickStream" : {
-      "Type" : "AWS::Kinesis::Stream",
-      "Properties" : {
+    "ClickStream": {
+      "Type": "AWS::Kinesis::Stream",
+      "Properties": {
         "Name": "clicks",
-        "ShardCount" : "2"
+        "ShardCount": "2"
       }
     },
-
-    "ImpressionsStream" : {
-      "Type" : "AWS::Kinesis::Stream",
-      "Properties" : {
+    "ImpressionsStream": {
+      "Type": "AWS::Kinesis::Stream",
+      "Properties": {
         "Name": "impressions",
-        "ShardCount" : "2"
+        "ShardCount": "2"
       }
     },
-
     "AggregatesStream": {
-      "Type" : "AWS::Kinesis::Stream",
-      "Properties" : {
+      "Type": "AWS::Kinesis::Stream",
+      "Properties": {
         "Name": "aggregates",
-        "ShardCount" : "2"
+        "ShardCount": "2"
       }
     },
-
-
-
     "FDSApi": {
       "Type": "AWS::ApiGateway::RestApi",
       "Properties": {
@@ -169,7 +196,6 @@
         "FailOnWarnings": false
       }
     },
-
     "ImpressionBcnLambda": {
       "Type": "AWS::Serverless::Function",
       "Properties": {
@@ -178,30 +204,63 @@
         "Handler": "com.provectus.fds.api.ImpressionBcnHandler",
         "MemorySize": 128,
         "Timeout": 180,
-        "Role": { "Fn::GetAtt": ["LambdaExecutionRole", "Arn"]},
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaExecutionRole",
+            "Arn"
+          ]
+        },
         "Runtime": "java8"
       }
     },
-
     "ImpressionBcnLambdaPermission": {
       "Type": "AWS::Lambda::Permission",
       "Properties": {
         "Action": "lambda:invokeFunction",
-        "FunctionName": {"Fn::GetAtt": ["ImpressionBcnLambda", "Arn"]},
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ImpressionBcnLambda",
+            "Arn"
+          ]
+        },
         "Principal": "apigateway.amazonaws.com",
-        "SourceArn": {"Fn::Join": ["", ["arn:aws:execute-api:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":", {"Ref": "FDSApi"}, "/*"]]}
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:aws:execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "FDSApi"
+              },
+              "/*"
+            ]
+          ]
+        }
       }
     },
-
     "ImpressionBcnResource": {
       "Type": "AWS::ApiGateway::Resource",
       "Properties": {
-        "RestApiId": {"Ref": "FDSApi"},
-        "ParentId": {"Fn::GetAtt": ["FDSApi", "RootResourceId"]},
+        "RestApiId": {
+          "Ref": "FDSApi"
+        },
+        "ParentId": {
+          "Fn::GetAtt": [
+            "FDSApi",
+            "RootResourceId"
+          ]
+        },
         "PathPart": "impressions"
       }
     },
-
     "ImpressionBcnRequest": {
       "DependsOn": "ImpressionBcnLambdaPermission",
       "Type": "AWS::ApiGateway::Method",
@@ -211,24 +270,47 @@
         "Integration": {
           "Type": "AWS",
           "IntegrationHttpMethod": "POST",
-          "Uri": {"Fn::Join": ["",
-            ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {"Fn::GetAtt": ["ImpressionBcnLambda", "Arn"]}, "/invocations"]
-          ]},
-          "IntegrationResponses": [{
-            "StatusCode": 200
-          }]
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "ImpressionBcnLambda",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          },
+          "IntegrationResponses": [
+            {
+              "StatusCode": 200
+            }
+          ]
         },
         "RequestParameters": {
           "method.request.querystring.name": true
         },
-        "ResourceId": {"Ref": "ImpressionBcnResource"},
-        "RestApiId": {"Ref": "FDSApi"},
-        "MethodResponses": [{
-          "StatusCode": 200
-        }]
+        "ResourceId": {
+          "Ref": "ImpressionBcnResource"
+        },
+        "RestApiId": {
+          "Ref": "FDSApi"
+        },
+        "MethodResponses": [
+          {
+            "StatusCode": 200
+          }
+        ]
       }
     },
-
     "ClickBcnLambda": {
       "Type": "AWS::Serverless::Function",
       "Properties": {
@@ -237,31 +319,63 @@
         "Handler": "com.provectus.fds.api.ClickBcnHandler",
         "MemorySize": 128,
         "Timeout": 180,
-        "Role": { "Fn::GetAtt": ["LambdaExecutionRole", "Arn"]},
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaExecutionRole",
+            "Arn"
+          ]
+        },
         "Runtime": "java8"
       }
     },
-
     "ClickBcnLambdaPermission": {
       "Type": "AWS::Lambda::Permission",
       "Properties": {
         "Action": "lambda:invokeFunction",
-        "FunctionName": {"Fn::GetAtt": ["ClickBcnLambda", "Arn"]},
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ClickBcnLambda",
+            "Arn"
+          ]
+        },
         "Principal": "apigateway.amazonaws.com",
-        "SourceArn": {"Fn::Join": ["", ["arn:aws:execute-api:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":", {"Ref": "FDSApi"}, "/*"]]}
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:aws:execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "FDSApi"
+              },
+              "/*"
+            ]
+          ]
+        }
       }
     },
-
-
     "ClickBcnResource": {
       "Type": "AWS::ApiGateway::Resource",
       "Properties": {
-        "RestApiId": {"Ref": "FDSApi"},
-        "ParentId": {"Fn::GetAtt": ["FDSApi", "RootResourceId"]},
+        "RestApiId": {
+          "Ref": "FDSApi"
+        },
+        "ParentId": {
+          "Fn::GetAtt": [
+            "FDSApi",
+            "RootResourceId"
+          ]
+        },
         "PathPart": "clicks"
       }
     },
-
     "ClickBcnRequest": {
       "DependsOn": "ClickBcnLambdaPermission",
       "Type": "AWS::ApiGateway::Method",
@@ -271,24 +385,47 @@
         "Integration": {
           "Type": "AWS",
           "IntegrationHttpMethod": "POST",
-          "Uri": {"Fn::Join": ["",
-            ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {"Fn::GetAtt": ["ClickBcnLambda", "Arn"]}, "/invocations"]
-          ]},
-          "IntegrationResponses": [{
-            "StatusCode": 200
-          }]
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "ClickBcnLambda",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          },
+          "IntegrationResponses": [
+            {
+              "StatusCode": 200
+            }
+          ]
         },
         "RequestParameters": {
           "method.request.querystring.name": true
         },
-        "ResourceId": {"Ref": "ClickBcnResource"},
-        "RestApiId": {"Ref": "FDSApi"},
-        "MethodResponses": [{
-          "StatusCode": 200
-        }]
+        "ResourceId": {
+          "Ref": "ClickBcnResource"
+        },
+        "RestApiId": {
+          "Ref": "FDSApi"
+        },
+        "MethodResponses": [
+          {
+            "StatusCode": 200
+          }
+        ]
       }
     },
-
     "BidBcnLambda": {
       "Type": "AWS::Serverless::Function",
       "Properties": {
@@ -297,32 +434,63 @@
         "Handler": "com.provectus.fds.api.BidBcnHandler",
         "MemorySize": 128,
         "Timeout": 180,
-        "Role": { "Fn::GetAtt": ["LambdaExecutionRole", "Arn"]},
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaExecutionRole",
+            "Arn"
+          ]
+        },
         "Runtime": "java8"
       }
     },
-
-
     "BidBcnLambdaPermission": {
       "Type": "AWS::Lambda::Permission",
       "Properties": {
         "Action": "lambda:invokeFunction",
-        "FunctionName": {"Fn::GetAtt": ["BidBcnLambda", "Arn"]},
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "BidBcnLambda",
+            "Arn"
+          ]
+        },
         "Principal": "apigateway.amazonaws.com",
-        "SourceArn": {"Fn::Join": ["", ["arn:aws:execute-api:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":", {"Ref": "FDSApi"}, "/*"]]}
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:aws:execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "FDSApi"
+              },
+              "/*"
+            ]
+          ]
+        }
       }
     },
-
-
     "BidBcnResource": {
       "Type": "AWS::ApiGateway::Resource",
       "Properties": {
-        "RestApiId": {"Ref": "FDSApi"},
-        "ParentId": {"Fn::GetAtt": ["FDSApi", "RootResourceId"]},
+        "RestApiId": {
+          "Ref": "FDSApi"
+        },
+        "ParentId": {
+          "Fn::GetAtt": [
+            "FDSApi",
+            "RootResourceId"
+          ]
+        },
         "PathPart": "bids"
       }
     },
-
     "BidBcnRequest": {
       "DependsOn": "BidBcnLambdaPermission",
       "Type": "AWS::ApiGateway::Method",
@@ -332,144 +500,180 @@
         "Integration": {
           "Type": "AWS",
           "IntegrationHttpMethod": "POST",
-          "Uri": {"Fn::Join": ["",
-            ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {"Fn::GetAtt": ["BidBcnLambda", "Arn"]}, "/invocations"]
-          ]},
-          "IntegrationResponses": [{
-            "StatusCode": 200
-          }]
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "BidBcnLambda",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          },
+          "IntegrationResponses": [
+            {
+              "StatusCode": 200
+            }
+          ]
         },
         "RequestParameters": {
           "method.request.querystring.name": true
         },
-        "ResourceId": {"Ref": "BidBcnResource"},
-        "RestApiId": {"Ref": "FDSApi"},
-        "MethodResponses": [{
-          "StatusCode": 200
-        }]
+        "ResourceId": {
+          "Ref": "BidBcnResource"
+        },
+        "RestApiId": {
+          "Ref": "FDSApi"
+        },
+        "MethodResponses": [
+          {
+            "StatusCode": 200
+          }
+        ]
       }
     },
-
     "KinesisAnalyticsApp": {
       "Type": "AWS::KinesisAnalytics::Application",
       "Properties": {
         "ApplicationName": "FDSApplication",
         "ApplicationDescription": "Joining & Aggregation app",
-        "ApplicationCode":
-          { "Fn::Join": ["\n", [
-
-            "CREATE STREAM \"bcns_impressions\" (",
-            "                \"txid\" VARCHAR(64),",
-            "                \"event_timestamp\" BIGINT,",
-            "                \"win_price\" BIGINT",
-            ");",
-            "",
-            "CREATE OR REPLACE PUMP \"bcns_impressions_pump\" AS",
-            "INSERT INTO \"bcns_impressions\" (\"txid\",\"event_timestamp\",\"win_price\") ",
-            "  SELECT \"txid\",\"event_timestamp\",\"win_price\" FROM \"bcns_001\" WHERE \"type\"='imp';",
-            "",
-            "CREATE STREAM \"bcns_bids\" (",
-            "                \"txid\" VARCHAR(64),",
-            "                \"event_timestamp\" BIGINT,",
-            "                \"campaign_item_id\" BIGINT,",
-            "                \"domain\" VARCHAR(255),",
-            "                \"creative_id\" VARCHAR(255),",
-            "                \"creative_category\" VARCHAR(255),",
-            "                \"appuid\" VARCHAR(255)",
-            ");",
-            "",
-            "CREATE OR REPLACE PUMP \"bcns_bids_pump\" AS",
-            "INSERT INTO \"bcns_bids\" (\"txid\",\"campaign_item_id\",\"domain\",\"creative_id\",\"creative_category\",\"appuid\",\"event_timestamp\") ",
-            "  SELECT \"txid\",\"campaign_item_id\",\"domain\",\"creative_id\",\"creative_category\",\"appuid\",\"event_timestamp\" FROM \"bcns_001\" WHERE \"type\"='bid';",
-            "",
-            "",
-            "CREATE STREAM \"bcns_clicks\" (",
-            "                \"txid\" VARCHAR(64),",
-            "                \"event_timestamp\" BIGINT",
-            ");",
-            "",
-            "",
-            "CREATE OR REPLACE PUMP \"bcns_clicks_pump\" AS",
-            "INSERT INTO \"bcns_clicks\" (\"txid\",\"event_timestamp\") ",
-            "  SELECT \"txid\",\"event_timestamp\" FROM \"bcns_001\" WHERE \"type\"='click';",
-            "",
-            "",
-            "CREATE STREAM \"impressions\"(",
-            "                \"txid\" VARCHAR(64),",
-            "                \"event_timestamp\" BIGINT,",
-            "                \"campaign_item_id\" BIGINT,",
-            "                \"domain\" VARCHAR(255),",
-            "                \"creative_id\" VARCHAR(255),",
-            "                \"creative_category\" VARCHAR(255),",
-            "                \"appuid\" VARCHAR(255)",
-            ");",
-            "",
-            "",
-            "CREATE OR REPLACE PUMP \"impressions_pump\" AS",
-            "INSERT INTO \"impressions\" ( \"txid\", \"event_timestamp\", \"campaign_item_id\", \"domain\", \"creative_id\", \"creative_category\", \"appuid\")",
-            "SELECT STREAM ",
-            " b.\"txid\", i.\"event_timestamp\", b.\"campaign_item_id\", b.\"domain\", b.\"creative_id\", b.\"creative_category\", b.\"appuid\"",
-            " FROM \"bcns_bids\" OVER (RANGE INTERVAL '1' MINUTE PRECEDING) as b",
-            " JOIN \"bcns_impressions\" AS i ON (b.\"txid\"=i.\"txid\");",
-            "",
-            "CREATE STREAM \"clicks\"(",
-            "                \"txid\" VARCHAR(16),",
-            "                \"event_timestamp\" BIGINT,",
-            "                \"campaign_item_id\" BIGINT,",
-            "                \"domain\" VARCHAR(255),",
-            "                \"creative_id\" VARCHAR(255),",
-            "                \"creative_category\" VARCHAR(255),",
-            "                \"appuid\" VARCHAR(255)",
-            ");",
-            "",
-            "CREATE OR REPLACE PUMP \"clicks_pump\" AS",
-            "INSERT INTO \"clicks\" ( \"txid\", \"event_timestamp\", \"campaign_item_id\", \"domain\", \"creative_id\", \"creative_category\", \"appuid\")",
-            "SELECT STREAM ",
-            " i.\"txid\", c.\"event_timestamp\", i.\"campaign_item_id\", i.\"domain\", i.\"creative_id\", i.\"creative_category\", i.\"appuid\"",
-            " FROM \"impressions\" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) as i",
-            " JOIN \"bcns_clicks\" AS c ON (i.\"txid\"=c.\"txid\");",
-            "",
-            "",
-            "CREATE STREAM \"campaign_aggregates\"(",
-            "               \"campaign_item_id\" BIGINT,",
-            "               \"period\" TIMESTAMP,",
-            "                \"bids\" BIGINT,",
-            "                \"imps\" BIGINT,",
-            "                \"clicks\" BIGINT);",
-            "",
-            "CREATE OR REPLACE PUMP \"campaign_item_performance_bids_pump\" AS",
-            "INSERT INTO \"campaign_aggregates\" (\"campaign_item_id\",\"period\",\"bids\") ",
-            "SELECT STREAM \"campaign_item_id\", ",
-            "              STEP(\"bcns_bids\".ROWTIME BY INTERVAL '10' MINUTE) as \"period\",",
-            "              count(*) as \"bids\"",
-            "FROM \"bcns_bids\"",
-            "GROUP BY \"campaign_item_id\", STEP(\"bcns_bids\".ROWTIME BY INTERVAL '10' MINUTE);",
-            "",
-            "",
-            "",
-            "CREATE OR REPLACE PUMP \"campaign_item_performance_imps_pump\" AS",
-            "INSERT INTO \"campaign_aggregates\" (\"campaign_item_id\", \"period\", \"imps\") ",
-            "SELECT STREAM \"campaign_item_id\",",
-            "              STEP(\"impressions\".ROWTIME BY INTERVAL '10' MINUTE) as \"period\",",
-            "              count(1) as \"imps\"",
-            "FROM \"impressions\"",
-            "GROUP BY \"campaign_item_id\", STEP(\"impressions\".ROWTIME BY INTERVAL '10' MINUTE);",
-            "",
-            "",
-            "",
-            "CREATE OR REPLACE PUMP \"campaign_item_performance_clicks_pump\" AS",
-            "INSERT INTO \"campaign_aggregates\" (\"campaign_item_id\", \"period\", \"clicks\") ",
-            "SELECT STREAM \"campaign_item_id\",",
-            "              STEP(\"clicks\".ROWTIME BY INTERVAL '10' MINUTE) as \"period\",",
-            "              count(1) as \"clicks\"",
-            "FROM \"clicks\"",
-            "GROUP BY \"campaign_item_id\", STEP(\"clicks\".ROWTIME BY INTERVAL '10' MINUTE);"
-          ]]},
+        "ApplicationCode": {
+          "Fn::Join": [
+            "\n",
+            [
+              "CREATE STREAM \"bcns_impressions\" (",
+              "                \"txid\" VARCHAR(64),",
+              "                \"event_timestamp\" BIGINT,",
+              "                \"win_price\" BIGINT",
+              ");",
+              "",
+              "CREATE OR REPLACE PUMP \"bcns_impressions_pump\" AS",
+              "INSERT INTO \"bcns_impressions\" (\"txid\",\"event_timestamp\",\"win_price\") ",
+              "  SELECT \"txid\",\"event_timestamp\",\"win_price\" FROM \"bcns_001\" WHERE \"type\"='imp';",
+              "",
+              "CREATE STREAM \"bcns_bids\" (",
+              "                \"txid\" VARCHAR(64),",
+              "                \"event_timestamp\" BIGINT,",
+              "                \"campaign_item_id\" BIGINT,",
+              "                \"domain\" VARCHAR(255),",
+              "                \"creative_id\" VARCHAR(255),",
+              "                \"creative_category\" VARCHAR(255),",
+              "                \"appuid\" VARCHAR(255)",
+              ");",
+              "",
+              "CREATE OR REPLACE PUMP \"bcns_bids_pump\" AS",
+              "INSERT INTO \"bcns_bids\" (\"txid\",\"campaign_item_id\",\"domain\",\"creative_id\",\"creative_category\",\"appuid\",\"event_timestamp\") ",
+              "  SELECT \"txid\",\"campaign_item_id\",\"domain\",\"creative_id\",\"creative_category\",\"appuid\",\"event_timestamp\" FROM \"bcns_001\" WHERE \"type\"='bid';",
+              "",
+              "",
+              "CREATE STREAM \"bcns_clicks\" (",
+              "                \"txid\" VARCHAR(64),",
+              "                \"event_timestamp\" BIGINT",
+              ");",
+              "",
+              "",
+              "CREATE OR REPLACE PUMP \"bcns_clicks_pump\" AS",
+              "INSERT INTO \"bcns_clicks\" (\"txid\",\"event_timestamp\") ",
+              "  SELECT \"txid\",\"event_timestamp\" FROM \"bcns_001\" WHERE \"type\"='click';",
+              "",
+              "",
+              "CREATE STREAM \"impressions\"(",
+              "                \"txid\" VARCHAR(64),",
+              "                \"event_timestamp\" BIGINT,",
+              "                \"campaign_item_id\" BIGINT,",
+              "                \"domain\" VARCHAR(255),",
+              "                \"creative_id\" VARCHAR(255),",
+              "                \"creative_category\" VARCHAR(255),",
+              "                \"appuid\" VARCHAR(255)",
+              ");",
+              "",
+              "",
+              "CREATE OR REPLACE PUMP \"impressions_pump\" AS",
+              "INSERT INTO \"impressions\" ( \"txid\", \"event_timestamp\", \"campaign_item_id\", \"domain\", \"creative_id\", \"creative_category\", \"appuid\")",
+              "SELECT STREAM ",
+              " b.\"txid\", i.\"event_timestamp\", b.\"campaign_item_id\", b.\"domain\", b.\"creative_id\", b.\"creative_category\", b.\"appuid\"",
+              " FROM \"bcns_bids\" OVER (RANGE INTERVAL '1' MINUTE PRECEDING) as b",
+              " JOIN \"bcns_impressions\" AS i ON (b.\"txid\"=i.\"txid\");",
+              "",
+              "CREATE STREAM \"clicks\"(",
+              "                \"txid\" VARCHAR(16),",
+              "                \"event_timestamp\" BIGINT,",
+              "                \"campaign_item_id\" BIGINT,",
+              "                \"domain\" VARCHAR(255),",
+              "                \"creative_id\" VARCHAR(255),",
+              "                \"creative_category\" VARCHAR(255),",
+              "                \"appuid\" VARCHAR(255)",
+              ");",
+              "",
+              "CREATE OR REPLACE PUMP \"clicks_pump\" AS",
+              "INSERT INTO \"clicks\" ( \"txid\", \"event_timestamp\", \"campaign_item_id\", \"domain\", \"creative_id\", \"creative_category\", \"appuid\")",
+              "SELECT STREAM ",
+              " i.\"txid\", c.\"event_timestamp\", i.\"campaign_item_id\", i.\"domain\", i.\"creative_id\", i.\"creative_category\", i.\"appuid\"",
+              " FROM \"impressions\" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) as i",
+              " JOIN \"bcns_clicks\" AS c ON (i.\"txid\"=c.\"txid\");",
+              "",
+              "",
+              "CREATE STREAM \"campaign_aggregates\"(",
+              "               \"campaign_item_id\" BIGINT,",
+              "               \"period\" TIMESTAMP,",
+              "                \"bids\" BIGINT,",
+              "                \"imps\" BIGINT,",
+              "                \"clicks\" BIGINT);",
+              "",
+              "CREATE OR REPLACE PUMP \"campaign_item_performance_bids_pump\" AS",
+              "INSERT INTO \"campaign_aggregates\" (\"campaign_item_id\",\"period\",\"bids\") ",
+              "SELECT STREAM \"campaign_item_id\", ",
+              "              STEP(\"bcns_bids\".ROWTIME BY INTERVAL '10' MINUTE) as \"period\",",
+              "              count(*) as \"bids\"",
+              "FROM \"bcns_bids\"",
+              "GROUP BY \"campaign_item_id\", STEP(\"bcns_bids\".ROWTIME BY INTERVAL '10' MINUTE);",
+              "",
+              "",
+              "",
+              "CREATE OR REPLACE PUMP \"campaign_item_performance_imps_pump\" AS",
+              "INSERT INTO \"campaign_aggregates\" (\"campaign_item_id\", \"period\", \"imps\") ",
+              "SELECT STREAM \"campaign_item_id\",",
+              "              STEP(\"impressions\".ROWTIME BY INTERVAL '10' MINUTE) as \"period\",",
+              "              count(1) as \"imps\"",
+              "FROM \"impressions\"",
+              "GROUP BY \"campaign_item_id\", STEP(\"impressions\".ROWTIME BY INTERVAL '10' MINUTE);",
+              "",
+              "",
+              "",
+              "CREATE OR REPLACE PUMP \"campaign_item_performance_clicks_pump\" AS",
+              "INSERT INTO \"campaign_aggregates\" (\"campaign_item_id\", \"period\", \"clicks\") ",
+              "SELECT STREAM \"campaign_item_id\",",
+              "              STEP(\"clicks\".ROWTIME BY INTERVAL '10' MINUTE) as \"period\",",
+              "              count(1) as \"clicks\"",
+              "FROM \"clicks\"",
+              "GROUP BY \"campaign_item_id\", STEP(\"clicks\".ROWTIME BY INTERVAL '10' MINUTE);"
+            ]
+          ]
+        },
         "Inputs": [
           {
             "KinesisStreamsInput": {
-              "ResourceARN" : { "Fn::GetAtt": ["BcnsStream", "Arn"]},
-              "RoleARN": { "Fn::GetAtt": ["KinesisAnalyticsRole", "Arn"]}
+              "ResourceARN": {
+                "Fn::GetAtt": [
+                  "BcnsStream",
+                  "Arn"
+                ]
+              },
+              "RoleARN": {
+                "Fn::GetAtt": [
+                  "KinesisAnalyticsRole",
+                  "Arn"
+                ]
+              }
             },
             "NamePrefix": "bcns",
             "InputSchema": {
@@ -538,15 +742,27 @@
       "Type": "AWS::KinesisAnalytics::ApplicationOutput",
       "DependsOn": "KinesisAnalyticsApp",
       "Properties": {
-        "ApplicationName": {"Ref": "KinesisAnalyticsApp"},
+        "ApplicationName": {
+          "Ref": "KinesisAnalyticsApp"
+        },
         "Output": {
           "Name": "clicks",
           "DestinationSchema": {
             "RecordFormatType": "JSON"
           },
           "KinesisStreamsOutput": {
-            "ResourceARN": { "Fn::GetAtt": ["ClickStream", "Arn"]},
-            "RoleARN": { "Fn::GetAtt": ["KinesisAnalyticsRole", "Arn"]}
+            "ResourceARN": {
+              "Fn::GetAtt": [
+                "ClickStream",
+                "Arn"
+              ]
+            },
+            "RoleARN": {
+              "Fn::GetAtt": [
+                "KinesisAnalyticsRole",
+                "Arn"
+              ]
+            }
           }
         }
       }
@@ -555,38 +771,60 @@
       "Type": "AWS::KinesisAnalytics::ApplicationOutput",
       "DependsOn": "KinesisAnalyticsApp",
       "Properties": {
-        "ApplicationName": {"Ref": "KinesisAnalyticsApp"},
+        "ApplicationName": {
+          "Ref": "KinesisAnalyticsApp"
+        },
         "Output": {
           "Name": "impressions",
           "DestinationSchema": {
             "RecordFormatType": "JSON"
           },
           "KinesisStreamsOutput": {
-            "ResourceARN": { "Fn::GetAtt": ["ImpressionsStream", "Arn"]},
-            "RoleARN": { "Fn::GetAtt": ["KinesisAnalyticsRole", "Arn"]}
+            "ResourceARN": {
+              "Fn::GetAtt": [
+                "ImpressionsStream",
+                "Arn"
+              ]
+            },
+            "RoleARN": {
+              "Fn::GetAtt": [
+                "KinesisAnalyticsRole",
+                "Arn"
+              ]
+            }
           }
         }
       }
     },
-
     "KinesisAnalyticsAggregatesAppOutputs": {
       "Type": "AWS::KinesisAnalytics::ApplicationOutput",
       "DependsOn": "KinesisAnalyticsApp",
       "Properties": {
-        "ApplicationName": {"Ref": "KinesisAnalyticsApp"},
+        "ApplicationName": {
+          "Ref": "KinesisAnalyticsApp"
+        },
         "Output": {
           "Name": "campaign_aggregates",
           "DestinationSchema": {
             "RecordFormatType": "JSON"
           },
           "KinesisStreamsOutput": {
-            "ResourceARN": { "Fn::GetAtt": ["AggregatesStream", "Arn"]},
-            "RoleARN": { "Fn::GetAtt": ["KinesisAnalyticsRole", "Arn"]}
+            "ResourceARN": {
+              "Fn::GetAtt": [
+                "AggregatesStream",
+                "Arn"
+              ]
+            },
+            "RoleARN": {
+              "Fn::GetAtt": [
+                "KinesisAnalyticsRole",
+                "Arn"
+              ]
+            }
           }
         }
       }
     },
-
     "JsonNewLineAdderLambda": {
       "Type": "AWS::Serverless::Function",
       "Properties": {
@@ -595,72 +833,104 @@
         "Handler": "com.provectus.fds.compaction.JsonNewLineAdderLambda",
         "MemorySize": 128,
         "Timeout": 180,
-        "Role": { "Fn::GetAtt": ["LambdaExecutionRole", "Arn"]},
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaExecutionRole",
+            "Arn"
+          ]
+        },
         "Runtime": "java8"
       }
     },
-
-
-
     "S3DeliveryStreamAccessRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
-          "Version" : "2012-10-17",
-          "Statement": [{
-            "Effect": "Allow",
-            "Principal": {"Service": "firehose.amazonaws.com"},
-            "Action": ["sts:AssumeRole"],
-            "Condition": {
-              "StringEquals": {
-                "sts:ExternalId": { "Ref": "AWS::AccountId" }
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "firehose.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Condition": {
+                "StringEquals": {
+                  "sts:ExternalId": {
+                    "Ref": "AWS::AccountId"
+                  }
+                }
               }
             }
-          }]
+          ]
         },
-        "Policies": [{
-          "PolicyName": "firehose-s3-access-policy",
-          "PolicyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Sid": "AllowAccessToS3Bucket",
-                "Effect": "Allow",
-                "Action": [
-                  "s3:AbortMultipartUpload",
-                  "s3:GetBucketLocation",
-                  "s3:GetObject",
-                  "s3:ListBucket",
-                  "s3:ListBucketMultipartUploads",
-                  "s3:PutObject"
-                ],
-                "Resource": [
-                  {
-                    "Fn::Join":["",["arn:aws:s3:::", {"Ref": "FDSS3Bucket"}]]
-                  },
-                  {
-                    "Fn::Join":["",["arn:aws:s3:::", {"Ref": "FDSS3Bucket"},"/*"] ]
-                  }
-                ]
-              },
-              {
-                "Sid": "JsonNewLineAdderLambdaAccess",
-                "Effect": "Allow",
-                "Action": [
-                  "lambda:InvokeFunction",
-                  "lambda:GetFunctionConfiguration"
-                ],
-                "Resource": [
-                  { "Fn::GetAtt": ["JsonNewLineAdderLambda", "Arn"]},
-                ]
-              }
-            ]
+        "Policies": [
+          {
+            "PolicyName": "firehose-s3-access-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "AllowAccessToS3Bucket",
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:AbortMultipartUpload",
+                    "s3:GetBucketLocation",
+                    "s3:GetObject",
+                    "s3:ListBucket",
+                    "s3:ListBucketMultipartUploads",
+                    "s3:PutObject"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          {
+                            "Ref": "FDSS3Bucket"
+                          }
+                        ]
+                      ]
+                    },
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          {
+                            "Ref": "FDSS3Bucket"
+                          },
+                          "/*"
+                        ]
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Sid": "JsonNewLineAdderLambdaAccess",
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction",
+                    "lambda:GetFunctionConfiguration"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "JsonNewLineAdderLambda",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
           }
-        }]
+        ]
       }
     },
-
-
     "RawBcnsS3DeliveryStream": {
       "DependsOn": [
         "S3Bucket",
@@ -671,12 +941,30 @@
         "DeliveryStreamName": "FDSRawBcnsS3DelieveryStream",
         "DeliveryStreamType": "KinesisStreamAsSource",
         "KinesisStreamSourceConfiguration": {
-          "KinesisStreamARN" : { "Fn::GetAtt": ["BcnsStream", "Arn"]},
-          "RoleARN": { "Fn::GetAtt": ["KinesisAnalyticsRole", "Arn"]}
+          "KinesisStreamARN": {
+            "Fn::GetAtt": [
+              "BcnsStream",
+              "Arn"
+            ]
+          },
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "KinesisAnalyticsRole",
+              "Arn"
+            ]
+          }
         },
         "ExtendedS3DestinationConfiguration": {
           "BucketARN": {
-            "Fn::Join": ["", ["arn:aws:s3:::", {"Ref": "FDSS3Bucket"}]]
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:s3:::",
+                {
+                  "Ref": "FDSS3Bucket"
+                }
+              ]
+            ]
           },
           "BufferingHints": {
             "IntervalInSeconds": "60",
@@ -684,35 +972,62 @@
           },
           "CompressionFormat": "GZIP",
           "Prefix": "raw/bcns/",
-          "RoleARN": {"Fn::GetAtt":["S3DeliveryStreamAccessRole", "Arn"]},
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "S3DeliveryStreamAccessRole",
+              "Arn"
+            ]
+          },
           "ProcessingConfiguration": {
             "Enabled": "true",
-            "Processors": [{
-              "Parameters": [{
-                "ParameterName": "LambdaArn",
-                "ParameterValue": {"Fn::GetAtt" : ["JsonNewLineAdderLambda", "Arn"] },
-              }, {
-                "ParameterName": "RoleArn",
-                "ParameterValue": {"Fn::GetAtt":["S3DeliveryStreamAccessRole", "Arn"]}
-              }],
-              "Type": "Lambda"
-            }]
+            "Processors": [
+              {
+                "Parameters": [
+                  {
+                    "ParameterName": "LambdaArn",
+                    "ParameterValue": {
+                      "Fn::GetAtt": [
+                        "JsonNewLineAdderLambda",
+                        "Arn"
+                      ]
+                    }
+                  },
+                  {
+                    "ParameterName": "RoleArn",
+                    "ParameterValue": {
+                      "Fn::GetAtt": [
+                        "S3DeliveryStreamAccessRole",
+                        "Arn"
+                      ]
+                    }
+                  }
+                ],
+                "Type": "Lambda"
+              }
+            ]
           }
         }
       }
     },
-
     "JsonNewLineAdderLambdaPermission": {
       "Type": "AWS::Lambda::Permission",
       "Properties": {
         "Action": "lambda:invokeFunction",
-        "FunctionName": {"Fn::GetAtt": ["JsonNewLineAdderLambda", "Arn"]},
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "JsonNewLineAdderLambda",
+            "Arn"
+          ]
+        },
         "Principal": "firehose.amazonaws.com",
-        "SourceArn": {"Fn::GetAtt": ["RawBcnsS3DeliveryStream", "Arn"]}
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "RawBcnsS3DeliveryStream",
+            "Arn"
+          ]
+        }
       }
     },
-
-
     "RawImpressionsS3DeliveryStream": {
       "DependsOn": [
         "S3Bucket",
@@ -723,12 +1038,30 @@
         "DeliveryStreamName": "FDSRawImpressionsS3DelieveryStream",
         "DeliveryStreamType": "KinesisStreamAsSource",
         "KinesisStreamSourceConfiguration": {
-          "KinesisStreamARN" : { "Fn::GetAtt": ["ImpressionsStream", "Arn"]},
-          "RoleARN": { "Fn::GetAtt": ["KinesisAnalyticsRole", "Arn"]}
+          "KinesisStreamARN": {
+            "Fn::GetAtt": [
+              "ImpressionsStream",
+              "Arn"
+            ]
+          },
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "KinesisAnalyticsRole",
+              "Arn"
+            ]
+          }
         },
         "ExtendedS3DestinationConfiguration": {
           "BucketARN": {
-            "Fn::Join": ["", ["arn:aws:s3:::", {"Ref": "FDSS3Bucket"}]]
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:s3:::",
+                {
+                  "Ref": "FDSS3Bucket"
+                }
+              ]
+            ]
           },
           "BufferingHints": {
             "IntervalInSeconds": "60",
@@ -736,24 +1069,43 @@
           },
           "CompressionFormat": "GZIP",
           "Prefix": "raw/impressions/",
-          "RoleARN": {"Fn::GetAtt":["S3DeliveryStreamAccessRole", "Arn"]},
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "S3DeliveryStreamAccessRole",
+              "Arn"
+            ]
+          },
           "ProcessingConfiguration": {
             "Enabled": "true",
-            "Processors": [{
-              "Parameters": [{
-                "ParameterName": "LambdaArn",
-                "ParameterValue": {"Fn::GetAtt" : ["JsonNewLineAdderLambda", "Arn"] },
-              }, {
-                "ParameterName": "RoleArn",
-                "ParameterValue": {"Fn::GetAtt":["S3DeliveryStreamAccessRole", "Arn"]}
-              }],
-              "Type": "Lambda"
-            }]
+            "Processors": [
+              {
+                "Parameters": [
+                  {
+                    "ParameterName": "LambdaArn",
+                    "ParameterValue": {
+                      "Fn::GetAtt": [
+                        "JsonNewLineAdderLambda",
+                        "Arn"
+                      ]
+                    }
+                  },
+                  {
+                    "ParameterName": "RoleArn",
+                    "ParameterValue": {
+                      "Fn::GetAtt": [
+                        "S3DeliveryStreamAccessRole",
+                        "Arn"
+                      ]
+                    }
+                  }
+                ],
+                "Type": "Lambda"
+              }
+            ]
           }
         }
       }
     },
-
     "RawClicksS3DeliveryStream": {
       "DependsOn": [
         "S3Bucket",
@@ -764,12 +1116,30 @@
         "DeliveryStreamName": "FDSRawClicksS3DelieveryStream",
         "DeliveryStreamType": "KinesisStreamAsSource",
         "KinesisStreamSourceConfiguration": {
-          "KinesisStreamARN" : { "Fn::GetAtt": ["ClickStream", "Arn"]},
-          "RoleARN": { "Fn::GetAtt": ["KinesisAnalyticsRole", "Arn"]}
+          "KinesisStreamARN": {
+            "Fn::GetAtt": [
+              "ClickStream",
+              "Arn"
+            ]
+          },
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "KinesisAnalyticsRole",
+              "Arn"
+            ]
+          }
         },
         "ExtendedS3DestinationConfiguration": {
           "BucketARN": {
-            "Fn::Join": ["", ["arn:aws:s3:::", {"Ref": "FDSS3Bucket"}]]
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:s3:::",
+                {
+                  "Ref": "FDSS3Bucket"
+                }
+              ]
+            ]
           },
           "BufferingHints": {
             "IntervalInSeconds": "60",
@@ -777,41 +1147,69 @@
           },
           "CompressionFormat": "GZIP",
           "Prefix": "raw/clicks/",
-          "RoleARN": {"Fn::GetAtt":["S3DeliveryStreamAccessRole", "Arn"]},
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "S3DeliveryStreamAccessRole",
+              "Arn"
+            ]
+          },
           "ProcessingConfiguration": {
             "Enabled": "true",
-            "Processors": [{
-              "Parameters": [{
-                "ParameterName": "LambdaArn",
-                "ParameterValue": {"Fn::GetAtt" : ["JsonNewLineAdderLambda", "Arn"] },
-              }, {
-                "ParameterName": "RoleArn",
-                "ParameterValue": {"Fn::GetAtt":["S3DeliveryStreamAccessRole", "Arn"]}
-              }],
-              "Type": "Lambda"
-            }]
+            "Processors": [
+              {
+                "Parameters": [
+                  {
+                    "ParameterName": "LambdaArn",
+                    "ParameterValue": {
+                      "Fn::GetAtt": [
+                        "JsonNewLineAdderLambda",
+                        "Arn"
+                      ]
+                    }
+                  },
+                  {
+                    "ParameterName": "RoleArn",
+                    "ParameterValue": {
+                      "Fn::GetAtt": [
+                        "S3DeliveryStreamAccessRole",
+                        "Arn"
+                      ]
+                    }
+                  }
+                ],
+                "Type": "Lambda"
+              }
+            ]
           }
         }
       }
     },
-
     "FDSAnalyticalDatabase": {
       "Type": "AWS::Glue::Database",
       "Properties": {
-        "CatalogId": {"Ref": "AWS::AccountId"},
+        "CatalogId": {
+          "Ref": "AWS::AccountId"
+        },
         "DatabaseInput": {
-          "Name": {"Ref": "FDSAnalyticalDatabaseName"},
+          "Name": {
+            "Ref": "FDSAnalyticalDatabaseName"
+          },
           "Description": "Database to hold tables for fds data"
         }
       }
     },
-
     "RawBcnsGlueTable": {
-      "DependsOn": ["FDSAnalyticalDatabase"],
-      "Type" : "AWS::Glue::Table",
+      "DependsOn": [
+        "FDSAnalyticalDatabase"
+      ],
+      "Type": "AWS::Glue::Table",
       "Properties": {
-        "DatabaseName": {"Ref": "FDSAnalyticalDatabaseName"},
-        "CatalogId": {"Ref": "AWS::AccountId"},
+        "DatabaseName": {
+          "Ref": "FDSAnalyticalDatabaseName"
+        },
+        "CatalogId": {
+          "Ref": "AWS::AccountId"
+        },
         "TableInput": {
           "Name": "raw_bcns",
           "Description": "All input bcs in json format",
@@ -824,7 +1222,18 @@
             "typeOfData": "file"
           },
           "StorageDescriptor": {
-            "Location": {"Fn::Join": ["", ["s3://", {"Ref": "FDSS3Bucket"}, "/raw/bcns/"]]},
+            "Location": {
+              "Fn::Join": [
+                "",
+                [
+                  "s3://",
+                  {
+                    "Ref": "FDSS3Bucket"
+                  },
+                  "/raw/bcns/"
+                ]
+              ]
+            },
             "InputFormat": "org.apache.hadoop.mapred.TextInputFormat",
             "OutputFormat": "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
             "Compressed": true,
@@ -871,6 +1280,690 @@
                 "Type": "string"
               }
             ]
+          }
+        }
+      }
+    },
+    "RawImpressionsGlueTable": {
+      "DependsOn": [
+        "FDSAnalyticalDatabase"
+      ],
+      "Type": "AWS::Glue::Table",
+      "Properties": {
+        "DatabaseName": {
+          "Ref": "FDSAnalyticalDatabaseName"
+        },
+        "CatalogId": {
+          "Ref": "AWS::AccountId"
+        },
+        "TableInput": {
+          "Name": "raw_imps",
+          "Description": "All input imps in json format",
+          "TableType": "EXTERNAL_TABLE",
+          "Parameters": {
+            "CrawlerSchemaDeserializerVersion": "1.0",
+            "CrawlerSchemaSerializerVersion": "1.0",
+            "classification": "json",
+            "compressionType": "GZIP",
+            "typeOfData": "file"
+          },
+          "StorageDescriptor": {
+            "Location": {
+              "Fn::Join": [
+                "",
+                [
+                  "s3://",
+                  {
+                    "Ref": "FDSS3Bucket"
+                  },
+                  "/raw/imps/"
+                ]
+              ]
+            },
+            "InputFormat": "org.apache.hadoop.mapred.TextInputFormat",
+            "OutputFormat": "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+            "Compressed": true,
+            "NumberOfBuckets": -1,
+            "SerdeInfo": {
+              "SerializationLibrary": "org.openx.data.jsonserde.JsonSerDe"
+            },
+            "StoredAsSubDirectories": true,
+            "Columns": [
+              {
+                "Name": "txid",
+                "Type": "string"
+              },
+              {
+                "Name": "campaign_item_id",
+                "Type": "bigint"
+              },
+              {
+                "Name": "domain",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_id",
+                "Type": "string"
+              },
+              {
+                "Name": "appuid",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_category",
+                "Type": "string"
+              },
+              {
+                "Name": "type",
+                "Type": "string"
+              },
+              {
+                "Name": "timestamp",
+                "Type": "bigint"
+              },
+              {
+                "Name": "win_price",
+                "Type": "string"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "RawClicksGlueTable": {
+      "DependsOn": [
+        "FDSAnalyticalDatabase"
+      ],
+      "Type": "AWS::Glue::Table",
+      "Properties": {
+        "DatabaseName": {
+          "Ref": "FDSAnalyticalDatabaseName"
+        },
+        "CatalogId": {
+          "Ref": "AWS::AccountId"
+        },
+        "TableInput": {
+          "Name": "raw_clicks",
+          "Description": "All input clicks in json format",
+          "TableType": "EXTERNAL_TABLE",
+          "Parameters": {
+            "CrawlerSchemaDeserializerVersion": "1.0",
+            "CrawlerSchemaSerializerVersion": "1.0",
+            "classification": "json",
+            "compressionType": "GZIP",
+            "typeOfData": "file"
+          },
+          "StorageDescriptor": {
+            "Location": {
+              "Fn::Join": [
+                "",
+                [
+                  "s3://",
+                  {
+                    "Ref": "FDSS3Bucket"
+                  },
+                  "/raw/clicks/"
+                ]
+              ]
+            },
+            "InputFormat": "org.apache.hadoop.mapred.TextInputFormat",
+            "OutputFormat": "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+            "Compressed": true,
+            "NumberOfBuckets": -1,
+            "SerdeInfo": {
+              "SerializationLibrary": "org.openx.data.jsonserde.JsonSerDe"
+            },
+            "StoredAsSubDirectories": true,
+            "Columns": [
+              {
+                "Name": "txid",
+                "Type": "string"
+              },
+              {
+                "Name": "campaign_item_id",
+                "Type": "bigint"
+              },
+              {
+                "Name": "domain",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_id",
+                "Type": "string"
+              },
+              {
+                "Name": "appuid",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_category",
+                "Type": "string"
+              },
+              {
+                "Name": "type",
+                "Type": "string"
+              },
+              {
+                "Name": "timestamp",
+                "Type": "bigint"
+              },
+              {
+                "Name": "win_price",
+                "Type": "string"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "ParquetBcnsGlueTable": {
+      "DependsOn": [
+        "FDSAnalyticalDatabase"
+      ],
+      "Type": "AWS::Glue::Table",
+      "Properties": {
+        "TableInput": {
+          "Description": "All input bcns in parquet format",
+          "TableType": "EXTERNAL_TABLE",
+          "StorageDescriptor": {
+            "Location": {
+              "Fn::Join": [
+                "",
+                [
+                  "s3://",
+                  {
+                    "Ref": "FDSS3Bucket"
+                  },
+                  "/parquet/bcns/"
+                ]
+              ]
+            },
+            "InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+            "OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+            "Compressed": false,
+            "NumberOfBuckets": -1,
+            "SerdeInfo": {
+              "SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
+              "Parameters": {
+                "serialization.format": "1"
+              }
+            },
+            "StoredAsSubDirectories": true,
+            "Columns": [
+              {
+                "Name": "txid",
+                "Type": "string"
+              },
+              {
+                "Name": "campaign_item_id",
+                "Type": "bigint"
+              },
+              {
+                "Name": "domain",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_id",
+                "Type": "string"
+              },
+              {
+                "Name": "appuid",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_category",
+                "Type": "string"
+              },
+              {
+                "Name": "type",
+                "Type": "string"
+              },
+              {
+                "Name": "timestamp",
+                "Type": "bigint"
+              },
+              {
+                "Name": "win_price",
+                "Type": "string"
+              }
+            ]
+          },
+          "Name": "parquet_bcns"
+        },
+        "DatabaseName": {
+          "Ref": "FDSAnalyticalDatabaseName"
+        },
+        "CatalogId": {
+          "Ref": "AWS::AccountId"
+        }
+      }
+    },
+    "ParquetImpsGlueTable": {
+      "DependsOn": [
+        "FDSAnalyticalDatabase"
+      ],
+      "Type": "AWS::Glue::Table",
+      "Properties": {
+        "TableInput": {
+          "Description": "All input imps in parquet format",
+          "TableType": "EXTERNAL_TABLE",
+          "StorageDescriptor": {
+            "Location": {
+              "Fn::Join": [
+                "",
+                [
+                  "s3://",
+                  {
+                    "Ref": "FDSS3Bucket"
+                  },
+                  "/parquet/imps/"
+                ]
+              ]
+            },
+            "InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+            "OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+            "Compressed": false,
+            "NumberOfBuckets": -1,
+            "SerdeInfo": {
+              "SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
+              "Parameters": {
+                "serialization.format": "1"
+              }
+            },
+            "StoredAsSubDirectories": true,
+            "Columns": [
+              {
+                "Name": "txid",
+                "Type": "string"
+              },
+              {
+                "Name": "campaign_item_id",
+                "Type": "bigint"
+              },
+              {
+                "Name": "domain",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_id",
+                "Type": "string"
+              },
+              {
+                "Name": "appuid",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_category",
+                "Type": "string"
+              },
+              {
+                "Name": "type",
+                "Type": "string"
+              },
+              {
+                "Name": "timestamp",
+                "Type": "bigint"
+              },
+              {
+                "Name": "win_price",
+                "Type": "string"
+              }
+            ]
+          },
+          "Name": "parquet_imps"
+        },
+        "DatabaseName": {
+          "Ref": "FDSAnalyticalDatabaseName"
+        },
+        "CatalogId": {
+          "Ref": "AWS::AccountId"
+        }
+      }
+    },
+    "ParquetClickGlueTable": {
+      "DependsOn": [
+        "FDSAnalyticalDatabase"
+      ],
+      "Type": "AWS::Glue::Table",
+      "Properties": {
+        "TableInput": {
+          "Description": "All input clicks in parquet format",
+          "TableType": "EXTERNAL_TABLE",
+          "StorageDescriptor": {
+            "Location": {
+              "Fn::Join": [
+                "",
+                [
+                  "s3://",
+                  {
+                    "Ref": "FDSS3Bucket"
+                  },
+                  "/parquet/clicks/"
+                ]
+              ]
+            },
+            "InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+            "OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+            "Compressed": false,
+            "NumberOfBuckets": -1,
+            "SerdeInfo": {
+              "SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
+              "Parameters": {
+                "serialization.format": "1"
+              }
+            },
+            "StoredAsSubDirectories": true,
+            "Columns": [
+              {
+                "Name": "txid",
+                "Type": "string"
+              },
+              {
+                "Name": "campaign_item_id",
+                "Type": "bigint"
+              },
+              {
+                "Name": "domain",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_id",
+                "Type": "string"
+              },
+              {
+                "Name": "appuid",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_category",
+                "Type": "string"
+              },
+              {
+                "Name": "type",
+                "Type": "string"
+              },
+              {
+                "Name": "timestamp",
+                "Type": "bigint"
+              },
+              {
+                "Name": "win_price",
+                "Type": "string"
+              }
+            ]
+          },
+          "Name": "parquet_clicks"
+        },
+        "DatabaseName": {
+          "Ref": "FDSAnalyticalDatabaseName"
+        },
+        "CatalogId": {
+          "Ref": "AWS::AccountId"
+        }
+      }
+    },
+    "ParquetBcnsS3DeliveryStream": {
+      "DependsOn": [
+        "S3Bucket",
+        "S3DeliveryStreamAccessRole"
+      ],
+      "Type": "AWS::KinesisFirehose::DeliveryStream",
+      "Properties": {
+        "DeliveryStreamName": "FDSParquetBcnsS3DelieveryStream",
+        "DeliveryStreamType": "KinesisStreamAsSource",
+        "KinesisStreamSourceConfiguration": {
+          "KinesisStreamARN": {
+            "Fn::GetAtt": [
+              "BcnsStream",
+              "Arn"
+            ]
+          },
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "KinesisAnalyticsRole",
+              "Arn"
+            ]
+          }
+        },
+        "ExtendedS3DestinationConfiguration": {
+          "BucketARN": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:s3:::",
+                {
+                  "Ref": "FDSS3Bucket"
+                }
+              ]
+            ]
+          },
+          "BufferingHints": {
+            "IntervalInSeconds": "60",
+            "SizeInMBs": "50"
+          },
+          "CompressionFormat": "GZIP",
+          "Prefix": "parquet/bcns/",
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "S3DeliveryStreamAccessRole",
+              "Arn"
+            ]
+          },
+          "ProcessingConfiguration": {
+            "Enabled": "false"
+          },
+          "S3BackupMode": "Disabled",
+          "DataFormatConversionConfiguration": {
+            "Enabled": "true",
+            "InputFormatConfiguration": {
+              "Deserializer": {
+                "HiveJsonSerDe": {
+                  "TimestampFormats": "java.sql.Timestamp::valueOf"
+                }
+              }
+            },
+            "OutputFormatConfiguration": {
+              "Serializer": {
+                "ParquetSerDe": {
+                  "Compression": "SNAPPY",
+                  "EnableDictionaryCompression": "false"
+                }
+              }
+            },
+            "SchemaConfiguration": {
+              "CatalogId": {
+                "Ref": "AWS::AccountId"
+              },
+              "DatabaseName": {
+                "Ref": "FDSAnalyticalDatabaseName"
+              },
+              "RoleARN": {
+                "Fn::GetAtt": [
+                  "KinesisAnalyticsRole",
+                  "Arn"
+                ]
+              },
+              "TableName": {
+                "Fn::GetAtt": "parquet_bcns",
+                "VersionId": "LATEST"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ParquetImpsS3DeliveryStream": {
+      "DependsOn": [
+        "S3Bucket",
+        "S3DeliveryStreamAccessRole"
+      ],
+      "Type": "AWS::KinesisFirehose::DeliveryStream",
+      "Properties": {
+        "DeliveryStreamName": "FDSParquetImpsS3DelieveryStream",
+        "DeliveryStreamType": "KinesisStreamAsSource",
+        "KinesisStreamSourceConfiguration": {
+          "KinesisStreamARN": {
+            "Fn::GetAtt": [
+              "ImpressionsStream",
+              "Arn"
+            ]
+          },
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "KinesisAnalyticsRole",
+              "Arn"
+            ]
+          }
+        },
+        "ExtendedS3DestinationConfiguration": {
+          "BucketARN": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:s3:::",
+                {
+                  "Ref": "FDSS3Bucket"
+                }
+              ]
+            ]
+          },
+          "BufferingHints": {
+            "IntervalInSeconds": "60",
+            "SizeInMBs": "50"
+          },
+          "CompressionFormat": "GZIP",
+          "Prefix": "parquet/imps/",
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "S3DeliveryStreamAccessRole",
+              "Arn"
+            ]
+          },
+          "ProcessingConfiguration": {
+            "Enabled": "false"
+          },
+          "S3BackupMode": "Disabled",
+          "DataFormatConversionConfiguration": {
+            "Enabled": "true",
+            "InputFormatConfiguration": {
+              "Deserializer": {
+                "HiveJsonSerDe": {
+                  "TimestampFormats": "java.sql.Timestamp::valueOf"
+                }
+              }
+            },
+            "OutputFormatConfiguration": {
+              "Serializer": {
+                "ParquetSerDe": {
+                  "Compression": "SNAPPY",
+                  "EnableDictionaryCompression": "false"
+                }
+              }
+            },
+            "SchemaConfiguration": {
+              "CatalogId": {
+                "Ref": "AWS::AccountId"
+              },
+              "DatabaseName": {
+                "Ref": "FDSAnalyticalDatabaseName"
+              },
+              "RoleARN": {
+                "Fn::GetAtt": [
+                  "KinesisAnalyticsRole",
+                  "Arn"
+                ]
+              },
+              "TableName": "parquet_imps",
+              "VersionId": "LATEST"
+            }
+          }
+        }
+      }
+    },
+    "ParquetClickS3DeliveryStream": {
+      "DependsOn": [
+        "S3Bucket",
+        "S3DeliveryStreamAccessRole"
+      ],
+      "Type": "AWS::KinesisFirehose::DeliveryStream",
+      "Properties": {
+        "DeliveryStreamName": "FDSParquetClickS3DelieveryStream",
+        "DeliveryStreamType": "KinesisStreamAsSource",
+        "KinesisStreamSourceConfiguration": {
+          "KinesisStreamARN": {
+            "Fn::GetAtt": [
+              "ClickStream",
+              "Arn"
+            ]
+          },
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "KinesisAnalyticsRole",
+              "Arn"
+            ]
+          }
+        },
+        "ExtendedS3DestinationConfiguration": {
+          "BucketARN": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:s3:::",
+                {
+                  "Ref": "FDSS3Bucket"
+                }
+              ]
+            ]
+          },
+          "BufferingHints": {
+            "IntervalInSeconds": "60",
+            "SizeInMBs": "50"
+          },
+          "CompressionFormat": "GZIP",
+          "Prefix": "parquet/clicks/",
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "S3DeliveryStreamAccessRole",
+              "Arn"
+            ]
+          },
+          "ProcessingConfiguration": {
+            "Enabled": "false"
+          },
+          "S3BackupMode": "Disabled",
+          "DataFormatConversionConfiguration": {
+            "Enabled": "true",
+            "InputFormatConfiguration": {
+              "Deserializer": {
+                "HiveJsonSerDe": {
+                  "TimestampFormats": "java.sql.Timestamp::valueOf"
+                }
+              }
+            },
+            "OutputFormatConfiguration": {
+              "Serializer": {
+                "ParquetSerDe": {
+                  "Compression": "SNAPPY",
+                  "EnableDictionaryCompression": "false"
+                }
+              }
+            },
+            "SchemaConfiguration": {
+              "CatalogId": {
+                "Ref": "AWS::AccountId"
+              },
+              "DatabaseName": {
+                "Ref": "FDSAnalyticalDatabaseName"
+              },
+              "RoleARN": {
+                "Fn::GetAtt": [
+                  "KinesisAnalyticsRole",
+                  "Arn"
+                ]
+              },
+              "TableName": "parquet_clicks",
+              "VersionId": "LATEST"
+            }
           }
         }
       }
