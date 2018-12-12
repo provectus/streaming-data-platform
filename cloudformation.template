@@ -1840,11 +1840,11 @@
             ]
           },
           "ProcessingConfiguration": {
-            "Enabled": "false"
+            "Enabled": false
           },
           "S3BackupMode": "Disabled",
           "DataFormatConversionConfiguration": {
-            "Enabled": "true",
+            "Enabled": true,
             "InputFormatConfiguration": {
               "Deserializer": {
                 "HiveJsonSerDe": {
