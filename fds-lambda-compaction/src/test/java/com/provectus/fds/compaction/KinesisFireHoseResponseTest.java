@@ -15,6 +15,6 @@ public class KinesisFireHoseResponseTest {
                         .appendNewLine("Test", ByteBuffer.wrap("Test".getBytes()));
 
         String result = new String(Base64.getDecoder().decode(record.getData()));
-        assertEquals("Te1st" + '\n', result);
+        assertEquals("Test" + '\n', result);
     }
 }

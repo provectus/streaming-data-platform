@@ -2,13 +2,18 @@ package com.provectus.fds.compaction;
 
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.event.S3EventNotification;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Record;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.parquet.hadoop.ParquetFileWriter;
+import org.apache.parquet.hadoop.metadata.FileMetaData;
+import org.apache.parquet.io.InputFile;
 import org.kitesdk.data.spi.JsonUtil;
 import org.kitesdk.data.spi.filesystem.JSONFileReader;
 import parquet.avro.AvroParquetWriter;
@@ -49,10 +54,12 @@ public class JsonToParquetConverterLambda implements Function<S3Event, S3Event> 
 
     @Override
     public S3Event apply(S3Event s3Event) {
+        S3ClientOptions clientOption = S3ClientOptions.builder().build();
+        amazonS3.setS3ClientOptions(clientOption);
         for (S3EventNotification.S3EventNotificationRecord record : s3Event.getRecords()) {
             String s3Key = record.getS3().getObject().getKey();
             String s3Bucket = record.getS3().getBucket().getName();
-            if (s3Key.contains(".parquet")) {
+            if (s3Key.startsWith("/parquet/")) {
                 return s3Event;
             }
             S3Object jsonObject = amazonS3.getObject(new GetObjectRequest(s3Bucket, s3Key));
@@ -61,9 +68,9 @@ public class JsonToParquetConverterLambda implements Function<S3Event, S3Event> 
                 Schema jsonSchema = JsonUtil.inferSchema(rawJson, "myRecord");
                 JSONFileReader<Record> reader = new JSONFileReader<>(jsonObject.getObjectContent(), jsonSchema, Record.class);
                 reader.initialize();
-                Path tmpParquet = new Path(String.format("s3a://%s/%s/", s3Bucket, convertPath(s3Key).concat("")));
+                Path tmpParquetPath = new Path(String.format("s3a://%s/%s/", s3Bucket, convertPath(s3Key)));
                 ParquetWriter<Record> writer = new AvroParquetWriter<>(
-                        tmpParquet,
+                        tmpParquetPath,
                         jsonSchema,
                         CompressionCodecName.SNAPPY,
                         ParquetWriter.DEFAULT_BLOCK_SIZE,
@@ -73,8 +80,18 @@ public class JsonToParquetConverterLambda implements Function<S3Event, S3Event> 
                     writer.write(r);
                 }
                 writer.close();
-                S3Object parquetObject = amazonS3.getObject(new GetObjectRequest(s3Bucket, convertPath(s3Key, "data.parquet")));
-
+                if (amazonS3.doesObjectExist(s3Bucket, convertPath(s3Key, "data.parquet"))) {
+                    Path destParquetPath = new Path(String.format("s3a://%s/%s/", s3Bucket, convertPath(s3Key,"data.parquet")));
+                    S3Object parquetObject = amazonS3.getObject(new GetObjectRequest(s3Bucket, convertPath(s3Key, "data.parquet")));
+                    // Merge parquets
+                    Configuration conf;
+                    //ParquetFileWriter merger = new ParquetFileWriter();
+                    //merger.start();
+                    //merger.appendFile();
+                } else {
+                    amazonS3.copyObject(s3Bucket, convertPath(s3Key),s3Bucket, convertPath(s3Key, "data.parquet"));
+                }
+                amazonS3.deleteObject(s3Bucket, convertPath(s3Key));
             } catch (IOException e) {
                 e.printStackTrace();
             }
