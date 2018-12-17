@@ -27,6 +27,19 @@
         "AccessControl": "Private",
         "BucketName": {
           "Ref": "FDSS3Bucket"
+        },
+        "NotificationConfiguration": {
+          "LambdaConfigurations": [
+            {
+              "Event": "s3:ObjectCreated:*",
+              "Function": {
+                "Fn::GetAtt": [
+                  "JsonToParquetLambda",
+                  "Arn"
+                ]
+              }
+            }
+          ]
         }
       }
     },
@@ -842,7 +855,7 @@
         "Runtime": "java8"
       }
     },
-    "S3DeliveryStreamAccessRole": {
+    "S3DeliveryAccessRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
@@ -851,18 +864,14 @@
             {
               "Effect": "Allow",
               "Principal": {
-                "Service": "firehose.amazonaws.com"
+                "Service": [
+                  "firehose.amazonaws.com",
+                  "lambda.amazonaws.com"
+                ]
               },
               "Action": [
                 "sts:AssumeRole"
-              ],
-              "Condition": {
-                "StringEquals": {
-                  "sts:ExternalId": {
-                    "Ref": "AWS::AccountId"
-                  }
-                }
-              }
+              ]
             }
           ]
         },
@@ -934,7 +943,7 @@
     "RawBcnsS3DeliveryStream": {
       "DependsOn": [
         "S3Bucket",
-        "S3DeliveryStreamAccessRole"
+        "S3DeliveryAccessRole"
       ],
       "Type": "AWS::KinesisFirehose::DeliveryStream",
       "Properties": {
@@ -974,12 +983,12 @@
           "Prefix": "raw/bcns/",
           "RoleARN": {
             "Fn::GetAtt": [
-              "S3DeliveryStreamAccessRole",
+              "S3DeliveryAccessRole",
               "Arn"
             ]
           },
           "ProcessingConfiguration": {
-            "Enabled": "true",
+            "Enabled": true,
             "Processors": [
               {
                 "Parameters": [
@@ -996,7 +1005,7 @@
                     "ParameterName": "RoleArn",
                     "ParameterValue": {
                       "Fn::GetAtt": [
-                        "S3DeliveryStreamAccessRole",
+                        "S3DeliveryAccessRole",
                         "Arn"
                       ]
                     }
@@ -1031,7 +1040,7 @@
     "RawImpressionsS3DeliveryStream": {
       "DependsOn": [
         "S3Bucket",
-        "S3DeliveryStreamAccessRole"
+        "S3DeliveryAccessRole"
       ],
       "Type": "AWS::KinesisFirehose::DeliveryStream",
       "Properties": {
@@ -1071,12 +1080,12 @@
           "Prefix": "raw/impressions/",
           "RoleARN": {
             "Fn::GetAtt": [
-              "S3DeliveryStreamAccessRole",
+              "S3DeliveryAccessRole",
               "Arn"
             ]
           },
           "ProcessingConfiguration": {
-            "Enabled": "true",
+            "Enabled": true,
             "Processors": [
               {
                 "Parameters": [
@@ -1093,7 +1102,7 @@
                     "ParameterName": "RoleArn",
                     "ParameterValue": {
                       "Fn::GetAtt": [
-                        "S3DeliveryStreamAccessRole",
+                        "S3DeliveryAccessRole",
                         "Arn"
                       ]
                     }
@@ -1109,7 +1118,7 @@
     "RawClicksS3DeliveryStream": {
       "DependsOn": [
         "S3Bucket",
-        "S3DeliveryStreamAccessRole"
+        "S3DeliveryAccessRole"
       ],
       "Type": "AWS::KinesisFirehose::DeliveryStream",
       "Properties": {
@@ -1149,12 +1158,12 @@
           "Prefix": "raw/clicks/",
           "RoleARN": {
             "Fn::GetAtt": [
-              "S3DeliveryStreamAccessRole",
+              "S3DeliveryAccessRole",
               "Arn"
             ]
           },
           "ProcessingConfiguration": {
-            "Enabled": "true",
+            "Enabled": true,
             "Processors": [
               {
                 "Parameters": [
@@ -1171,7 +1180,7 @@
                     "ParameterName": "RoleArn",
                     "ParameterValue": {
                       "Fn::GetAtt": [
-                        "S3DeliveryStreamAccessRole",
+                        "S3DeliveryAccessRole",
                         "Arn"
                       ]
                     }
@@ -1702,269 +1711,47 @@
         }
       }
     },
-    "ParquetBcnsS3DeliveryStream": {
+    "JsonToParquetLambda": {
       "DependsOn": [
-        "S3Bucket",
-        "S3DeliveryStreamAccessRole"
+        "S3DeliveryAccessRole"
       ],
-      "Type": "AWS::KinesisFirehose::DeliveryStream",
+      "Type": "AWS::Serverless::Function",
       "Properties": {
-        "DeliveryStreamName": "FDSParquetBcnsS3DelieveryStream",
-        "DeliveryStreamType": "KinesisStreamAsSource",
-        "KinesisStreamSourceConfiguration": {
-          "KinesisStreamARN": {
-            "Fn::GetAtt": [
-              "BcnsStream",
-              "Arn"
-            ]
-          },
-          "RoleARN": {
-            "Fn::GetAtt": [
-              "KinesisAnalyticsRole",
-              "Arn"
-            ]
-          }
+        "CodeUri": "./fds-lambda-compaction/target/fds-lambda-compaction-1.0-SNAPSHOT.jar",
+        "FunctionName": "JsonToParquetConverterLambda",
+        "Handler": "com.provectus.fds.compaction.JsonToParquetConverterLambda",
+        "MemorySize": 128,
+        "Timeout": 180,
+        "Role": {
+          "Fn::GetAtt": [
+            "S3DeliveryAccessRole",
+            "Arn"
+          ]
         },
-        "ExtendedS3DestinationConfiguration": {
-          "BucketARN": {
-            "Fn::Join": [
-              "",
-              [
-                "arn:aws:s3:::",
-                {
-                  "Ref": "FDSS3Bucket"
-                }
-              ]
-            ]
-          },
-          "BufferingHints": {
-            "IntervalInSeconds": "60",
-            "SizeInMBs": "50"
-          },
-          "CompressionFormat": "GZIP",
-          "Prefix": "parquet/bcns/",
-          "RoleARN": {
-            "Fn::GetAtt": [
-              "S3DeliveryStreamAccessRole",
-              "Arn"
-            ]
-          },
-          "ProcessingConfiguration": {
-            "Enabled": "false"
-          },
-          "S3BackupMode": "Disabled",
-          "DataFormatConversionConfiguration": {
-            "Enabled": "true",
-            "InputFormatConfiguration": {
-              "Deserializer": {
-                "HiveJsonSerDe": {
-                  "TimestampFormats": "java.sql.Timestamp::valueOf"
-                }
-              }
-            },
-            "OutputFormatConfiguration": {
-              "Serializer": {
-                "ParquetSerDe": {
-                  "Compression": "SNAPPY",
-                  "EnableDictionaryCompression": "false"
-                }
-              }
-            },
-            "SchemaConfiguration": {
-              "CatalogId": {
-                "Ref": "AWS::AccountId"
-              },
-              "DatabaseName": {
-                "Ref": "FDSAnalyticalDatabaseName"
-              },
-              "RoleARN": {
-                "Fn::GetAtt": [
-                  "KinesisAnalyticsRole",
-                  "Arn"
-                ]
-              },
-              "TableName": {
-                "Fn::GetAtt": "parquet_bcns",
-                "VersionId": "LATEST"
-              }
-            }
-          }
-        }
+        "Runtime": "java8"
       }
     },
-    "ParquetImpsS3DeliveryStream": {
-      "DependsOn": [
-        "S3Bucket",
-        "S3DeliveryStreamAccessRole"
-      ],
-      "Type": "AWS::KinesisFirehose::DeliveryStream",
+    "JsonToParquetLambdaPermission": {
+      "Type": "AWS::Lambda::Permission",
       "Properties": {
-        "DeliveryStreamName": "FDSParquetImpsS3DelieveryStream",
-        "DeliveryStreamType": "KinesisStreamAsSource",
-        "KinesisStreamSourceConfiguration": {
-          "KinesisStreamARN": {
-            "Fn::GetAtt": [
-              "ImpressionsStream",
-              "Arn"
-            ]
-          },
-          "RoleARN": {
-            "Fn::GetAtt": [
-              "KinesisAnalyticsRole",
-              "Arn"
-            ]
-          }
+        "Action": "lambda:invokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "JsonToParquetLambda",
+            "Arn"
+          ]
         },
-        "ExtendedS3DestinationConfiguration": {
-          "BucketARN": {
-            "Fn::Join": [
-              "",
-              [
-                "arn:aws:s3:::",
-                {
-                  "Ref": "FDSS3Bucket"
-                }
-              ]
-            ]
-          },
-          "BufferingHints": {
-            "IntervalInSeconds": "60",
-            "SizeInMBs": "50"
-          },
-          "CompressionFormat": "GZIP",
-          "Prefix": "parquet/imps/",
-          "RoleARN": {
-            "Fn::GetAtt": [
-              "S3DeliveryStreamAccessRole",
-              "Arn"
-            ]
-          },
-          "ProcessingConfiguration": {
-            "Enabled": false
-          },
-          "S3BackupMode": "Disabled",
-          "DataFormatConversionConfiguration": {
-            "Enabled": true,
-            "InputFormatConfiguration": {
-              "Deserializer": {
-                "HiveJsonSerDe": {
-                  "TimestampFormats": "java.sql.Timestamp::valueOf"
-                }
+        "Principal": "s3.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:aws:s3:::",
+              {
+                "Ref": "FDSS3Bucket"
               }
-            },
-            "OutputFormatConfiguration": {
-              "Serializer": {
-                "ParquetSerDe": {
-                  "Compression": "SNAPPY",
-                  "EnableDictionaryCompression": "false"
-                }
-              }
-            },
-            "SchemaConfiguration": {
-              "CatalogId": {
-                "Ref": "AWS::AccountId"
-              },
-              "DatabaseName": {
-                "Ref": "FDSAnalyticalDatabaseName"
-              },
-              "RoleARN": {
-                "Fn::GetAtt": [
-                  "KinesisAnalyticsRole",
-                  "Arn"
-                ]
-              },
-              "TableName": "parquet_imps",
-              "VersionId": "LATEST"
-            }
-          }
-        }
-      }
-    },
-    "ParquetClickS3DeliveryStream": {
-      "DependsOn": [
-        "S3Bucket",
-        "S3DeliveryStreamAccessRole"
-      ],
-      "Type": "AWS::KinesisFirehose::DeliveryStream",
-      "Properties": {
-        "DeliveryStreamName": "FDSParquetClickS3DelieveryStream",
-        "DeliveryStreamType": "KinesisStreamAsSource",
-        "KinesisStreamSourceConfiguration": {
-          "KinesisStreamARN": {
-            "Fn::GetAtt": [
-              "ClickStream",
-              "Arn"
             ]
-          },
-          "RoleARN": {
-            "Fn::GetAtt": [
-              "KinesisAnalyticsRole",
-              "Arn"
-            ]
-          }
-        },
-        "ExtendedS3DestinationConfiguration": {
-          "BucketARN": {
-            "Fn::Join": [
-              "",
-              [
-                "arn:aws:s3:::",
-                {
-                  "Ref": "FDSS3Bucket"
-                }
-              ]
-            ]
-          },
-          "BufferingHints": {
-            "IntervalInSeconds": "60",
-            "SizeInMBs": "50"
-          },
-          "CompressionFormat": "GZIP",
-          "Prefix": "parquet/clicks/",
-          "RoleARN": {
-            "Fn::GetAtt": [
-              "S3DeliveryStreamAccessRole",
-              "Arn"
-            ]
-          },
-          "ProcessingConfiguration": {
-            "Enabled": "false"
-          },
-          "S3BackupMode": "Disabled",
-          "DataFormatConversionConfiguration": {
-            "Enabled": "true",
-            "InputFormatConfiguration": {
-              "Deserializer": {
-                "HiveJsonSerDe": {
-                  "TimestampFormats": "java.sql.Timestamp::valueOf"
-                }
-              }
-            },
-            "OutputFormatConfiguration": {
-              "Serializer": {
-                "ParquetSerDe": {
-                  "Compression": "SNAPPY",
-                  "EnableDictionaryCompression": "false"
-                }
-              }
-            },
-            "SchemaConfiguration": {
-              "CatalogId": {
-                "Ref": "AWS::AccountId"
-              },
-              "DatabaseName": {
-                "Ref": "FDSAnalyticalDatabaseName"
-              },
-              "RoleARN": {
-                "Fn::GetAtt": [
-                  "KinesisAnalyticsRole",
-                  "Arn"
-                ]
-              },
-              "TableName": "parquet_clicks",
-              "VersionId": "LATEST"
-            }
-          }
+          ]
         }
       }
     }

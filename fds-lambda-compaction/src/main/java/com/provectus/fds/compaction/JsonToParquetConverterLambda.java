@@ -1,5 +1,7 @@
 package com.provectus.fds.compaction;
 
+import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -8,7 +10,6 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
-import com.provectus.fds.compaction.utils.JsonParquetConverter;
 import com.provectus.fds.compaction.utils.ParquetUtils;
 import com.provectus.fds.compaction.utils.PathFormatter;
 import com.provectus.fds.compaction.utils.S3Utils;
@@ -20,10 +21,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.UUID;
-import java.util.function.Function;
 
 
-public class JsonToParquetConverterLambda implements Function<S3Event, S3Event> {
+public class JsonToParquetConverterLambda implements RequestHandler<S3Event, S3Event> {
+
+
 
     public static final String S3_PARQUET_PREFIX = "parquet";
     public static final String MERGED_PARQUET_FILE_NAME = "data.parquet";
@@ -36,8 +38,8 @@ public class JsonToParquetConverterLambda implements Function<S3Event, S3Event> 
     }
 
     @Override
-    public S3Event apply(S3Event s3Event) {
-
+    public S3Event handleRequest(S3Event s3Event,Context context) {
+        context.getLogger().log("Received: "+s3Event.toString());
         AmazonS3 s3clinet = AmazonS3ClientBuilder.defaultClient();
 
         for (S3EventNotification.S3EventNotificationRecord record : s3Event.getRecords()) {
@@ -88,6 +90,7 @@ public class JsonToParquetConverterLambda implements Function<S3Event, S3Event> 
                                     targetParquetFile
                             )
                     );
+                    context.getLogger().log("Parquet uploaded: "+targetParquetFile.toString());
 
                 } catch (IOException e) {
                     throw new RuntimeException(e);
