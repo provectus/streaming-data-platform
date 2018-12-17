@@ -875,6 +875,9 @@
             }
           ]
         },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        ],
         "Policies": [
           {
             "PolicyName": "firehose-s3-access-policy",

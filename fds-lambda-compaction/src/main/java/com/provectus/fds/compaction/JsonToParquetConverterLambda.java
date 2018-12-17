@@ -46,7 +46,7 @@ public class JsonToParquetConverterLambda implements RequestHandler<S3Event, S3E
             String s3Key = record.getS3().getObject().getKey();
             String s3Bucket = record.getS3().getBucket().getName();
 
-            if (s3Key.startsWith("/raw/")) {
+            if (s3Key.startsWith("raw/")) {
 
                 S3Object jsonObject = s3clinet.getObject(new GetObjectRequest(s3Bucket, s3Key));
 
