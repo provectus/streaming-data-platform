@@ -1723,7 +1723,7 @@
         "CodeUri": "./fds-lambda-compaction/target/fds-lambda-compaction-1.0-SNAPSHOT.jar",
         "FunctionName": "JsonToParquetConverterLambda",
         "Handler": "com.provectus.fds.compaction.JsonToParquetConverterLambda",
-        "MemorySize": 128,
+        "MemorySize": 256,
         "Timeout": 180,
         "Role": {
           "Fn::GetAtt": [
