@@ -2,6 +2,7 @@ package com.provectus.fds.compaction.utils;
 
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import org.apache.hadoop.fs.Path;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -9,7 +10,7 @@ import java.io.IOException;
 
 public class S3Utils {
     public static File downloadFile(S3Object object) throws IOException {
-        File outputFile = File.createTempFile(object.getBucketName(),object.getKey());
+        File outputFile = File.createTempFile(object.getBucketName(), object.getKey().replace(Path.SEPARATOR, "_"));
         try (S3ObjectInputStream s3is = object.getObjectContent();
              FileOutputStream fos = new FileOutputStream(outputFile)) {
             byte[] read_buf = new byte[1024];
