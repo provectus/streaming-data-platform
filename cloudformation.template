@@ -1664,7 +1664,7 @@
                 "serialization.format": 1
               }
             },
-            "StoredAsSubDirectories": true,
+            "StoredAsSubDirectories": false,
             "Columns": [
               {
                 "Name": "txid",
@@ -1746,7 +1746,7 @@
                 "serialization.format": 1
               }
             },
-            "StoredAsSubDirectories": true,
+            "StoredAsSubDirectories": false,
             "Columns": [
               {
                 "Name": "txid",
@@ -1828,7 +1828,7 @@
                 "serialization.format": 1
               }
             },
-            "StoredAsSubDirectories": true,
+            "StoredAsSubDirectories": false,
             "Columns": [
               {
                 "Name": "txid",
@@ -1897,7 +1897,7 @@
           ]
         },
         "Handler": "com.provectus.fds.compaction.JsonToParquetConverterLambda",
-        "MemorySize": 384,
+        "MemorySize": 512,
         "Timeout": 180,
         "Role": {
           "Fn::GetAtt": [
