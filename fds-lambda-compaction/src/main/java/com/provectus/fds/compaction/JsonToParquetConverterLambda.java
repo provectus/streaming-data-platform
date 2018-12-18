@@ -57,18 +57,19 @@ public class JsonToParquetConverterLambda implements RequestHandler<S3Event, S3E
 
                 try {
 
-                    s3jsonFile = S3Utils.downloadFile(jsonObject);
+                    PathFormatter formatter = PathFormatter.fromS3Path(s3Key);
+                    s3jsonFile = S3Utils.downloadFile(jsonObject, formatter.getFilename());
                     tmpParquetFile = parquetUtils.convert(tmpDir,s3jsonFile, s3Bucket);
                     targetParquetFile = new File(tmpDir, UUID.randomUUID().toString());
 
-                    PathFormatter formatter = PathFormatter.fromS3Path(s3Key);
+
 
                     String parquetPath = formatter.pathWithFile(S3_PARQUET_PREFIX, MERGED_PARQUET_FILE_NAME);
 
                     if (s3clinet.doesObjectExist(s3Bucket, parquetPath)) {
 
                         S3Object parquetObject = s3clinet.getObject(new GetObjectRequest(s3Bucket, parquetPath));
-                        dataParquetFile = S3Utils.downloadFile(parquetObject);
+                        dataParquetFile = S3Utils.downloadFile(parquetObject, MERGED_PARQUET_FILE_NAME);
 
                         parquetUtils.mergeFiles(
                                 ParquetWriter.DEFAULT_BLOCK_SIZE,

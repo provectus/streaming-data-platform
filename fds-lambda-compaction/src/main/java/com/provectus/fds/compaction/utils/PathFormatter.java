@@ -13,6 +13,22 @@ public class PathFormatter {
         this.filename = filename;
     }
 
+    public String getSource() {
+        return source;
+    }
+
+    public String getMsgtype() {
+        return msgtype;
+    }
+
+    public Period getPeriod() {
+        return period;
+    }
+
+    public String getFilename() {
+        return filename;
+    }
+
     public static PathFormatter fromS3Path(String path) {
         String[] parts = path.split("/");
         String source = parts[0];
