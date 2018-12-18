@@ -1360,6 +1360,94 @@
         }
       }
     },
+    "RawAggregatesS3DeliveryStream": {
+      "DependsOn": [
+        "S3Bucket",
+        "S3DeliveryAccessRole"
+      ],
+      "Type": "AWS::KinesisFirehose::DeliveryStream",
+      "Properties": {
+        "DeliveryStreamName": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "FDSRawAggrefatesS3DelieveryStream"
+            ]
+          ]
+        },
+        "DeliveryStreamType": "KinesisStreamAsSource",
+        "KinesisStreamSourceConfiguration": {
+          "KinesisStreamARN": {
+            "Fn::GetAtt": [
+              "AggregatesStream",
+              "Arn"
+            ]
+          },
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "KinesisAnalyticsRole",
+              "Arn"
+            ]
+          }
+        },
+        "ExtendedS3DestinationConfiguration": {
+          "BucketARN": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:s3:::",
+                {
+                  "Ref": "FDSS3Bucket"
+                }
+              ]
+            ]
+          },
+          "BufferingHints": {
+            "IntervalInSeconds": 60,
+            "SizeInMBs": 50
+          },
+          "CompressionFormat": "GZIP",
+          "Prefix": "raw/aggregates/",
+          "RoleARN": {
+            "Fn::GetAtt": [
+              "S3DeliveryAccessRole",
+              "Arn"
+            ]
+          },
+          "ProcessingConfiguration": {
+            "Enabled": true,
+            "Processors": [
+              {
+                "Parameters": [
+                  {
+                    "ParameterName": "LambdaArn",
+                    "ParameterValue": {
+                      "Fn::GetAtt": [
+                        "JsonNewLineAdderLambda",
+                        "Arn"
+                      ]
+                    }
+                  },
+                  {
+                    "ParameterName": "RoleArn",
+                    "ParameterValue": {
+                      "Fn::GetAtt": [
+                        "S3DeliveryAccessRole",
+                        "Arn"
+                      ]
+                    }
+                  }
+                ],
+                "Type": "Lambda"
+              }
+            ]
+          }
+        }
+      }
+    },
     "FDSAnalyticalDatabase": {
       "Type": "AWS::Glue::Database",
       "Properties": {
@@ -1579,6 +1667,92 @@
                     "Ref": "FDSS3Bucket"
                   },
                   "/raw/clicks/"
+                ]
+              ]
+            },
+            "InputFormat": "org.apache.hadoop.mapred.TextInputFormat",
+            "OutputFormat": "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+            "Compressed": true,
+            "NumberOfBuckets": -1,
+            "SerdeInfo": {
+              "SerializationLibrary": "org.openx.data.jsonserde.JsonSerDe"
+            },
+            "StoredAsSubDirectories": true,
+            "Columns": [
+              {
+                "Name": "txid",
+                "Type": "string"
+              },
+              {
+                "Name": "campaign_item_id",
+                "Type": "bigint"
+              },
+              {
+                "Name": "domain",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_id",
+                "Type": "string"
+              },
+              {
+                "Name": "appuid",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_category",
+                "Type": "string"
+              },
+              {
+                "Name": "type",
+                "Type": "string"
+              },
+              {
+                "Name": "timestamp",
+                "Type": "bigint"
+              },
+              {
+                "Name": "win_price",
+                "Type": "bigint"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "RawAggregatesGlueTable": {
+      "DependsOn": [
+        "FDSAnalyticalDatabase"
+      ],
+      "Type": "AWS::Glue::Table",
+      "Properties": {
+        "DatabaseName": {
+          "Ref": "FDSAnalyticalDatabaseName"
+        },
+        "CatalogId": {
+          "Ref": "AWS::AccountId"
+        },
+        "TableInput": {
+          "Name": "raw_aggregates",
+          "Description": "All input aggregates in json format",
+          "TableType": "EXTERNAL_TABLE",
+          "Parameters": {
+            "CrawlerSchemaDeserializerVersion": 1.0,
+            "CrawlerSchemaSerializerVersion": 1.0,
+            "classification": "json",
+            "compressionType": "GZIP",
+            "typeOfData": "file"
+          },
+          "StorageDescriptor": {
+            "Location": {
+              "Fn::Join": [
+                "",
+                [
+                  "s3://",
+                  {
+                    "Ref": "FDSS3Bucket"
+                  },
+                  "/raw/aggregates/"
                 ]
               ]
             },
@@ -1869,6 +2043,88 @@
             ]
           },
           "Name": "parquet_clicks"
+        },
+        "DatabaseName": {
+          "Ref": "FDSAnalyticalDatabaseName"
+        },
+        "CatalogId": {
+          "Ref": "AWS::AccountId"
+        }
+      }
+    },
+    "ParquetAggregatesGlueTable": {
+      "DependsOn": [
+        "FDSAnalyticalDatabase"
+      ],
+      "Type": "AWS::Glue::Table",
+      "Properties": {
+        "TableInput": {
+          "Description": "All input aggregates in parquet format",
+          "TableType": "EXTERNAL_TABLE",
+          "StorageDescriptor": {
+            "Location": {
+              "Fn::Join": [
+                "",
+                [
+                  "s3://",
+                  {
+                    "Ref": "FDSS3Bucket"
+                  },
+                  "/parquet/aggregates/"
+                ]
+              ]
+            },
+            "InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+            "OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+            "Compressed": false,
+            "NumberOfBuckets": -1,
+            "SerdeInfo": {
+              "SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
+              "Parameters": {
+                "serialization.format": 1
+              }
+            },
+            "StoredAsSubDirectories": true,
+            "Columns": [
+              {
+                "Name": "txid",
+                "Type": "string"
+              },
+              {
+                "Name": "campaign_item_id",
+                "Type": "bigint"
+              },
+              {
+                "Name": "domain",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_id",
+                "Type": "string"
+              },
+              {
+                "Name": "appuid",
+                "Type": "string"
+              },
+              {
+                "Name": "creative_category",
+                "Type": "string"
+              },
+              {
+                "Name": "type",
+                "Type": "string"
+              },
+              {
+                "Name": "timestamp",
+                "Type": "bigint"
+              },
+              {
+                "Name": "win_price",
+                "Type": "bigint"
+              }
+            ]
+          },
+          "Name": "parquet_aggregates"
         },
         "DatabaseName": {
           "Ref": "FDSAnalyticalDatabaseName"
