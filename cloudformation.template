@@ -1766,39 +1766,23 @@
             "StoredAsSubDirectories": true,
             "Columns": [
               {
-                "Name": "txid",
-                "Type": "string"
-              },
-              {
                 "Name": "campaign_item_id",
                 "Type": "bigint"
               },
               {
-                "Name": "domain",
-                "Type": "string"
+                "Name": "period",
+                "Type": "timestamp"
               },
               {
-                "Name": "creative_id",
-                "Type": "string"
-              },
-              {
-                "Name": "appuid",
-                "Type": "string"
-              },
-              {
-                "Name": "creative_category",
-                "Type": "string"
-              },
-              {
-                "Name": "type",
-                "Type": "string"
-              },
-              {
-                "Name": "timestamp",
+                "Name": "bids",
                 "Type": "bigint"
               },
               {
-                "Name": "win_price",
+                "Name": "imps",
+                "Type": "bigint"
+              },
+              {
+                "Name": "clicks",
                 "Type": "bigint"
               }
             ]
@@ -2084,42 +2068,26 @@
                 "serialization.format": 1
               }
             },
-            "StoredAsSubDirectories": true,
+            "StoredAsSubDirectories": false,
             "Columns": [
-              {
-                "Name": "txid",
-                "Type": "string"
-              },
               {
                 "Name": "campaign_item_id",
                 "Type": "bigint"
               },
               {
-                "Name": "domain",
-                "Type": "string"
+                "Name": "period",
+                "Type": "timestamp"
               },
               {
-                "Name": "creative_id",
-                "Type": "string"
-              },
-              {
-                "Name": "appuid",
-                "Type": "string"
-              },
-              {
-                "Name": "creative_category",
-                "Type": "string"
-              },
-              {
-                "Name": "type",
-                "Type": "string"
-              },
-              {
-                "Name": "timestamp",
+                "Name": "bids",
                 "Type": "bigint"
               },
               {
-                "Name": "win_price",
+                "Name": "imps",
+                "Type": "bigint"
+              },
+              {
+                "Name": "clicks",
                 "Type": "bigint"
               }
             ]
