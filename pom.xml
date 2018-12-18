@@ -15,16 +15,31 @@
       <com.fasterxml.jackson.version>2.6.7</com.fasterxml.jackson.version>
       <maven.compiler.source>1.8</maven.compiler.source>
       <maven.compiler.target>1.8</maven.compiler.target>
+      <org.apache.parquet.version>1.12.0-palantir.1</org.apache.parquet.version>
+      <hadoop.version>2.7.3</hadoop.version>
   </properties>
 
    <dependencies>
        <dependency>
            <groupId>junit</groupId>
            <artifactId>junit</artifactId>
+           <scope>test</scope>
+       </dependency>
+       <dependency>
+           <groupId>com.amazonaws</groupId>
+           <artifactId>aws-lambda-java-core</artifactId>
        </dependency>
    </dependencies>
 
-  <modules>
+    <repositories>
+        <repository>
+            <id>palantir</id>
+            <name>palantir</name>
+            <url>https://dl.bintray.com/palantir/releases/</url>
+        </repository>
+    </repositories>
+
+    <modules>
       <module>fds-lambda-api</module>
       <module>fds-lambda-reports</module>
       <module>fds-lambda-compaction</module>
@@ -62,6 +77,7 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -78,6 +94,54 @@
             <artifactId>fds-models</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>1.11.466</version>
+        </dependency>
+        <dependency>
+            <groupId>org.kitesdk</groupId>
+            <artifactId>kite-data-core</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>3.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-common</artifactId>
+            <version>${org.apache.parquet.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-encoding</artifactId>
+            <version>${org.apache.parquet.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-column</artifactId>
+            <version>${org.apache.parquet.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-hadoop</artifactId>
+            <version>${org.apache.parquet.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-avro</artifactId>
+            <version>${org.apache.parquet.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
+
     </dependencies>
 
   </dependencyManagement>
