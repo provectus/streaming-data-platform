@@ -11,6 +11,10 @@
     }
   },
   "Parameters": {
+    "FDSServicePrefix": {
+      "Type": "String",
+      "Default": "fdsanalytics"
+    },
     "FDSAnalyticalDatabaseName": {
       "Type": "String",
       "Default": "fdsanalytics"
@@ -67,7 +71,17 @@
         ],
         "Policies": [
           {
-            "PolicyName": "KinesisPermission",
+            "PolicyName": {
+              "Fn::Join": [
+                "_",
+                [
+                  {
+                    "Ref": "FDSServicePrefix"
+                  },
+                  "KinesisPermission"
+                ]
+              ]
+            },
             "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [
@@ -131,7 +145,17 @@
         },
         "Policies": [
           {
-            "PolicyName": "KinesisAnalyticsPermission",
+            "PolicyName": {
+              "Fn::Join": [
+                "_",
+                [
+                  {
+                    "Ref": "FDSServicePrefix"
+                  },
+                  "KinesisAnalyticsPermission"
+                ]
+              ]
+            },
             "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [
@@ -176,35 +200,85 @@
     "BcnsStream": {
       "Type": "AWS::Kinesis::Stream",
       "Properties": {
-        "Name": "bcns",
-        "ShardCount": "2"
+        "Name": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "bcns"
+            ]
+          ]
+        },
+        "ShardCount": 2
       }
     },
     "ClickStream": {
       "Type": "AWS::Kinesis::Stream",
       "Properties": {
-        "Name": "clicks",
-        "ShardCount": "2"
+        "Name": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "clicks"
+            ]
+          ]
+        },
+        "ShardCount": 2
       }
     },
     "ImpressionsStream": {
       "Type": "AWS::Kinesis::Stream",
       "Properties": {
-        "Name": "impressions",
-        "ShardCount": "2"
+        "Name": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "impressions"
+            ]
+          ]
+        },
+        "ShardCount": 2
       }
     },
     "AggregatesStream": {
       "Type": "AWS::Kinesis::Stream",
       "Properties": {
-        "Name": "aggregates",
-        "ShardCount": "2"
+        "Name": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "aggregates"
+            ]
+          ]
+        },
+        "ShardCount": 2
       }
     },
     "FDSApi": {
       "Type": "AWS::ApiGateway::RestApi",
       "Properties": {
-        "Name": "FDS API",
+        "Name": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "FDS_API"
+            ]
+          ]
+        },
         "Description": "API used for FDS requests",
         "FailOnWarnings": false
       }
@@ -213,7 +287,17 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "CodeUri": "./fds-lambda-api/target/fds-lambda-api-1.0-SNAPSHOT.jar",
-        "FunctionName": "ImpressionBcnStore",
+        "FunctionName": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "ImpressionBcnStore"
+            ]
+          ]
+        },
         "Handler": "com.provectus.fds.api.ImpressionBcnHandler",
         "MemorySize": 128,
         "Timeout": 180,
@@ -328,7 +412,17 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "CodeUri": "./fds-lambda-api/target/fds-lambda-api-1.0-SNAPSHOT.jar",
-        "FunctionName": "ClickBcnStore",
+        "FunctionName": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "ClickBcnStore"
+            ]
+          ]
+        },
         "Handler": "com.provectus.fds.api.ClickBcnHandler",
         "MemorySize": 128,
         "Timeout": 180,
@@ -443,7 +537,17 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "CodeUri": "./fds-lambda-api/target/fds-lambda-api-1.0-SNAPSHOT.jar",
-        "FunctionName": "BidBcnStore",
+        "FunctionName": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "BidBcnStore"
+            ]
+          ]
+        },
         "Handler": "com.provectus.fds.api.BidBcnHandler",
         "MemorySize": 128,
         "Timeout": 180,
@@ -557,7 +661,17 @@
     "KinesisAnalyticsApp": {
       "Type": "AWS::KinesisAnalytics::Application",
       "Properties": {
-        "ApplicationName": "FDSApplication",
+        "ApplicationName": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "FDSApplication"
+            ]
+          ]
+        },
         "ApplicationDescription": "Joining & Aggregation app",
         "ApplicationCode": {
           "Fn::Join": [
@@ -842,7 +956,17 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "CodeUri": "./fds-lambda-compaction/target/fds-lambda-compaction-1.0-SNAPSHOT.jar",
-        "FunctionName": "JsonNewLineAdderLambda",
+        "FunctionName": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "JsonNewLineAdderLambda"
+            ]
+          ]
+        },
         "Handler": "com.provectus.fds.compaction.JsonNewLineAdderLambda",
         "MemorySize": 128,
         "Timeout": 180,
@@ -880,7 +1004,17 @@
         ],
         "Policies": [
           {
-            "PolicyName": "firehose-s3-access-policy",
+            "PolicyName": {
+              "Fn::Join": [
+                "_",
+                [
+                  {
+                    "Ref": "FDSServicePrefix"
+                  },
+                  "firehose-s3-access-policy"
+                ]
+              ]
+            },
             "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [
@@ -950,7 +1084,17 @@
       ],
       "Type": "AWS::KinesisFirehose::DeliveryStream",
       "Properties": {
-        "DeliveryStreamName": "FDSRawBcnsS3DelieveryStream",
+        "DeliveryStreamName": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "FDSRawBcnsS3DelieveryStream"
+            ]
+          ]
+        },
         "DeliveryStreamType": "KinesisStreamAsSource",
         "KinesisStreamSourceConfiguration": {
           "KinesisStreamARN": {
@@ -979,8 +1123,8 @@
             ]
           },
           "BufferingHints": {
-            "IntervalInSeconds": "60",
-            "SizeInMBs": "50"
+            "IntervalInSeconds": 60,
+            "SizeInMBs": 50
           },
           "CompressionFormat": "GZIP",
           "Prefix": "raw/bcns/",
@@ -1047,7 +1191,17 @@
       ],
       "Type": "AWS::KinesisFirehose::DeliveryStream",
       "Properties": {
-        "DeliveryStreamName": "FDSRawImpressionsS3DelieveryStream",
+        "DeliveryStreamName": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "FDSRawImpressionsS3DelieveryStream"
+            ]
+          ]
+        },
         "DeliveryStreamType": "KinesisStreamAsSource",
         "KinesisStreamSourceConfiguration": {
           "KinesisStreamARN": {
@@ -1076,8 +1230,8 @@
             ]
           },
           "BufferingHints": {
-            "IntervalInSeconds": "60",
-            "SizeInMBs": "50"
+            "IntervalInSeconds": 60,
+            "SizeInMBs": 50
           },
           "CompressionFormat": "GZIP",
           "Prefix": "raw/impressions/",
@@ -1125,7 +1279,17 @@
       ],
       "Type": "AWS::KinesisFirehose::DeliveryStream",
       "Properties": {
-        "DeliveryStreamName": "FDSRawClicksS3DelieveryStream",
+        "DeliveryStreamName": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "FDSRawClicksS3DelieveryStream"
+            ]
+          ]
+        },
         "DeliveryStreamType": "KinesisStreamAsSource",
         "KinesisStreamSourceConfiguration": {
           "KinesisStreamARN": {
@@ -1154,8 +1318,8 @@
             ]
           },
           "BufferingHints": {
-            "IntervalInSeconds": "60",
-            "SizeInMBs": "50"
+            "IntervalInSeconds": 60,
+            "SizeInMBs": 50
           },
           "CompressionFormat": "GZIP",
           "Prefix": "raw/clicks/",
@@ -1227,8 +1391,8 @@
           "Description": "All input bcs in json format",
           "TableType": "EXTERNAL_TABLE",
           "Parameters": {
-            "CrawlerSchemaDeserializerVersion": "1.0",
-            "CrawlerSchemaSerializerVersion": "1.0",
+            "CrawlerSchemaDeserializerVersion": 1.0,
+            "CrawlerSchemaSerializerVersion": 1.0,
             "classification": "json",
             "compressionType": "GZIP",
             "typeOfData": "file"
@@ -1313,8 +1477,8 @@
           "Description": "All input imps in json format",
           "TableType": "EXTERNAL_TABLE",
           "Parameters": {
-            "CrawlerSchemaDeserializerVersion": "1.0",
-            "CrawlerSchemaSerializerVersion": "1.0",
+            "CrawlerSchemaDeserializerVersion": 1.0,
+            "CrawlerSchemaSerializerVersion": 1.0,
             "classification": "json",
             "compressionType": "GZIP",
             "typeOfData": "file"
@@ -1399,8 +1563,8 @@
           "Description": "All input clicks in json format",
           "TableType": "EXTERNAL_TABLE",
           "Parameters": {
-            "CrawlerSchemaDeserializerVersion": "1.0",
-            "CrawlerSchemaSerializerVersion": "1.0",
+            "CrawlerSchemaDeserializerVersion": 1.0,
+            "CrawlerSchemaSerializerVersion": 1.0,
             "classification": "json",
             "compressionType": "GZIP",
             "typeOfData": "file"
@@ -1497,7 +1661,7 @@
             "SerdeInfo": {
               "SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
               "Parameters": {
-                "serialization.format": "1"
+                "serialization.format": 1
               }
             },
             "StoredAsSubDirectories": true,
@@ -1579,7 +1743,7 @@
             "SerdeInfo": {
               "SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
               "Parameters": {
-                "serialization.format": "1"
+                "serialization.format": 1
               }
             },
             "StoredAsSubDirectories": true,
@@ -1661,7 +1825,7 @@
             "SerdeInfo": {
               "SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
               "Parameters": {
-                "serialization.format": "1"
+                "serialization.format": 1
               }
             },
             "StoredAsSubDirectories": true,
@@ -1721,7 +1885,17 @@
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "CodeUri": "./fds-lambda-compaction/target/fds-lambda-compaction-1.0-SNAPSHOT.jar",
-        "FunctionName": "JsonToParquetConverterLambda",
+        "FunctionName": {
+          "Fn::Join": [
+            "_",
+            [
+              {
+                "Ref": "FDSServicePrefix"
+              },
+              "JsonToParquetConverterLambda"
+            ]
+          ]
+        },
         "Handler": "com.provectus.fds.compaction.JsonToParquetConverterLambda",
         "MemorySize": 384,
         "Timeout": 180,
