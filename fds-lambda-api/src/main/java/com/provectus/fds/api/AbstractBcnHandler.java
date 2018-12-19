@@ -14,20 +14,19 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public abstract class AbstractBcnHandler implements RequestStreamHandler {
 
-    private static final Logger LOGGER = Logger.getLogger(AbstractBcnHandler.class.getName());
     private final AtomicReference<AmazonKinesis> amazonKinesisReference = new AtomicReference<>();
 
 
     @Override
     public void handleRequest(InputStream inputStream, OutputStream outputStream, Context context) {
-        LOGGER.fine("Handling request");
-
+        context.getLogger().log("Handling request");
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            context.getLogger().log(String.format("Request: %s", reader.lines().collect(Collectors.joining("\n"))));
             JsonNode inputNode = JsonUtils.readTree(reader);
             if (inputNode.has("queryStringParameters")) {
                 JsonNode parameters = inputNode.get("queryStringParameters");
@@ -43,10 +42,12 @@ public abstract class AbstractBcnHandler implements RequestStreamHandler {
                             context
                     );
                 }
+            } else {
+                context.getLogger().log(String.format("Wrong request: %s", reader.lines().collect(Collectors.joining("\n"))));
             }
 
         } catch (Throwable e) {
-            LOGGER.severe("Error on processing impression: " + e.getMessage());
+            context.getLogger().log("Error on processing bcn: " + e.getMessage());
         }
 
 
@@ -60,6 +61,7 @@ public abstract class AbstractBcnHandler implements RequestStreamHandler {
 
 
         PutRecordResult response = client.putRecord(putRecordRequest);
+        context.getLogger().log("Record was sent to Kenesis");
     }
 
     private AmazonKinesis getKinesisOrBuild() {

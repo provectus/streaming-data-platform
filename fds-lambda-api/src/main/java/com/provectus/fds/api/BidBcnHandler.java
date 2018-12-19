@@ -13,6 +13,7 @@ public class BidBcnHandler extends AbstractBcnHandler {
     public Optional<Bcn> buildBcn(JsonNode parameters, Context context) throws IOException {
         Optional<Bcn> result =  Optional.empty();
         if (parameters.has("txid") && parameters.has("appuid") && parameters.has("campaign_item_id")) {
+            context.getLogger().log(String.format("Processing: %s", parameters.toString()));
             String txid = parameters.get("txid").asText();
             String appuid = parameters.get("appuid").asText();
             long campaignItemId = parameters.get("campaign_item_id").asLong();
