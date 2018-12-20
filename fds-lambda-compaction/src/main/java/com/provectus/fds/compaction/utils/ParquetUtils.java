@@ -47,7 +47,7 @@ public class ParquetUtils {
                     .withSchema(schema)
                     .withCompressionCodec(CompressionCodecName.SNAPPY)
                     .build();
-                 JsonFileReader reader = new JsonFileReader(schema, jsonFile);
+                 JsonFileReader reader = new JsonFileReader(schema, jsonFile)
             ) {
                 for (GenericData.Record r : reader) {
                     writer.write(r);

@@ -178,6 +178,12 @@ Resources:
         - _
         - - !Ref 'FDSServicePrefix'
           - ImpressionBcnStore
+      Environment:
+        Variables:
+          STREAM_NAME: !Join
+            - _
+            - - !Ref 'FDSServicePrefix'
+              - bcns
       Handler: com.provectus.fds.api.ImpressionBcnHandler
       MemorySize: 128
       Timeout: 180
@@ -217,7 +223,7 @@ Resources:
       AuthorizationType: NONE
       HttpMethod: GET
       Integration:
-        Type: AWS
+        Type: AWS_PROXY
         IntegrationHttpMethod: POST
         Uri: !Join
           - ''
@@ -242,6 +248,12 @@ Resources:
         - _
         - - !Ref 'FDSServicePrefix'
           - ClickBcnStore
+      Environment:
+        Variables:
+          STREAM_NAME: !Join
+            - _
+            - - !Ref 'FDSServicePrefix'
+              - bcns
       Handler: com.provectus.fds.api.ClickBcnHandler
       MemorySize: 128
       Timeout: 180
@@ -275,7 +287,7 @@ Resources:
       AuthorizationType: NONE
       HttpMethod: GET
       Integration:
-        Type: AWS
+        Type: AWS_PROXY
         IntegrationHttpMethod: POST
         Uri: !Join
           - ''
@@ -300,6 +312,12 @@ Resources:
         - _
         - - !Ref 'FDSServicePrefix'
           - BidBcnStore
+      Environment:
+        Variables:
+          STREAM_NAME: !Join
+            - _
+            - - !Ref 'FDSServicePrefix'
+              - bcns
       Handler: com.provectus.fds.api.BidBcnHandler
       MemorySize: 128
       Timeout: 180
@@ -333,7 +351,7 @@ Resources:
       AuthorizationType: NONE
       HttpMethod: GET
       Integration:
-        Type: AWS
+        Type: AWS_PROXY
         IntegrationHttpMethod: POST
         Uri: !Join
           - ''
