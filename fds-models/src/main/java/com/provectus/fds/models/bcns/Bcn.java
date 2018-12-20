@@ -8,7 +8,5 @@ public interface Bcn {
     @JsonIgnore
     String getPartitionKey();
     @JsonIgnore
-    String getStreamName();
-    @JsonIgnore
     byte[] getBytes() throws IOException;
 }

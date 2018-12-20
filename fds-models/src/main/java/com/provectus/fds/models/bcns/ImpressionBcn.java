@@ -7,8 +7,6 @@ import com.provectus.fds.models.utils.JsonUtils;
 import java.io.IOException;
 
 public class ImpressionBcn implements Bcn {
-    private static final String STREAM = "bcns";
-
     private final String txid;
     private final long timestamp;
     private final long winPrice;
@@ -46,11 +44,6 @@ public class ImpressionBcn implements Bcn {
     @Override
     public String getPartitionKey() {
         return txid;
-    }
-
-    @Override
-    public String getStreamName() {
-        return STREAM;
     }
 
     @Override

@@ -23,7 +23,7 @@ public class JsonUtils {
 
         try(
                 FileReader reader = new FileReader(file);
-                BufferedReader bufferedReader = new BufferedReader(reader);
+                BufferedReader bufferedReader = new BufferedReader(reader)
         ) {
             String currentLine;
             SchemaNodeVisitor schemaNodeVisitor = new SchemaNodeVisitor();

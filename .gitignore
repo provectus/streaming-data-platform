@@ -28,4 +28,5 @@ hs_err_pid*
 .idea/
 target/
 *.iml
+fds.yaml
 packaged-template.yaml

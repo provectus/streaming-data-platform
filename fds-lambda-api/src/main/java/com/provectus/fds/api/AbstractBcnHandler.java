@@ -14,45 +14,53 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
 
 public abstract class AbstractBcnHandler implements RequestStreamHandler {
 
-    private static final Logger LOGGER = Logger.getLogger(AbstractBcnHandler.class.getName());
+    public static final String ENV_STREAM_NAME = "STREAM_NAME";
+    public static final String STREAM_NAME_DEFUALT_VALUE = "bcns";
+    public static final String ENV_DEFAULT_REGION = "AWS_DEFAULT_REGION";
+    public static final byte[] RESPONSE_OK = "{\"statusCode\": 200}".getBytes();
+
     private final AtomicReference<AmazonKinesis> amazonKinesisReference = new AtomicReference<>();
 
+    private final String streamName;
+
+
+    public AbstractBcnHandler() {
+        this.streamName = System.getenv().getOrDefault(ENV_STREAM_NAME, STREAM_NAME_DEFUALT_VALUE);
+    }
 
     @Override
-    public void handleRequest(InputStream inputStream, OutputStream outputStream, Context context) {
-        LOGGER.fine("Handling request");
-
+    public void handleRequest(InputStream inputStream, OutputStream outputStream, Context context) throws IOException {
+        context.getLogger().log("Handling request");
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             JsonNode inputNode = JsonUtils.readTree(reader);
             if (inputNode.has("queryStringParameters")) {
                 JsonNode parameters = inputNode.get("queryStringParameters");
                 Optional<Bcn> bcn = this.buildBcn(parameters, context);
-
                 if (bcn.isPresent()) {
                     Bcn rawBcn = bcn.get();
 
                     this.send(
-                            rawBcn.getStreamName(),
                             rawBcn.getPartitionKey(),
                             rawBcn.getBytes(),
                             context
                     );
                 }
+            } else {
+                context.getLogger().log(String.format("Wrong request: %s", inputNode.toString()));
             }
 
         } catch (Throwable e) {
-            LOGGER.severe("Error on processing impression: " + e.getMessage());
+            context.getLogger().log("Error on processing bcn: " + e.getMessage());
         }
-
-
+        outputStream.write(RESPONSE_OK);
+        context.getLogger().log(RESPONSE_OK);
     }
 
-    private void send(String streamName, String partitionKey, byte[] data, Context context) {
+    private void send(String partitionKey, byte[] data, Context context) {
         AmazonKinesis client = getKinesisOrBuild();
 
         PutRecordRequest putRecordRequest = new PutRecordRequest().withStreamName(streamName)
@@ -60,6 +68,7 @@ public abstract class AbstractBcnHandler implements RequestStreamHandler {
 
 
         PutRecordResult response = client.putRecord(putRecordRequest);
+        context.getLogger().log(String.format("Record was sent to Kenesis %s", streamName));
     }
 
     private AmazonKinesis getKinesisOrBuild() {
@@ -75,7 +84,7 @@ public abstract class AbstractBcnHandler implements RequestStreamHandler {
 
     private AmazonKinesis buildKinesis() {
         AmazonKinesisClientBuilder clientBuilder = AmazonKinesisClientBuilder.standard();
-        clientBuilder.setRegion(System.getenv("AWS_DEFAULT_REGION"));
+        clientBuilder.setRegion(System.getenv(ENV_DEFAULT_REGION));
 
         return clientBuilder.build();
     }

@@ -34,7 +34,6 @@ public class S3Utils {
             if (s3is!=null) {
                 s3is.close();
             }
-            outputFile.delete();
         }
         return outputFile;
     }
