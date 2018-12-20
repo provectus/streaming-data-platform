@@ -968,6 +968,11 @@ Resources:
       TableInput:
         Description: All input bcns in parquet format
         TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: year
+            Type: int
+          - Name: day
+            Type: int
         StorageDescriptor:
           Location: !Join
             - ''
@@ -1013,12 +1018,17 @@ Resources:
       TableInput:
         Description: All input imps in parquet format
         TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: year
+            Type: int
+          - Name: day
+            Type: int
         StorageDescriptor:
           Location: !Join
             - ''
             - - s3://
               - !Ref 'FDSS3Bucket'
-              - /parquet/imps/
+              - /parquet/impressions/
           InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
           OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
           Compressed: false
@@ -1058,6 +1068,11 @@ Resources:
       TableInput:
         Description: All input clicks in parquet format
         TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: year
+            Type: int
+          - Name: day
+            Type: int
         StorageDescriptor:
           Location: !Join
             - ''
@@ -1103,6 +1118,11 @@ Resources:
       TableInput:
         Description: All input aggregates in parquet format
         TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: year
+            Type: int
+          - Name: day
+            Type: int
         StorageDescriptor:
           Location: !Join
             - ''

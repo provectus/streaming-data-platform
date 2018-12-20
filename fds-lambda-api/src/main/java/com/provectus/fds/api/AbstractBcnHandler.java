@@ -20,10 +20,12 @@ public abstract class AbstractBcnHandler implements RequestStreamHandler {
     public static final String ENV_STREAM_NAME = "STREAM_NAME";
     public static final String STREAM_NAME_DEFUALT_VALUE = "bcns";
     public static final String ENV_DEFAULT_REGION = "AWS_DEFAULT_REGION";
+    public static final byte[] RESPONSE_OK = "{\"statusCode\": 200}".getBytes();
 
     private final AtomicReference<AmazonKinesis> amazonKinesisReference = new AtomicReference<>();
 
     private final String streamName;
+
 
     public AbstractBcnHandler() {
         this.streamName = System.getenv().getOrDefault(ENV_STREAM_NAME, STREAM_NAME_DEFUALT_VALUE);
@@ -38,7 +40,6 @@ public abstract class AbstractBcnHandler implements RequestStreamHandler {
             if (inputNode.has("queryStringParameters")) {
                 JsonNode parameters = inputNode.get("queryStringParameters");
                 Optional<Bcn> bcn = this.buildBcn(parameters, context);
-
                 if (bcn.isPresent()) {
                     Bcn rawBcn = bcn.get();
 
@@ -55,10 +56,8 @@ public abstract class AbstractBcnHandler implements RequestStreamHandler {
         } catch (Throwable e) {
             context.getLogger().log("Error on processing bcn: " + e.getMessage());
         }
-        // TODO: German, please fix this crap
-        byte[] response = "{\"statusCode\": 200}".getBytes();
-        outputStream.write(response);
-        context.getLogger().log(response);
+        outputStream.write(RESPONSE_OK);
+        context.getLogger().log(RESPONSE_OK);
     }
 
     private void send(String partitionKey, byte[] data, Context context) {
@@ -69,7 +68,7 @@ public abstract class AbstractBcnHandler implements RequestStreamHandler {
 
 
         PutRecordResult response = client.putRecord(putRecordRequest);
-        context.getLogger().log("Record was sent to Kenesis");
+        context.getLogger().log(String.format("Record was sent to Kenesis %s", streamName));
     }
 
     private AmazonKinesis getKinesisOrBuild() {
