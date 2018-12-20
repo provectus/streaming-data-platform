@@ -10,15 +10,15 @@ mvn clean package
 
 ```
 aws cloudformation package
-    --template-file cloudformation.template
+    --template-file fds-template.yaml
     --s3-bucket fds-lambda-java
-    --output-template-file packaged-template.yaml
+    --output-template-file fds.yaml
 ```
 
 ### Deploy
 ```
 aws cloudformation deploy
-    --template-file packaged-template.yaml
+    --template-file fds.yaml
     --capabilities CAPABILITY_IAM
     [ --parameter-overrides FDSServicePrefix=fds FDSAnalyticalDatabaseName=fds  FDSS3Bucket=fds ]
     --stack-name <stack-name>
