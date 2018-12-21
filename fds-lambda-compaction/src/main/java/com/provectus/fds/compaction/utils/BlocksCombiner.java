@@ -2,8 +2,6 @@ package com.provectus.fds.compaction.utils;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
@@ -17,8 +15,6 @@ import java.util.Map;
 import static java.util.Collections.unmodifiableList;
 
 public class BlocksCombiner {
-
-  protected static final Logger LOGGER = LogManager.getLogger();
 
   private final Map<Path, ParquetMetadata> footers = new HashMap<>();
   private final List<Path> inputFiles;
@@ -51,7 +47,7 @@ public class BlocksCombiner {
           smallBlocks.add(new SmallBlock(inputFile, blockIndex,configuration, footers));
         }
       } catch (Exception e) {
-        LOGGER.error("File {} is not readable", inputFile, e);
+        e.printStackTrace();
       }
     }
     if (!smallBlocks.isEmpty()) {

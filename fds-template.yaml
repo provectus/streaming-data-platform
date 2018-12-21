@@ -452,9 +452,9 @@ Resources:
         CREATE STREAM "campaign_aggregates"(
                         "campaign_item_id" BIGINT,
                         "period" TIMESTAMP,
-                         "bids" BIGINT,
-                         "imps" BIGINT,
-                         "clicks" BIGINT
+                        "bids" BIGINT,
+                        "imps" BIGINT,
+                        "clicks" BIGINT
          );
 
         CREATE OR REPLACE PUMP "campaign_item_performance_bids_pump" AS
@@ -843,7 +843,7 @@ Resources:
             - ''
             - - s3://
               - !Ref 'FDSS3Bucket'
-              - /raw/imps/
+              - /raw/impressions/
           InputFormat: org.apache.hadoop.mapred.TextInputFormat
           OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
           Compressed: true
@@ -917,8 +917,6 @@ Resources:
               Type: string
             - Name: timestamp
               Type: bigint
-            - Name: win_price
-              Type: bigint
   RawAggregatesGlueTable:
     DependsOn:
       - FDSAnalyticalDatabase
@@ -953,7 +951,7 @@ Resources:
             - Name: campaign_item_id
               Type: bigint
             - Name: period
-              Type: timestamp
+              Type: string
             - Name: bids
               Type: bigint
             - Name: imps
@@ -1142,7 +1140,7 @@ Resources:
             - Name: campaign_item_id
               Type: bigint
             - Name: period
-              Type: timestamp
+              Type: string
             - Name: bids
               Type: bigint
             - Name: imps
