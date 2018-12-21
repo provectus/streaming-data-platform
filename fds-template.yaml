@@ -57,6 +57,12 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
+              - Sid: kinesisanalytics
+                Effect: Allow
+                Action:
+                  - kinesisanalytics:StartApplication
+                  - kinesisanalytics:DescribeApplication
+                Resource: !Sub 'arn:aws:kinesisanalytics:${AWS::Region}:${AWS::AccountId}:application/${FDSServicePrefix}_FDSApplication'
               - Sid: kinesis
                 Effect: Allow
                 Action:
@@ -951,7 +957,7 @@ Resources:
             - Name: campaign_item_id
               Type: bigint
             - Name: period
-              Type: string
+              Type: timestamp
             - Name: bids
               Type: bigint
             - Name: imps
@@ -1175,3 +1181,33 @@ Resources:
         - ''
         - - 'arn:aws:s3:::'
           - !Ref 'FDSS3Bucket'
+# custom resources as workaround
+  AppStarterLambda:
+    Type: AWS::Serverless::Function
+    DependsOn: LambdaExecutionRole
+    Properties:
+      CodeUri: ./fds-lambda-utils/target/fds-lambda-utils-1.0-SNAPSHOT.jar
+      FunctionName: !Join
+        - _
+        - - !Ref 'FDSServicePrefix'
+          - AppStarterLambda
+      Environment:
+        Variables:
+          STREAM_NAME: !Join
+            - _
+            - - !Ref 'FDSServicePrefix'
+              - bcns
+      Handler: com.provectus.fds.utils.ApplicationStartLambda
+      MemorySize: 256
+      Timeout: 180
+      Role: !GetAtt 'LambdaExecutionRole.Arn'
+      Runtime: java8
+  AppStarter:
+    Type: Custom::AppStarter
+    DependsOn: KinesisAnalyticsApp
+    Properties:
+      ServiceToken: !GetAtt 'AppStarterLambda.Arn'
+      ApplicationName: !Join
+        - _
+        - - !Ref 'FDSServicePrefix'
+          - FDSApplication
