@@ -19,6 +19,8 @@ import java.util.Map;
 
 public class ApplicationStartLambda implements RequestHandler<Map<String, Object>, Object> {
 
+    public static final String INPUT_CONFIGURATION_ID = "1.1";
+
     @Override
     public Object handleRequest(Map<String, Object> input, Context context) {
         LambdaLogger logger = context.getLogger();
@@ -35,7 +37,7 @@ public class ApplicationStartLambda implements RequestHandler<Map<String, Object
             InputStartingPositionConfiguration ispc = InputStartingPositionConfiguration.builder()
                     .inputStartingPosition(isp).build();
             InputConfiguration ic = InputConfiguration.builder()
-                    .id(String.format("ic_%s", appName))
+                    .id(String.format(INPUT_CONFIGURATION_ID))
                     .inputStartingPositionConfiguration(ispc).build();
             kac.startApplication(StartApplicationRequest.builder()
                     .applicationName(appName).inputConfigurations(ic).build());
