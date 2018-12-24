@@ -5,6 +5,7 @@ import org.apache.avro.generic.GenericData;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.parquet.Preconditions;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.bytes.ByteBufferAllocator;
 import org.apache.parquet.bytes.HeapByteBufferAllocator;
@@ -16,9 +17,9 @@ import org.apache.parquet.column.impl.ColumnReadStoreImpl;
 import org.apache.parquet.column.impl.ColumnWriteStoreV1;
 import org.apache.parquet.column.page.PageReader;
 import org.apache.parquet.example.DummyRecordConverter;
+import org.apache.parquet.format.converter.ParquetMetadataConverter;
 import org.apache.parquet.hadoop.*;
-import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-import org.apache.parquet.hadoop.metadata.FileMetaData;
+import org.apache.parquet.hadoop.metadata.*;
 import org.apache.parquet.schema.MessageType;
 
 import java.io.File;
@@ -146,6 +147,63 @@ public class ParquetUtils {
     }
 
     private FileMetaData mergedMetadata(List<Path> inputFiles) throws IOException {
-        return ParquetFileWriter.mergeMetadataFiles(inputFiles, configuration).getFileMetaData();
+        return mergeMetadataFiles(inputFiles, configuration).getFileMetaData();
     }
+
+    public static ParquetMetadata mergeMetadataFiles(List<Path> files, Configuration conf) throws IOException {
+        Preconditions.checkArgument(!files.isEmpty(), "Cannot merge an empty list of metadata");
+
+        GlobalMetaData globalMetaData = null;
+        List<BlockMetaData> blocks = new ArrayList<BlockMetaData>();
+
+        for (Path p : files) {
+            ParquetMetadata pmd = ParquetFileReader.readFooter(conf, p, ParquetMetadataConverter.NO_FILTER);
+            FileMetaData fmd = pmd.getFileMetaData();
+            globalMetaData = mergeInto(fmd, globalMetaData, true);
+            blocks.addAll(pmd.getBlocks());
+        }
+
+        // collapse GlobalMetaData into a single FileMetaData, which will throw if they are not compatible
+        return new ParquetMetadata(globalMetaData.merge(), blocks);
+    }
+
+    private static GlobalMetaData mergeInto(
+            FileMetaData toMerge,
+            GlobalMetaData mergedMetadata,
+            boolean strict) {
+        MessageType schema = null;
+        Map<String, Set<String>> newKeyValues = new HashMap<String, Set<String>>();
+        Set<String> createdBy = new HashSet<String>();
+        if (mergedMetadata != null) {
+            schema = mergedMetadata.getSchema();
+            newKeyValues.putAll(mergedMetadata.getKeyValueMetaData());
+            createdBy.addAll(mergedMetadata.getCreatedBy());
+        }
+        if ((schema == null && toMerge.getSchema() != null)
+                || (schema != null && !schema.equals(toMerge.getSchema()))) {
+            schema = mergeInto(toMerge.getSchema(), schema, strict);
+        }
+//        for (Map.Entry<String, String> entry : toMerge.getKeyValueMetaData().entrySet()) {
+//            Set<String> values = newKeyValues.get(entry.getKey());
+//            if (values == null) {
+//                values = new LinkedHashSet<>();
+//                newKeyValues.put(entry.getKey(), values);
+//            }
+//            values.add(entry.getValue());
+//        }
+        createdBy.add(toMerge.getCreatedBy());
+        return new GlobalMetaData(
+                schema,
+                newKeyValues,
+                createdBy);
+    }
+
+    private static MessageType mergeInto(MessageType toMerge, MessageType mergedSchema, boolean strict) {
+        if (mergedSchema == null) {
+            return toMerge;
+        }
+
+        return mergedSchema.union(toMerge, strict);
+    }
+
 }
