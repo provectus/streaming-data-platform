@@ -707,7 +707,7 @@ Resources:
       DatabaseName: !Ref 'FDSAnalyticalDatabaseName'
       CatalogId: !Ref 'AWS::AccountId'
       TableInput:
-        Name: raw_imps
+        Name: raw_impressions
         Description: All input imps in json format
         TableType: EXTERNAL_TABLE
         Parameters:
@@ -913,7 +913,7 @@ Resources:
               Type: bigint
             - Name: win_price
               Type: bigint
-        Name: parquet_imps
+        Name: parquet_impressions
       DatabaseName: !Ref 'FDSAnalyticalDatabaseName'
       CatalogId: !Ref 'AWS::AccountId'
   ParquetClickGlueTable:
@@ -1025,7 +1025,7 @@ Resources:
     DependsOn: LambdaExecutionRole
     Properties:
       CodeUri: ./fds-lambda-utils/target/fds-lambda-utils-1.0-SNAPSHOT.jar
-      FunctionName: !Sub '${FDSServicePrefix}_AppStarter'
+      FunctionName: !Sub '${FDSServicePrefix}_AppStarterLambda'
       Environment:
         Variables:
           STREAM_NAME: !Sub '${FDSServicePrefix}_bcns'
@@ -1040,3 +1040,81 @@ Resources:
     Properties:
       ServiceToken: !GetAtt 'AppStarterLambda.Arn'
       ApplicationName: !Sub '${FDSServicePrefix}_FDSApplication'
+# deploy api gateway
+  ApiGatewayStage:
+    DependsOn:
+    - ImpressionBcnRequest
+    - ClickBcnRequest
+    - BidBcnRequest
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref 'FDSApi'
+      StageName: !Sub '${FDSServicePrefix}_stage'
+  PartitionsLoadCrawlerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - glue.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+      Policies:
+        - PolicyName: !Sub '${FDSServicePrefix}_crawler-s3-access-policy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: AllowAccessToS3Bucket
+                Effect: Allow
+                Action:
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                Resource:
+                  - !Sub 'arn:aws:s3:::${FDSS3Bucket}'
+                  - !Sub 'arn:aws:s3:::${FDSS3Bucket}/*'
+              - Sid: Crawler
+                Effect: Allow
+                Action:
+                  - glue:GetDatabase
+                  - glue:ImportCatalogToGlue
+                  - glue:GetPartition
+                  - glue:UpdateDatabase
+                  - glue:GetTables
+                  - glue:GetPartitions
+                  - glue:UpdateTable
+                  - glue:BatchGetPartition
+                  - glue:GetDatabases
+                  - glue:UpdatePartition
+                  - glue:GetTable
+                Resource: '*'
+  PartitionsLoadCrawler:
+    DependsOn:
+      - PartitionsLoadCrawlerRole
+    Type: AWS::Glue::Crawler
+    Properties:
+      Name: !Sub '${FDSServicePrefix}_PartitionsLoad'
+      Role: !GetAtt 'PartitionsLoadCrawlerRole.Arn'
+      DatabaseName: !Ref 'FDSAnalyticalDatabaseName'
+      Targets:
+        S3Targets:
+          - Path: !Sub 's3://${FDSS3Bucket}'
+            Exclusions:
+              - raw/**
+      SchemaChangePolicy:
+        UpdateBehavior: 'LOG'
+        DeleteBehavior: 'LOG'
+      Schedule:
+        ScheduleExpression: 'cron(00 00 * * ? *)'
+      Configuration: '{"Version":1.0,"CrawlerOutput":{"Partitions":{"AddOrUpdateBehavior":"InheritFromTable"}}}'
+# Outputs
+Outputs:
+  RootUrl:
+    Description: Root URL of the API gateway
+    Value: !Sub 'https://${FDSApi}.execute-api.${AWS::Region}.amazonaws.com/${FDSServicePrefix}_stage'
