@@ -28,23 +28,39 @@ public class SchemaNodeVisitor implements JsonNodeVisitor<Schema.Field> {
     }
 
     public Optional<Schema.Field> visitBinary(String name, BinaryNode binaryNode) {
-        Schema schema = Schema.create(Schema.Type.BYTES);
+        Schema schema = Schema.createUnion(
+                Schema.create(Schema.Type.NULL),
+                Schema.create(Schema.Type.BYTES)
+        );
+
         return Optional.of(new Schema.Field(name, schema, "", null));
     }
 
     public Optional<Schema.Field> visitText(String name, TextNode binaryNode) {
-        Schema schema = Schema.create(Schema.Type.STRING);
+        Schema schema = Schema.createUnion(
+                Schema.create(Schema.Type.NULL),
+                Schema.create(Schema.Type.STRING)
+        );
+
         return Optional.of(new Schema.Field(name, schema, "", null));
     }
 
 
     public Optional<Schema.Field> visitNumber(String name, NumericNode numericNode) {
-        Schema schema = Schema.create(Schema.Type.LONG);
+        Schema schema = Schema.createUnion(
+                Schema.create(Schema.Type.NULL),
+                Schema.create(Schema.Type.LONG)
+        );
+
         return Optional.of(new Schema.Field(name, schema, "", null));
     }
 
     public Optional<Schema.Field> visitBoolean(String name, BooleanNode booleanNode) {
-        Schema schema = Schema.create(Schema.Type.BOOLEAN);
+        Schema schema = Schema.createUnion(
+                Schema.create(Schema.Type.NULL),
+                Schema.create(Schema.Type.BOOLEAN)
+        );
+
         return Optional.of(new Schema.Field(name, schema, "", null));
     }
 }

@@ -15,7 +15,7 @@
       <com.fasterxml.jackson.version>2.6.7</com.fasterxml.jackson.version>
       <maven.compiler.source>1.8</maven.compiler.source>
       <maven.compiler.target>1.8</maven.compiler.target>
-      <org.apache.parquet.version>1.12.0-palantir.1</org.apache.parquet.version>
+      <org.apache.parquet.version>1.10.0</org.apache.parquet.version>
       <hadoop.version>2.7.3</hadoop.version>
   </properties>
 
@@ -44,7 +44,8 @@
       <module>fds-lambda-reports</module>
       <module>fds-lambda-compaction</module>
       <module>fds-models</module>
-      <!-- <module>fds-lambda-dynamodb</module> -->
+        <module>fds-lambda-utils</module>
+        <!-- <module>fds-lambda-dynamodb</module> -->
   </modules>
 
   <dependencyManagement>

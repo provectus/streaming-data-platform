@@ -5,22 +5,28 @@ import org.apache.avro.generic.GenericData;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.parquet.Preconditions;
 import org.apache.parquet.avro.AvroParquetWriter;
-import org.apache.parquet.hadoop.CodecFactory;
-import org.apache.parquet.hadoop.ParquetFileWriter;
-import org.apache.parquet.hadoop.ParquetWriter;
-import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-import org.apache.parquet.hadoop.metadata.FileMetaData;
-import org.apache.parquet.hadoop.util.HadoopInputFile;
-import org.apache.parquet.io.InputFile;
+import org.apache.parquet.bytes.ByteBufferAllocator;
+import org.apache.parquet.bytes.HeapByteBufferAllocator;
+import org.apache.parquet.column.ColumnDescriptor;
+import org.apache.parquet.column.ColumnReader;
+import org.apache.parquet.column.ColumnWriter;
+import org.apache.parquet.column.ParquetProperties;
+import org.apache.parquet.column.impl.ColumnReadStoreImpl;
+import org.apache.parquet.column.impl.ColumnWriteStoreV1;
+import org.apache.parquet.column.page.PageReader;
+import org.apache.parquet.example.DummyRecordConverter;
+import org.apache.parquet.format.converter.ParquetMetadataConverter;
+import org.apache.parquet.hadoop.*;
+import org.apache.parquet.hadoop.metadata.*;
+import org.apache.parquet.schema.MessageType;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.*;
 
+import static com.provectus.fds.compaction.utils.ParquetTripletUtils.consumeTriplet;
 import static org.apache.parquet.column.ParquetProperties.DEFAULT_PAGE_SIZE;
 
 public class ParquetUtils {
@@ -28,6 +34,8 @@ public class ParquetUtils {
     private final Configuration configuration = new Configuration();
     private final CodecFactory.BytesCompressor compressor = new CodecFactory(configuration, DEFAULT_PAGE_SIZE)
             .getCompressor(org.apache.parquet.hadoop.metadata.CompressionCodecName.GZIP);
+
+    private final ByteBufferAllocator allocator = new HeapByteBufferAllocator();
 
 
     public File convert(File tmpDir, File jsonFile, String prefix) throws IOException {
@@ -71,19 +79,131 @@ public class ParquetUtils {
         FileMetaData mergedMeta = mergedMetadata(inputFiles);
 
         // Merge data
-        ParquetFileWriter writer = new ParquetFileWriter(configuration, mergedMeta.getSchema(), outputFile, ParquetFileWriter.Mode.CREATE);
-        List<InputFile> inputFileList = inputFiles.stream()
-                .map(input -> {
-                    try {
-                        return HadoopInputFile.fromPath(input, configuration);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
+        this.merge(inputFiles, outputFile, mergedMeta, maxBlockSize);
+    }
+
+
+    public void merge(List<Path> inputFiles, Path outputFile, FileMetaData fileMetaData, long maxBlockSize) throws IOException {
+        MessageType schema = fileMetaData.getSchema();
+        ParquetFileWriter writer = new ParquetFileWriter(configuration, schema, outputFile);
+        ColumnReadStorePublicImpl columnReadStore = new ColumnReadStorePublicImpl(null, new DummyRecordConverter(schema).getRootConverter(), schema, fileMetaData.getCreatedBy());
+        writer.start();
+
+        BlocksCombiner blocksCombiner = new BlocksCombiner(inputFiles, maxBlockSize, configuration);
+
+        List<BlocksCombiner.SmallBlocksUnion> largeBlocks = blocksCombiner.combineLargeBlocks();
+
+        long startMergingFiles = System.currentTimeMillis();
+        for (BlocksCombiner.SmallBlocksUnion smallBlocks : largeBlocks) {
+            try {
+                for (int columnIndex = 0; columnIndex < schema.getColumns().size(); columnIndex++) {
+                    ColumnDescriptor path = schema.getColumns().get(columnIndex);
+
+                    ColumnChunkPageWriteStore store = new ColumnChunkPageWriteStore(compressor, schema, allocator);
+                    ColumnWriteStoreV1 columnWriteStoreV1 = new ColumnWriteStoreV1(store, ParquetProperties.builder().build());
+                    for (BlocksCombiner.SmallBlock smallBlock : smallBlocks.getBlocks()) {
+                        try (ParquetFileReader parquetFileReader = smallBlock.getReader()) {
+                            Optional<PageReader> columnChunkPageReader = parquetFileReader.readColumnInBlock(smallBlock.getBlockIndex(), path);
+                            ColumnWriter columnWriter = columnWriteStoreV1.getColumnWriter(path);
+                            if (columnChunkPageReader.isPresent()) {
+                                ColumnReader columnReader = columnReadStore.newMemColumnReader(path, columnChunkPageReader.get());
+                                for (int i = 0; i < columnReader.getTotalValueCount(); i++) {
+                                    consumeTriplet(columnWriter, columnReader);
+                                }
+                            } else {
+                                MessageType inputFileSchema = parquetFileReader.getFileMetaData().getSchema();
+                                String[] parentPath = getExisingParentPath(path, inputFileSchema);
+                                int def = parquetFileReader.getFileMetaData().getSchema().getMaxDefinitionLevel(parentPath);
+                                int rep = parquetFileReader.getFileMetaData().getSchema().getMaxRepetitionLevel(parentPath);
+                                for (int i = 0; i < parquetFileReader.getBlockMetaData(smallBlock.getBlockIndex()).getRowCount(); i++) {
+                                    columnWriter.writeNull(rep, def);
+                                }
+                            }
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
                     }
-                }).collect(Collectors.toList());
-        writer.merge(inputFileList, compressor, mergedMeta.getCreatedBy(), maxBlockSize);
+                    if (columnIndex == 0) {
+                        writer.startBlock(smallBlocks.getRowCount());
+                    }
+                    columnWriteStoreV1.flush();
+                    columnWriteStoreV1.close();
+                    store.flushToFileWriter(path, writer);
+                }
+                writer.endBlock();
+            } catch (Exception e) {
+
+            }
+        }
+        writer.end(new HashMap<>());
+    }
+
+    private String[] getExisingParentPath(ColumnDescriptor path, MessageType inputFileSchema) {
+        List<String> parentPath = Arrays.asList(path.getPath());
+        while (parentPath.size() > 0 && !inputFileSchema.containsPath(parentPath.toArray(new String[parentPath.size()]))) {
+            parentPath = parentPath.subList(0, parentPath.size() - 1);
+        }
+        return parentPath.toArray(new String[parentPath.size()]);
     }
 
     private FileMetaData mergedMetadata(List<Path> inputFiles) throws IOException {
-        return ParquetFileWriter.mergeMetadataFiles(inputFiles, configuration).getFileMetaData();
+        return mergeMetadataFiles(inputFiles, configuration).getFileMetaData();
     }
+
+    public static ParquetMetadata mergeMetadataFiles(List<Path> files, Configuration conf) throws IOException {
+        Preconditions.checkArgument(!files.isEmpty(), "Cannot merge an empty list of metadata");
+
+        GlobalMetaData globalMetaData = null;
+        List<BlockMetaData> blocks = new ArrayList<BlockMetaData>();
+
+        for (Path p : files) {
+            ParquetMetadata pmd = ParquetFileReader.readFooter(conf, p, ParquetMetadataConverter.NO_FILTER);
+            FileMetaData fmd = pmd.getFileMetaData();
+            globalMetaData = mergeInto(fmd, globalMetaData, true);
+            blocks.addAll(pmd.getBlocks());
+        }
+
+        // collapse GlobalMetaData into a single FileMetaData, which will throw if they are not compatible
+        return new ParquetMetadata(globalMetaData.merge(), blocks);
+    }
+
+    private static GlobalMetaData mergeInto(
+            FileMetaData toMerge,
+            GlobalMetaData mergedMetadata,
+            boolean strict) {
+        MessageType schema = null;
+        Map<String, Set<String>> newKeyValues = new HashMap<String, Set<String>>();
+        Set<String> createdBy = new HashSet<String>();
+        if (mergedMetadata != null) {
+            schema = mergedMetadata.getSchema();
+            newKeyValues.putAll(mergedMetadata.getKeyValueMetaData());
+            createdBy.addAll(mergedMetadata.getCreatedBy());
+        }
+        if ((schema == null && toMerge.getSchema() != null)
+                || (schema != null && !schema.equals(toMerge.getSchema()))) {
+            schema = mergeInto(toMerge.getSchema(), schema, strict);
+        }
+//        for (Map.Entry<String, String> entry : toMerge.getKeyValueMetaData().entrySet()) {
+//            Set<String> values = newKeyValues.get(entry.getKey());
+//            if (values == null) {
+//                values = new LinkedHashSet<>();
+//                newKeyValues.put(entry.getKey(), values);
+//            }
+//            values.add(entry.getValue());
+//        }
+        createdBy.add(toMerge.getCreatedBy());
+        return new GlobalMetaData(
+                schema,
+                newKeyValues,
+                createdBy);
+    }
+
+    private static MessageType mergeInto(MessageType toMerge, MessageType mergedSchema, boolean strict) {
+        if (mergedSchema == null) {
+            return toMerge;
+        }
+
+        return mergedSchema.union(toMerge, strict);
+    }
+
 }

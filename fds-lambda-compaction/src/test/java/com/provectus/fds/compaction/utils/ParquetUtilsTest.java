@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 public class ParquetUtilsTest {
 
@@ -27,10 +27,11 @@ public class ParquetUtilsTest {
         try {
             ClassLoader classLoader = getClass().getClassLoader();
             File testBcnFile = new File(classLoader.getResource("testbcn.json").getFile());
+            File testBcn1File = new File(classLoader.getResource("testbcn1.json").getFile());
 
             ParquetUtils parquetUtils = new ParquetUtils();
 
-            result1 = parquetUtils.convert(tmpDir,testBcnFile, "prefix");
+            result1 = parquetUtils.convert(tmpDir,testBcn1File, "prefix");
             result2 = parquetUtils.convert(tmpDir,testBcnFile, "prefix2");
 
 
@@ -46,6 +47,9 @@ public class ParquetUtilsTest {
             );
 
             assertTrue(targetFile.exists());
+
+
+
         } finally {
             if (result1!=null) result1.delete();
             if (result2!=null) result2.delete();

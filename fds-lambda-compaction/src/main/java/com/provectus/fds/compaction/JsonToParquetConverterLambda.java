@@ -56,7 +56,6 @@ public class JsonToParquetConverterLambda implements RequestHandler<S3Event, S3E
                 File targetParquetFile = null;
 
                 try {
-
                     PathFormatter formatter = PathFormatter.fromS3Path(s3Key);
                     s3jsonFile = S3Utils.downloadFile(jsonObject, formatter.getFilename());
                     tmpParquetFile = parquetUtils.convert(tmpDir,s3jsonFile, s3Bucket);
@@ -79,9 +78,11 @@ public class JsonToParquetConverterLambda implements RequestHandler<S3Event, S3E
                                 ),
                                 new Path("file://" + targetParquetFile.getAbsolutePath())
                         );
+                        context.getLogger().log(String.format("Parquet %s has been merged", targetParquetFile.toString() ));
 
                     } else {
                         targetParquetFile = tmpParquetFile;
+                        context.getLogger().log(String.format("Parquet %s has not been merged", targetParquetFile.toString() ));
                     }
 
                     PutObjectResult result = s3clinet.putObject(
@@ -91,7 +92,7 @@ public class JsonToParquetConverterLambda implements RequestHandler<S3Event, S3E
                                     targetParquetFile
                             )
                     );
-                    context.getLogger().log("Parquet uploaded: "+targetParquetFile.toString());
+                    context.getLogger().log(String.format("Parquet uploaded: %s (%s)", targetParquetFile.toString(), result.getMetadata().getContentDisposition()));
 
                 } catch (IOException e) {
                     throw new RuntimeException(e);

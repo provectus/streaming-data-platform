@@ -21,8 +21,18 @@ public class TestSchemaBuilder {
 
         Optional<Schema> schema = JsonUtils.buildSchema(testBcnFile);
         assertTrue(schema.isPresent());
-        assertEquals(Schema.create(Schema.Type.STRING), schema.get().getField("type").schema());
-        assertEquals(Schema.create(Schema.Type.LONG),schema.get().getField("timestamp").schema());
+
+        assertEquals(Schema.createUnion(Arrays.asList(
+                Schema.create(Schema.Type.NULL)
+                ,Schema.create(Schema.Type.STRING))
+                ),schema.get().getField("type").schema()
+        );
+
+        assertEquals(Schema.createUnion(Arrays.asList(
+                Schema.create(Schema.Type.NULL)
+                ,Schema.create(Schema.Type.LONG))
+                ),schema.get().getField("timestamp").schema()
+        );
 
         assertEquals(Schema.createUnion(Arrays.asList(
                  Schema.create(Schema.Type.NULL)
@@ -35,6 +45,10 @@ public class TestSchemaBuilder {
                 Schema.create(Schema.Type.STRING))
         ),schema.get().getField("domain").schema());
 
-        assertEquals(Schema.create(Schema.Type.STRING),schema.get().getField("txid").schema());
+        assertEquals(Schema.createUnion(Arrays.asList(
+                Schema.create(Schema.Type.NULL)
+                ,Schema.create(Schema.Type.STRING))
+                ),schema.get().getField("txid").schema()
+        );
     }
 }
