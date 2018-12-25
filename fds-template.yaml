@@ -1080,7 +1080,9 @@ Resources:
                   - "dynamoDB:UpdateItem"
                   - "dynamoDB:Query"
                   - "dynamoDB:Scan"
-                Resource: "*"
+                Resource:
+                  - !GetAtt 'AggregatesStream.Arn'
+                  - !GetAtt 'AggregationDynamoTable.Arn'
 
   KinesisToDynamoDbLambda:
     DependsOn:
@@ -1098,8 +1100,7 @@ Resources:
   KinesisToDynamoDbConsumer:
     Type: "AWS::Lambda::EventSourceMapping"
     Properties:
-      EventSourceArn:
-        !Sub "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}::stream/${AggregatesStream}"
+      EventSourceArn: !GetAtt AggregatesStream.Arn
       FunctionName: !GetAtt KinesisToDynamoDbLambda.Arn
       StartingPosition: "TRIM_HORIZON"
       Enabled: True
