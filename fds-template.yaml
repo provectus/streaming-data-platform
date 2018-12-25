@@ -1094,14 +1094,18 @@ Resources:
       Timeout: 180
       Role: !GetAtt 'KinesisToDynamoDbIAMRole.Arn'
       Runtime: java8
-      Events:
-        Stream:
-          Type: Kinesis
-          Properties:
-            Stream: !Ref AggregatesStream
-            StartingPosition: TRIM_HORIZON
 
-# Custom resource as workaround for starting Kinesis Application after creating
+  KinesisToDynamoDbConsumer:
+    Type: "AWS::Lambda::EventSourceMapping"
+    Properties:
+      EventSourceArn:
+        !Sub "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}::stream/${AggregatesStream}"
+      FunctionName: !GetAtt KinesisToDynamoDbLambda.Arn
+      StartingPosition: "TRIM_HORIZON"
+      Enabled: True
+
+
+  # Custom resource as workaround for starting Kinesis Application after creating
   AppStarterLambda:
     Type: AWS::Serverless::Function
     DependsOn: LambdaExecutionRole

@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class Aggregation {
     @JsonProperty("campaign_item_id")
     private long campaignItemId;
-    private String timestamp;
+    private String period;
     private long clicks;
     private long imps;
     private long bids;
@@ -42,11 +42,11 @@ public class Aggregation {
         this.bids = bids;
     }
 
-    public String getTimestamp() {
-        return timestamp;
+    public String getPeriod() {
+        return period;
     }
 
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
+    public void setPeriod(String period) {
+        this.period = period;
     }
 }

@@ -51,7 +51,7 @@ public class ItemMapper {
             JsonNode node = objectMapper.readTree(byteBuffer.array());
             long campaignItemId = node.get("campaign_item_id").asLong();
 
-            ZonedDateTime dateTime = ZonedDateTime.parse(node.get("timestamp").asText(), AWS_DATE_TIME);
+            ZonedDateTime dateTime = ZonedDateTime.parse(node.get("period").asText(), AWS_DATE_TIME);
 
 
             long day = (dateTime.toInstant().toEpochMilli()) / (24 * 60 * 60 * 1000L);
@@ -59,13 +59,13 @@ public class ItemMapper {
 
             Item item = new Item()
                     .withPrimaryKey("campaign_item_id", campaignItemId, "day", day)
-                    .withString("timestamp", DateTimeFormatter.ISO_DATE_TIME.format(dateTime));
+                    .withString("period", DateTimeFormatter.ISO_DATE_TIME.format(dateTime));
 
             Iterator<Map.Entry<String, JsonNode>> iterator = node.fields();
             while (iterator.hasNext()) {
                 Map.Entry<String, JsonNode> entry = iterator.next();
                 if (!entry.getKey().equals("campaign_item_id") &&
-                    !entry.getKey().equals("timestamp")) {
+                    !entry.getKey().equals("period")) {
 
                     if (entry.getValue().isBoolean()) {
                         item = item.withBoolean(entry.getKey(), entry.getValue().asBoolean());
