@@ -1019,6 +1019,88 @@ Resources:
       FunctionName: !GetAtt 'JsonToParquetLambda.Arn'
       Principal: s3.amazonaws.com
       SourceArn: !Sub 'arn:aws:s3:::${FDSS3Bucket}'
+
+  AggregationDynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: campaign_item_id
+          AttributeType: N
+        - AttributeName: day
+          AttributeType: N
+        - AttributeName: timestamp
+          AttributeType: S
+        - AttributeName: clicks
+          AttributeType: N
+        - AttributeName: imps
+          AttributeType: N
+        - AttributeName: bids
+          AttributeType: N
+      KeySchema:
+        - AttributeName: campaign_item_id
+          KeyType: "HASH"
+        - AttributeName: day
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+
+  KinesisToDynamoDbIAMRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "AllowLambdaServiceToAssumeRole"
+            Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+      Policies:
+        - PolicyName: "KinesisPeristerPermission"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "kinesis:DescribeStream"
+                  - "kinesis:ListStreams"
+                  - "kinesis:ListTagsForStream"
+                  - "kinesis:GetShardIterator"
+                  - "kinesis:GetRecords"
+                  - "kinesis:PutRecord"
+                  - "kinesis:PutRecords"
+                  - "dynamoDB:PutItem"
+                  - "dynamoDB:UpdateItem"
+                  - "dynamoDB:Query"
+                  - "dynamoDB:Scan"
+                Resource: "*"
+
+  KinesisToDynamoDbLambda:
+    DependsOn:
+      - KinesisToDynamoDbIAMRole
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./fds-lambda-dynamodb-persister/target/fds-lambda-dynamodb-persister-1.0-SNAPSHOT.jar
+      FunctionName: !Sub '${FDSServicePrefix}_KinesisToDynamoDbPersister'
+      Handler: com.provectus.fds.dynamodb.DynamoDBPersisterLambda
+      MemorySize: 256
+      Timeout: 180
+      Role: !GetAtt 'KinesisToDynamoDbIAMRole.Arn'
+      Runtime: java8
+      Events:
+        Stream:
+          Type: Kinesis
+          Properties:
+            Stream: !Ref AggregatesStream
+            StartingPosition: TRIM_HORIZON
+
 # Custom resource as workaround for starting Kinesis Application after creating
   AppStarterLambda:
     Type: AWS::Serverless::Function
