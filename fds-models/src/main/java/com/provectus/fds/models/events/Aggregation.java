@@ -10,6 +10,14 @@ public class Aggregation {
     private long imps;
     private long bids;
 
+    public Aggregation(long campaignItemId, String period, long clicks, long imps, long bids) {
+        this.campaignItemId = campaignItemId;
+        this.period = period;
+        this.clicks = clicks;
+        this.imps = imps;
+        this.bids = bids;
+    }
+
     public long getCampaignItemId() {
         return campaignItemId;
     }

@@ -379,22 +379,19 @@ Resources:
         CREATE OR REPLACE PUMP "campaign_item_performance_bids_pump" AS
         INSERT INTO "campaign_aggregates" ("campaign_item_id","period","bids")
         SELECT STREAM "campaign_item_id",
-                       STEP("bcns_bids".ROWTIME BY INTERVAL '10' MINUTE) as
-        "period",
-        count(*) as "bids"
+                       STEP("bcns_bids".ROWTIME BY INTERVAL '10' MINUTE) as "period",
+                       count(*) as "bids"
         FROM "bcns_bids"
-        GROUP BY "campaign_item_id", STEP("bcns_bids".ROWTIME BY INTERVAL '10'
-        MINUTE);
+        GROUP BY "campaign_item_id", STEP("bcns_bids".ROWTIME BY INTERVAL '10' MINUTE);
 
         CREATE OR REPLACE PUMP "campaign_item_performance_imps_pump" AS
         INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "imps")
         SELECT STREAM "campaign_item_id",
                        STEP("impressions".ROWTIME BY INTERVAL '10' MINUTE) as
-        "period",
-        count(1) as "imps"
+                      "period",
+                      count(1) as "imps"
         FROM "impressions"
-        GROUP BY "campaign_item_id", STEP("impressions".ROWTIME BY INTERVAL '10'
-        MINUTE);
+        GROUP BY "campaign_item_id", STEP("impressions".ROWTIME BY INTERVAL '10' MINUTE);
 
         CREATE OR REPLACE PUMP "campaign_item_performance_clicks_pump" AS
         INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "clicks")
