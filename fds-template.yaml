@@ -591,6 +591,20 @@ Resources:
                   - lambda:GetFunctionConfiguration
                 Resource:
                   - !GetAtt 'JsonNewLineAdderLambda.Arn'
+              - Sid: glue
+                Effect: Allow
+                Action:
+                  - glue:GetDatabase
+                  - glue:GetPartition
+                  - glue:GetTables
+                  - glue:GetPartitions
+                  - glue:UpdateTable
+                  - glue:CreatePartition
+                  - glue:GetDatabases
+                  - glue:UpdatePartition
+                  - glue:GetTable
+                Resource:
+                  - '*'
   RawBcnsS3DeliveryStream:
     DependsOn:
       - S3Bucket
@@ -1070,6 +1084,10 @@ Resources:
     Properties:
       CodeUri: ./fds-lambda-compaction/target/fds-lambda-compaction-1.0-SNAPSHOT.jar
       FunctionName: !Sub '${ServicePrefix}JsonToParquetConverter'
+      Environment:
+        Variables:
+          GLUE_CATALOG_ID: !Ref 'AWS::AccountId'
+          GLUE_DATABASE_NAME: !Ref 'AnalyticalDBName'
       Handler: com.provectus.fds.compaction.JsonToParquetConverterLambda
       MemorySize: 512
       Timeout: 180
@@ -1088,12 +1106,12 @@ Resources:
       AttributeDefinitions:
         - AttributeName: campaign_item_id
           AttributeType: N
-        - AttributeName: day
+        - AttributeName: period
           AttributeType: N
       KeySchema:
         - AttributeName: campaign_item_id
           KeyType: HASH
-        - AttributeName: day
+        - AttributeName: period
           KeyType: RANGE
       ProvisionedThroughput:
         ReadCapacityUnits: 5
@@ -1132,6 +1150,7 @@ Resources:
                   - dynamodb:BatchGetItem
                   - dynamoDB:Query
                   - dynamoDB:Scan
+                  - dynamodb:BatchWriteItem
                 Resource:
                   - !GetAtt 'AggregatesStream.Arn'
                   - !GetAtt 'AggregationDynamoTable.Arn'
@@ -1162,7 +1181,7 @@ Resources:
     DependsOn: LambdaExecutionRole
     Properties:
       CodeUri: ./fds-lambda-utils/target/fds-lambda-utils-1.0-SNAPSHOT.jar
-      FunctionName: !Sub '${ServicePrefix}AppStarterLambda'
+      FunctionName: !Sub '${ServicePrefix}AppStarter'
       Environment:
         Variables:
           STREAM_NAME: !Sub '${ServicePrefix}bcns'
@@ -1186,69 +1205,6 @@ Resources:
     Properties:
       RestApiId: !Ref 'Api'
       StageName: !Sub '${ServicePrefix}stage'
-  PartitionsLoadCrawlerRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - glue.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
-      Policies:
-        - PolicyName: !Sub '${ServicePrefix}CrawlerS3AccessPolicy'
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Sid: AllowAccessToS3Bucket
-                Effect: Allow
-                Action:
-                  - s3:GetBucketLocation
-                  - s3:GetObject
-                  - s3:ListBucket
-                  - s3:ListBucketMultipartUploads
-                Resource:
-                  - !Sub 'arn:aws:s3:::${S3BucketName}'
-                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
-              - Sid: Crawler
-                Effect: Allow
-                Action:
-                  - glue:GetDatabase
-                  - glue:ImportCatalogToGlue
-                  - glue:GetPartition
-                  - glue:UpdateDatabase
-                  - glue:GetTables
-                  - glue:GetPartitions
-                  - glue:UpdateTable
-                  - glue:BatchGetPartition
-                  - glue:GetDatabases
-                  - glue:UpdatePartition
-                  - glue:GetTable
-                Resource: '*'
-  PartitionsLoadCrawler:
-    DependsOn:
-      - PartitionsLoadCrawlerRole
-    Type: AWS::Glue::Crawler
-    Properties:
-      Name: !Sub ${ServicePrefix}PartitionsLoad
-      Role: !GetAtt 'PartitionsLoadCrawlerRole.Arn'
-      DatabaseName: !Ref 'AnalyticalDBName'
-      Targets:
-        S3Targets:
-          - Path: !Sub 's3://${S3BucketName}'
-            Exclusions:
-              - raw/**
-      SchemaChangePolicy:
-        UpdateBehavior: LOG
-        DeleteBehavior: LOG
-      Schedule:
-        ScheduleExpression: 'cron(00 00 * * ? *)'
-      Configuration: '{"Version":1.0,"CrawlerOutput":{"Partitions":{"AddOrUpdateBehavior":"InheritFromTable"}}}'
 Outputs:
   RootUrl:
     Description: Root URL of the API gateway
