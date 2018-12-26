@@ -39,7 +39,7 @@ public class ItemMapperTest {
     }
 
     @Test
-    public void key() throws JsonProcessingException {
+    public void key() throws Exception {
         for (Aggregation aggregation : aggregations) {
             byte[] bytes = mapper.writeValueAsBytes(aggregation);
             PrimaryKey primaryKey = itemMapper.key(ByteBuffer.wrap(bytes));
@@ -51,7 +51,7 @@ public class ItemMapperTest {
 
 
     @Test
-    public void primaryKey() throws JsonProcessingException {
+    public void primaryKey() throws Exception {
         for (Aggregation aggregation : aggregations) {
             byte[] bytes = mapper.writeValueAsBytes(aggregation);
             Item item = itemMapper.fromByteBuffer(ByteBuffer.wrap(bytes));

@@ -1,7 +1,7 @@
 #! /bin/bash
 
 CID=$RANDOM
-BASE_URL=`aws cloudformation  describe-stacks --stack-name fds-$1 | jq -r '.Stacks[0].Outputs[] | select(.OutputKey | contains("RootUrl")).OutputValue'`
+BASE_URL=`aws cloudformation  describe-stacks --stack-name fds$1 | jq -r '.Stacks[0].Outputs[] | select(.OutputKey | contains("RootUrl")).OutputValue'`
 
 for i in `seq 1 $2`
 	do
