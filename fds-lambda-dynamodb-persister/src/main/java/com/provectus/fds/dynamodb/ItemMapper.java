@@ -78,7 +78,7 @@ public class ItemMapper {
     }
 
 
-    public List<Item> mergeItems(List<Item> created, List<Item> read) {
+    public List<Item> mergeItems(Collection<Item> created, Collection<Item> read) {
         List<Item> result = new ArrayList<>();
 
         Map<PrimaryKey, Item> readMap =  read.stream().collect(

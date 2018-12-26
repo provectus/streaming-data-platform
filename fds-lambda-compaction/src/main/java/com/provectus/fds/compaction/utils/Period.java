@@ -1,7 +1,13 @@
 package com.provectus.fds.compaction.utils;
 
+import avro.shaded.com.google.common.collect.ImmutableMap;
+
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.AbstractMap;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 public class Period {
     private final int year;
@@ -15,6 +21,13 @@ public class Period {
 
     public String path() {
         return String.format("year=%d/day=%d", year,day);
+    }
+
+    public List<Map.Entry<String,String>> toList() {
+        return Arrays.asList(
+                new AbstractMap.SimpleEntry<>("year", Integer.toString(year)),
+                new AbstractMap.SimpleEntry<>("day", Integer.toString(day))
+        );
     }
 
     public static Period fromJsonPath(String path) {

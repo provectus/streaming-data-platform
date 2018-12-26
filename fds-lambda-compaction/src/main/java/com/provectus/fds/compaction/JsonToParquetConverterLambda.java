@@ -15,6 +15,7 @@ import com.provectus.fds.compaction.utils.PathFormatter;
 import com.provectus.fds.compaction.utils.S3Utils;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.ParquetWriter;
+import org.apache.parquet.hadoop.metadata.FileMetaData;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +25,11 @@ import java.util.UUID;
 
 
 public class JsonToParquetConverterLambda implements RequestHandler<S3Event, S3Event> {
+    private final static String GLUE_CATALOG_ID_KEY = "GLUE_CATALOG_ID";
+    public static final String GLUE_CATALOG_ID_KEY_DEFAULT = "";
 
+    private final static String GLUE_DATABASE_KEY = "GLUE_DATABASE_NAME";
+    public static final String GLUE_DATABASE_KEY_DEFAULT = "fds";
 
 
     public static final String S3_PARQUET_PREFIX = "parquet";
@@ -32,6 +37,8 @@ public class JsonToParquetConverterLambda implements RequestHandler<S3Event, S3E
 
     private final ParquetUtils parquetUtils = new ParquetUtils();
     private final File tmpDir = Files.createTempDirectory("s3").toFile();
+    private final GlueDAO glueDAO = new GlueDAO(System.getenv().getOrDefault(GLUE_CATALOG_ID_KEY, GLUE_CATALOG_ID_KEY_DEFAULT));
+    private final String dataBaseName = System.getenv().getOrDefault(GLUE_DATABASE_KEY, GLUE_DATABASE_KEY_DEFAULT);
 
 
     public JsonToParquetConverterLambda() throws IOException {
@@ -59,9 +66,10 @@ public class JsonToParquetConverterLambda implements RequestHandler<S3Event, S3E
                     PathFormatter formatter = PathFormatter.fromS3Path(s3Key);
                     s3jsonFile = S3Utils.downloadFile(jsonObject, formatter.getFilename());
                     tmpParquetFile = parquetUtils.convert(tmpDir,s3jsonFile, s3Bucket);
+
+                    FileMetaData metaData = parquetUtils.fileMetaData(tmpParquetFile);
+
                     targetParquetFile = new File(tmpDir, UUID.randomUUID().toString());
-
-
 
                     String parquetPath = formatter.pathWithFile(S3_PARQUET_PREFIX, MERGED_PARQUET_FILE_NAME);
 
@@ -70,7 +78,7 @@ public class JsonToParquetConverterLambda implements RequestHandler<S3Event, S3E
                         S3Object parquetObject = s3clinet.getObject(new GetObjectRequest(s3Bucket, parquetPath));
                         dataParquetFile = S3Utils.downloadFile(parquetObject, MERGED_PARQUET_FILE_NAME);
 
-                        parquetUtils.mergeFiles(
+                        metaData = parquetUtils.mergeFiles(
                                 ParquetWriter.DEFAULT_BLOCK_SIZE,
                                 Arrays.asList(
                                         new Path("file://" + tmpParquetFile.getAbsolutePath()),
@@ -92,6 +100,14 @@ public class JsonToParquetConverterLambda implements RequestHandler<S3Event, S3E
                                     targetParquetFile
                             )
                     );
+
+                    glueDAO.addPartition(
+                            dataBaseName,
+                            String.format("parquet_%s", formatter.getMsgtype()),
+                            formatter.getPeriod().toList(),
+                            metaData
+                    );
+
                     context.getLogger().log(String.format("Parquet uploaded: %s (%s)", targetParquetFile.toString(), result.getMetadata().getContentDisposition()));
 
                 } catch (IOException e) {

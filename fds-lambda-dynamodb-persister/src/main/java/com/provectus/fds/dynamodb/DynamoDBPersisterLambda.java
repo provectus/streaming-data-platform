@@ -2,7 +2,6 @@ package com.provectus.fds.dynamodb;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import com.amazonaws.services.lambda.runtime.Context;
@@ -10,7 +9,10 @@ import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.KinesisEvent;
 
+import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class DynamoDBPersisterLambda implements RequestHandler<KinesisEvent, Integer>  {
@@ -40,13 +42,25 @@ public class DynamoDBPersisterLambda implements RequestHandler<KinesisEvent, Int
                     " records from " + event.getRecords().get(0).getEventSourceARN() + System.lineSeparator());
         }
 
-        List<PrimaryKey> keys =  event.getRecords().stream()
-                .map( r -> itemMapper.key(r.getKinesis().getData()))
-                .collect(Collectors.toList());
+        Map<PrimaryKey, Item> merged =  event.getRecords().stream()
+                .map( r -> new AbstractMap.SimpleEntry<>(
+                        itemMapper.key(r.getKinesis().getData()),
+                        itemMapper.fromByteBuffer(r.getKinesis().getData())
+                    )
+                ).collect(
+                        Collectors.toMap(
+                                AbstractMap.SimpleEntry::getKey,
+                                AbstractMap.SimpleEntry::getValue,
+                                (left,right) -> itemMapper.mergeItem(
+                                        itemMapper.primaryKey(left),
+                                        left,
+                                        right
+                                )
+                        )
+                );
 
-        List<Item> created = event.getRecords().stream()
-                .map( r -> itemMapper.fromByteBuffer(r.getKinesis().getData()))
-                .collect(Collectors.toList());
+        Collection<PrimaryKey> keys = merged.keySet();
+        Collection<Item> created = merged.values();
 
         List<Item> old = dynamoDAO.batchGet(keys);
         List<Item> items = itemMapper.mergeItems(created, old);

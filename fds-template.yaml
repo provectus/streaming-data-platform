@@ -1086,6 +1086,7 @@ Resources:
       Role: !GetAtt 'KinesisToDynamoDbIAMRole.Arn'
       Runtime: java8
 
+
   KinesisToDynamoDbConsumer:
     Type: "AWS::Lambda::EventSourceMapping"
     Properties:
