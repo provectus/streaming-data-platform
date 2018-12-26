@@ -1028,14 +1028,6 @@ Resources:
           AttributeType: N
         - AttributeName: day
           AttributeType: N
-        - AttributeName: timestamp
-          AttributeType: S
-        - AttributeName: clicks
-          AttributeType: N
-        - AttributeName: imps
-          AttributeType: N
-        - AttributeName: bids
-          AttributeType: N
       KeySchema:
         - AttributeName: campaign_item_id
           KeyType: "HASH"
