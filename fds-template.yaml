@@ -403,15 +403,16 @@ Resources:
                          "domain" VARCHAR(255),
                          "creative_id" VARCHAR(255),
                          "creative_category" VARCHAR(255),
-                         "appuid" VARCHAR(255)
+                         "appuid" VARCHAR(255),
+                         "win_price" BIGINT
         );
 
         CREATE OR REPLACE PUMP "impressions_pump" AS
         INSERT INTO "impressions" ( "txid", "event_timestamp", "campaign_item_id",
-        "domain", "creative_id", "creative_category", "appuid")
+        "domain", "creative_id", "creative_category", "appuid", "win_price")
         SELECT STREAM
         b."txid", i."event_timestamp", b."campaign_item_id", b."domain", b."creative_id",
-        b."creative_category", b."appuid"
+        b."creative_category", b."appuid", i."win_price"
         FROM "bcns_bids" OVER (RANGE INTERVAL '1' MINUTE PRECEDING) as b
         JOIN "bcns_impressions" AS i ON (b."txid"=i."txid");
 
@@ -422,15 +423,16 @@ Resources:
                          "domain" VARCHAR(255),
                          "creative_id" VARCHAR(255),
                          "creative_category" VARCHAR(255),
-                         "appuid" VARCHAR(255)
+                         "appuid" VARCHAR(255),
+                         "win_price" BIGINT
         );
 
         CREATE OR REPLACE PUMP "clicks_pump" AS
         INSERT INTO "clicks" ( "txid", "event_timestamp", "campaign_item_id",
-        "domain", "creative_id", "creative_category", "appuid")
+        "domain", "creative_id", "creative_category", "appuid", "win_price")
         SELECT STREAM
         i."txid", c."event_timestamp", i."campaign_item_id", i."domain", i."creative_id",
-        i."creative_category", i."appuid"
+        i."creative_category", i."appuid", i."win_price"
         FROM "impressions" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) as i
         JOIN "bcns_clicks" AS c ON (i."txid"=c."txid");
 
@@ -817,7 +819,7 @@ Resources:
               Type: string
             - Name: type
               Type: string
-            - Name: timestamp
+            - Name: event_timestamp
               Type: bigint
             - Name: win_price
               Type: bigint
@@ -862,7 +864,9 @@ Resources:
               Type: string
             - Name: type
               Type: string
-            - Name: timestamp
+            - Name: event_timestamp
+              Type: bigint
+            - Name: win_price
               Type: bigint
   RawAggregatesGlueTable:
     DependsOn:
@@ -986,7 +990,7 @@ Resources:
               Type: string
             - Name: type
               Type: string
-            - Name: timestamp
+            - Name: event_timestamp
               Type: bigint
             - Name: win_price
               Type: bigint
@@ -1032,7 +1036,7 @@ Resources:
               Type: string
             - Name: type
               Type: string
-            - Name: timestamp
+            - Name: event_timestamp
               Type: bigint
             - Name: win_price
               Type: bigint
