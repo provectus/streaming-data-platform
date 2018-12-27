@@ -42,22 +42,9 @@ public class DynamoDBPersisterLambda implements RequestHandler<KinesisEvent, Int
                     " records from " + event.getRecords().get(0).getEventSourceARN() + System.lineSeparator());
         }
 
-        Map<PrimaryKey, Item> merged =  event.getRecords().stream()
-                .map( r -> new AbstractMap.SimpleEntry<>(
-                        itemMapper.key(r.getKinesis().getData()),
-                        itemMapper.fromByteBuffer(r.getKinesis().getData())
-                    )
-                ).collect(
-                        Collectors.toMap(
-                                AbstractMap.SimpleEntry::getKey,
-                                AbstractMap.SimpleEntry::getValue,
-                                (left,right) -> itemMapper.mergeItem(
-                                        itemMapper.primaryKey(left),
-                                        left,
-                                        right
-                                )
-                        )
-                );
+        Map<PrimaryKey, Item> merged = itemMapper.mergeItems(
+                event.getRecords().stream().map( r -> r.getKinesis().getData()).collect(Collectors.toList())
+        );
 
         Collection<PrimaryKey> keys = merged.keySet();
         Collection<Item> created = merged.values();

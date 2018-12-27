@@ -3,7 +3,6 @@ package com.provectus.fds.dynamodb;
 
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provectus.fds.models.events.Aggregation;
 import org.junit.Test;
@@ -11,8 +10,12 @@ import org.junit.Test;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ItemMapperTest {
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -21,6 +24,12 @@ public class ItemMapperTest {
             new Aggregation(1000L, "2008-02-20 10:15:00", 1, 0, 1),
             new Aggregation(1000L, "2008-02-20 10:15:00.000", 1, 1, 0)
     );
+
+    private List<String> aggregationJson = Arrays.asList(
+            "{\"campaign_item_id\": 1000, \"period\": \"2008-02-20 10:15:00\", \"clicks\": 1, \"bids\": 1}",
+            "{\"campaign_item_id\": 1000, \"period\": \"2008-02-20 10:15:00.000\", \"clicks\": 1, \"imps\": 1}"
+    );
+
     private ItemMapper itemMapper = new ItemMapper();
 
     @Test
@@ -62,6 +71,20 @@ public class ItemMapperTest {
 
     @Test
     public void mergeItems() {
+        Map<PrimaryKey, Item> merged =itemMapper.mergeItems(
+                aggregationJson.stream()
+                        .map(String::getBytes)
+                        .map(ByteBuffer::wrap)
+                        .collect(Collectors.toList())
+        );
+        assertEquals(1, merged.size());
+        Item mergedItem = merged.values().iterator().next();
+        Aggregation aggregation1 = aggregations.get(0);
+        Aggregation aggregation2 = aggregations.get(1);
+
+        assertEquals(aggregation1.getClicks()+aggregation2.getClicks(), mergedItem.getLong("clicks"));
+        assertEquals(aggregation1.getBids()+aggregation2.getBids(), mergedItem.getLong("bids"));
+        assertEquals(aggregation1.getImps()+aggregation2.getImps(), mergedItem.getLong("imps"));
     }
 
     @Test

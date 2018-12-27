@@ -78,6 +78,25 @@ public class ItemMapper {
         return new PrimaryKey(CAMPAIGN_TABLE_HASH_KEY, campaignItemId, PERIOD_TABLE_RANGE_KEY, period);
     }
 
+    public Map<PrimaryKey, Item> mergeItems(List<ByteBuffer> list) {
+        return  list.stream()
+                .map( r -> new AbstractMap.SimpleEntry<>(
+                                key(r),
+                                fromByteBuffer(r)
+                        )
+                ).collect(
+                        Collectors.toMap(
+                                AbstractMap.SimpleEntry::getKey,
+                                AbstractMap.SimpleEntry::getValue,
+                                (left,right) -> mergeItem(
+                                        primaryKey(left),
+                                        left,
+                                        right
+                                )
+                        )
+                );
+    }
+
 
     public List<Item> mergeItems(Collection<Item> created, Collection<Item> read) {
         List<Item> result = new ArrayList<>();
@@ -103,10 +122,19 @@ public class ItemMapper {
 
     public Item mergeItem(PrimaryKey primaryKey, Item newItem, Item oldItem) {
         Item resultItem = new Item().withPrimaryKey(primaryKey);
+        Set<String> visited = new HashSet<>();
+        visited.add(CAMPAIGN_TABLE_HASH_KEY);
+        visited.add(PERIOD_TABLE_RANGE_KEY);
+
+        mergeOneWay(newItem, oldItem, resultItem, visited);
+        mergeOneWay(oldItem, newItem, resultItem, visited);
+
+        return resultItem;
+    }
+
+    private void mergeOneWay(Item newItem, Item oldItem, Item resultItem, Set<String> visited) {
         for (Map.Entry<String,Object> entry : newItem.attributes()) {
-            if (!entry.getKey().equals(CAMPAIGN_TABLE_HASH_KEY) &&
-                    !entry.getKey().equals(PERIOD_TABLE_RANGE_KEY)
-            ) {
+            if (!visited.contains(entry.getKey())) {
                 Object value = entry.getValue();
 
                 if (oldItem.hasAttribute(entry.getKey())) {
@@ -114,9 +142,9 @@ public class ItemMapper {
                 }
 
                 resultItem.with(entry.getKey(), value);
+                visited.add(entry.getKey());
             }
         }
-        return resultItem;
     }
 
     public Object mergeValue(Object newObject, Object oldValue) {
