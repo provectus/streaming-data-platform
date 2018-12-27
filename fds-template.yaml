@@ -217,6 +217,10 @@ Resources:
       Name: !Sub '${ServicePrefix}_API'
       Description: API used for  requests
       FailOnWarnings: false
+  LogGroupImpressionBcnLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}ImpressionBcnStore'
   ImpressionBcnLambda:
     Type: AWS::Serverless::Function
     DependsOn: LambdaExecutionRole
@@ -268,6 +272,10 @@ Resources:
       RestApiId: !Ref 'Api'
       MethodResponses:
         - StatusCode: 200
+  LogGroupClickBcnLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}ClickBcnStore'
   ClickBcnLambda:
     Type: AWS::Serverless::Function
     Properties:
@@ -312,6 +320,10 @@ Resources:
       RestApiId: !Ref 'Api'
       MethodResponses:
         - StatusCode: 200
+  LogGroupBidBcnLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}BidBcnStore'
   BidBcnLambda:
     Type: AWS::Serverless::Function
     Properties:
@@ -544,6 +556,10 @@ Resources:
         KinesisStreamsOutput:
           ResourceARN: !GetAtt 'AggregatesStream.Arn'
           RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
+  LogGroupJsonNewLineAdderLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}JsonNewLineAdder'
   JsonNewLineAdderLambda:
     Type: AWS::Serverless::Function
     Properties:
@@ -772,8 +788,6 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: type
-              Type: string
             - Name: timestamp
               Type: bigint
             - Name: win_price
@@ -817,8 +831,6 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: type
-              Type: string
             - Name: event_timestamp
               Type: bigint
             - Name: win_price
@@ -861,8 +873,6 @@ Resources:
             - Name: appuid
               Type: string
             - Name: creative_category
-              Type: string
-            - Name: type
               Type: string
             - Name: event_timestamp
               Type: bigint
@@ -942,8 +952,6 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: type
-              Type: string
             - Name: timestamp
               Type: bigint
             - Name: win_price
@@ -988,8 +996,6 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: type
-              Type: string
             - Name: event_timestamp
               Type: bigint
             - Name: win_price
@@ -1033,8 +1039,6 @@ Resources:
             - Name: appuid
               Type: string
             - Name: creative_category
-              Type: string
-            - Name: type
               Type: string
             - Name: event_timestamp
               Type: bigint
@@ -1081,6 +1085,10 @@ Resources:
         Name: parquet_aggregates
       DatabaseName: !Ref 'AnalyticalDBName'
       CatalogId: !Ref 'AWS::AccountId'
+  LogGroupJsonToParquetLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}JsonToParquetConverter'
   JsonToParquetLambda:
     DependsOn:
       - S3DeliveryAccessRole
@@ -1158,6 +1166,10 @@ Resources:
                 Resource:
                   - !GetAtt 'AggregatesStream.Arn'
                   - !GetAtt 'AggregationDynamoTable.Arn'
+  LogGroupKinesisToDynamoDbLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}KinesisToDynamoDbPersister'
   KinesisToDynamoDbLambda:
     DependsOn:
       - KinesisToDynamoDbIAMRole
@@ -1180,6 +1192,10 @@ Resources:
       FunctionName: !GetAtt 'KinesisToDynamoDbLambda.Arn'
       StartingPosition: TRIM_HORIZON
       Enabled: True
+  LogGroupAppStarterLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}AppStarter'
   AppStarterLambda:
     Type: AWS::Serverless::Function
     DependsOn: LambdaExecutionRole
