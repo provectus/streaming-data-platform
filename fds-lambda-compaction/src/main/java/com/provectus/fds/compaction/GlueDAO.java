@@ -43,13 +43,6 @@ public class GlueDAO {
 
         List<String> partitionValues = values.stream().map(Map.Entry::getValue).collect(Collectors.toList());
 
-        GetPartitionResult partitionResult = client.getPartition(
-                new GetPartitionRequest()
-                        .withCatalogId(catalogId)
-                        .withDatabaseName(databaseName)
-                        .withTableName(tableName)
-                        .withPartitionValues(partitionValues)
-        );
 
         StorageDescriptor sd = getTableResult.getTable().getStorageDescriptor();
 
@@ -63,6 +56,7 @@ public class GlueDAO {
             sb.append(value.getKey());
             sb.append("=");
             sb.append(value.getValue());
+            sb.append("/");
         }
 
         CreatePartitionRequest request = new CreatePartitionRequest();
@@ -74,7 +68,15 @@ public class GlueDAO {
 
         input.setStorageDescriptor(GlueConverter.convertStorage(metaData, sb.toString(), sd));
 
-        if (partitionResult.getPartition()!=null) {
+        try {
+            GetPartitionResult partitionResult = client.getPartition(
+                    new GetPartitionRequest()
+                            .withCatalogId(catalogId)
+                            .withDatabaseName(databaseName)
+                            .withTableName(tableName)
+                            .withPartitionValues(partitionValues)
+            );
+
             client.updatePartition(new UpdatePartitionRequest()
                     .withPartitionValueList(partitionValues)
                     .withPartitionInput(input)
@@ -82,20 +84,14 @@ public class GlueDAO {
                     .withDatabaseName(databaseName)
                     .withTableName(tableName)
             );
-
-        } else {
+        } catch (EntityNotFoundException e){
             client.createPartition(new CreatePartitionRequest()
                     .withPartitionInput(input)
                     .withCatalogId(catalogId)
                     .withDatabaseName(databaseName)
                     .withTableName(tableName)
             );
-
         }
-
-
-
-
     }
 
 }
