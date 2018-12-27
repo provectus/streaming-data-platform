@@ -32,7 +32,7 @@ public class GlueTypeConverter {
 
     private String convertFields(String name, List<Type> parquetFields) {
         StringBuilder sb = new StringBuilder();
-        sb.append("STRUCT<");
+        sb.append("struct<");
         boolean first = true;
         for (Type parquetType : parquetFields) {
             String fieldSchema = convertField(parquetType);
@@ -66,50 +66,50 @@ public class GlueTypeConverter {
 
                         @Override
                         public String convertFLOAT(PrimitiveType.PrimitiveTypeName primitiveTypeName) throws RuntimeException {
-                            return "FLOAT";
+                            return "float";
                         }
 
                         @Override
                         public String convertDOUBLE(PrimitiveType.PrimitiveTypeName primitiveTypeName) throws RuntimeException {
-                            return "DOUBLE";
+                            return "double";
                         }
 
                         @Override
                         public String convertINT32(PrimitiveType.PrimitiveTypeName primitiveTypeName) throws RuntimeException {
-                            return "INT";
+                            return "int";
                         }
 
                         @Override
                         public String convertINT64(PrimitiveType.PrimitiveTypeName primitiveTypeName) throws RuntimeException {
-                            return "BIGINT";
+                            return "bigint";
                         }
 
                         @Override
                         public String convertINT96(PrimitiveType.PrimitiveTypeName primitiveTypeName) throws RuntimeException {
-                            return "STRING";
+                            return "string";
                         }
 
                         @Override
                         public String convertFIXED_LEN_BYTE_ARRAY(PrimitiveType.PrimitiveTypeName primitiveTypeName) throws RuntimeException {
                             int size = parquetType.asPrimitiveType().getTypeLength();
                             if (annotation == OriginalType.UTF8 || annotation == OriginalType.ENUM) {
-                                return "CHAR("+size+")";
+                                return "char("+size+")";
                             } else {
-                                return "BINARY";
+                                return "binary";
                             }
                         }
 
                         @Override
                         public String convertBOOLEAN(PrimitiveType.PrimitiveTypeName primitiveTypeName) throws RuntimeException {
-                            return "BOOLEAN";
+                            return "boolean";
                         }
 
                         @Override
                         public String convertBINARY(PrimitiveType.PrimitiveTypeName primitiveTypeName) throws RuntimeException {
                             if (annotation == OriginalType.UTF8 || annotation == OriginalType.ENUM) {
-                                return "STRING";
+                                return "string";
                             } else {
-                                return "BINARY";
+                                return "binary";
                             }
                         }
                     }
@@ -131,9 +131,9 @@ public class GlueTypeConverter {
                         }
                         if (isElementType(repeatedType, parquetGroupType.getName())) {
                             // repeated element types are always required
-                            return String.format("ARRAY<%s>", convertField(repeatedType));
+                            return String.format("array<%s>", convertField(repeatedType));
                         } else {
-                            return String.format("ARRAY<%s>", convertField(repeatedType));
+                            return String.format("array<%s>", convertField(repeatedType));
                         }
 
                     case MAP_KEY_VALUE: // for backward-compatibility
@@ -154,9 +154,9 @@ public class GlueTypeConverter {
                                     + keyType);
                         }
                         Type valueType = mapKeyValType.getType(1);
-                        return String.format("MAP<%s,%s>", convertField(keyType), convertField(valueType));
+                        return String.format("map<%s,%s>", convertField(keyType), convertField(valueType));
                     case ENUM:
-                        return "STRING";
+                        return "string";
                     case UTF8:
                     default:
                         throw new UnsupportedOperationException("Cannot convert Parquet type " +
