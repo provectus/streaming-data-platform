@@ -21,7 +21,6 @@ public class GlueConverter {
 
     public static List<Column> convertColumns(MessageType messageType) {
         return glueTypeConverter.convert(messageType)
-                .entrySet()
                 .stream()
                 .map(GlueConverter::convertColumn)
                 .collect(Collectors.toList());

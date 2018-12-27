@@ -3,10 +3,9 @@ package com.provectus.fds.compaction.utils;
 import org.apache.parquet.schema.*;
 
 import java.util.AbstractMap;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.apache.parquet.schema.Type.Repetition.REPEATED;
 
@@ -14,16 +13,12 @@ public class GlueTypeConverter {
 
     private static final boolean ADD_LIST_ELEMENT_RECORDS_DEFAULT = true;
 
-    public Map<String,String> convert(MessageType parquetSchema) {
-        return parquetSchema.getFields().stream()
-                .map(type -> new AbstractMap.SimpleEntry<>(type.getName(), convertField(type)))
-                .collect(
-                        Collectors.toMap(
-                                AbstractMap.SimpleEntry::getKey,
-                                AbstractMap.SimpleEntry::getValue
-                        )
-                );
-
+    public List<Map.Entry<String,String>> convert(MessageType parquetSchema) {
+        List<Map.Entry<String,String>> result = new ArrayList<>();
+        for (Type type : parquetSchema.getFields()) {
+            result.add(new AbstractMap.SimpleEntry<>(type.getName(), convertField(type)));
+        }
+        return result;
     }
 
     public String convert(GroupType parquetSchema) {
