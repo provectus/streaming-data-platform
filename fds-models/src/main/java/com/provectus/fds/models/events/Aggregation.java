@@ -2,15 +2,17 @@ package com.provectus.fds.models.events;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Optional;
+
 public class Aggregation {
     @JsonProperty("campaign_item_id")
     private long campaignItemId;
     private String period;
-    private long clicks;
-    private long imps;
-    private long bids;
+    private Long clicks;
+    private Long imps;
+    private Long bids;
 
-    public Aggregation(long campaignItemId, String period, long clicks, long imps, long bids) {
+    public Aggregation(long campaignItemId, String period, Long clicks, Long imps, Long bids) {
         this.campaignItemId = campaignItemId;
         this.period = period;
         this.clicks = clicks;
@@ -27,7 +29,7 @@ public class Aggregation {
     }
 
     public long getClicks() {
-        return clicks;
+        return Optional.ofNullable(clicks).orElse(0L);
     }
 
     public void setClicks(long clicks) {
@@ -35,7 +37,7 @@ public class Aggregation {
     }
 
     public long getImps() {
-        return imps;
+        return Optional.ofNullable(imps).orElse(0L);
     }
 
     public void setImps(long imps) {
@@ -43,7 +45,7 @@ public class Aggregation {
     }
 
     public long getBids() {
-        return bids;
+        return Optional.ofNullable(bids).orElse(0L);
     }
 
     public void setBids(long bids) {

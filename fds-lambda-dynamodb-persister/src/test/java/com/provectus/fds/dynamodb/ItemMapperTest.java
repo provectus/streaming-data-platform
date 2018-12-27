@@ -11,7 +11,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
@@ -21,14 +20,10 @@ public class ItemMapperTest {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private List<Aggregation> aggregations = Arrays.asList(
-            new Aggregation(1000L, "2008-02-20 10:15:00", 1, 0, 1),
-            new Aggregation(1000L, "2008-02-20 10:15:00.000", 1, 1, 0)
+            new Aggregation(1000L, "2008-02-20 10:15:00", 1L, null, 1L),
+            new Aggregation(1000L, "2008-02-20 10:15:00.000", 1L, 1L, null)
     );
 
-    private List<String> aggregationJson = Arrays.asList(
-            "{\"campaign_item_id\": 1000, \"period\": \"2008-02-20 10:15:00\", \"clicks\": 1, \"bids\": 1}",
-            "{\"campaign_item_id\": 1000, \"period\": \"2008-02-20 10:15:00.000\", \"clicks\": 1, \"imps\": 1}"
-    );
 
     private ItemMapper itemMapper = new ItemMapper();
 
@@ -36,8 +31,7 @@ public class ItemMapperTest {
     public void testMapper() throws Exception {
 
         for (Aggregation aggregation : aggregations) {
-            byte[] bytes = mapper.writeValueAsBytes(aggregation);
-            Item item = itemMapper.fromByteBuffer(ByteBuffer.wrap(bytes));
+            Item item = itemMapper.fromByteBuffer(serialize(aggregation));
             assertEquals(aggregation.getCampaignItemId(), item.getLong("campaign_item_id"));
             //assertEquals(aggregation.getPeriod(), item.getString("period"));
             assertEquals(aggregation.getClicks(), item.getLong("clicks"));
@@ -69,12 +63,19 @@ public class ItemMapperTest {
 
     }
 
+    private ByteBuffer serialize(Aggregation aggregation) {
+        try {
+            return ByteBuffer.wrap(mapper.writeValueAsBytes(aggregation));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Test
     public void mergeItems() {
         Map<PrimaryKey, Item> merged =itemMapper.mergeItems(
-                aggregationJson.stream()
-                        .map(String::getBytes)
-                        .map(ByteBuffer::wrap)
+                aggregations.stream()
+                        .map(this::serialize)
                         .collect(Collectors.toList())
         );
         assertEquals(1, merged.size());
@@ -91,10 +92,8 @@ public class ItemMapperTest {
     public void mergeItem() throws Exception {
         Aggregation aggregation1 = aggregations.get(0);
         Aggregation aggregation2 = aggregations.get(1);
-        byte[] aggregation1_bytes = mapper.writeValueAsBytes(aggregation1);
-        byte[] aggregation2_bytes = mapper.writeValueAsBytes(aggregation2);
-        Item aggregation1_item = itemMapper.fromByteBuffer(ByteBuffer.wrap(aggregation1_bytes));
-        Item aggregation2_item = itemMapper.fromByteBuffer(ByteBuffer.wrap(aggregation2_bytes));
+        Item aggregation1_item = itemMapper.fromByteBuffer(serialize(aggregation1));
+        Item aggregation2_item = itemMapper.fromByteBuffer(serialize(aggregation2));
         Item resultItem = itemMapper.mergeItem(itemMapper.primaryKey(aggregation1_item), aggregation1_item, aggregation2_item);
         assertEquals(itemMapper.primaryKey(aggregation2_item), itemMapper.primaryKey(resultItem));
         assertEquals(aggregation1.getClicks()+aggregation2.getClicks(), resultItem.getLong("clicks"));
