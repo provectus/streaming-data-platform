@@ -18,8 +18,8 @@ public class ItemMapperTest {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private List<Aggregation> aggregations = Arrays.asList(
-            new Aggregation(1000L, "2008-02-20 10:15:00", 1, 0, 0),
-            new Aggregation(1000L, "2008-02-20 10:15:00.000", 1, 0, 0)
+            new Aggregation(1000L, "2008-02-20 10:15:00", 1, 0, 1),
+            new Aggregation(1000L, "2008-02-20 10:15:00.000", 1, 1, 0)
     );
     private ItemMapper itemMapper = new ItemMapper();
 
@@ -65,7 +65,18 @@ public class ItemMapperTest {
     }
 
     @Test
-    public void mergeItem() {
+    public void mergeItem() throws Exception {
+        Aggregation aggregation1 = aggregations.get(0);
+        Aggregation aggregation2 = aggregations.get(1);
+        byte[] aggregation1_bytes = mapper.writeValueAsBytes(aggregation1);
+        byte[] aggregation2_bytes = mapper.writeValueAsBytes(aggregation2);
+        Item aggregation1_item = itemMapper.fromByteBuffer(ByteBuffer.wrap(aggregation1_bytes));
+        Item aggregation2_item = itemMapper.fromByteBuffer(ByteBuffer.wrap(aggregation2_bytes));
+        Item resultItem = itemMapper.mergeItem(itemMapper.primaryKey(aggregation1_item), aggregation1_item, aggregation2_item);
+        assertEquals(itemMapper.primaryKey(aggregation2_item), itemMapper.primaryKey(resultItem));
+        assertEquals(aggregation1.getClicks()+aggregation2.getClicks(), resultItem.getLong("clicks"));
+        assertEquals(aggregation1.getBids()+aggregation2.getBids(), resultItem.getLong("bids"));
+        assertEquals(aggregation1.getImps()+aggregation2.getImps(), resultItem.getLong("imps"));
     }
 
     @Test

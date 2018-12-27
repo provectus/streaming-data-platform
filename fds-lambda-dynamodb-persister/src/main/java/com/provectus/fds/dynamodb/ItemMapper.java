@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -107,9 +108,11 @@ public class ItemMapper {
                     !entry.getKey().equals(PERIOD_TABLE_RANGE_KEY)
             ) {
                 Object value = entry.getValue();
+
                 if (oldItem.hasAttribute(entry.getKey())) {
-                    value = mergeValue(entry.getValue(), oldItem.get(entry.getKey()));
+                    value = mergeValue(value, oldItem.get(entry.getKey()));
                 }
+
                 resultItem.with(entry.getKey(), value);
             }
         }
@@ -122,6 +125,10 @@ public class ItemMapper {
             Long oldLong = (Long)oldValue;
             Long newLong = (Long)newObject;
             result = (oldLong+newLong);
+        } else if (newObject instanceof BigDecimal) {
+            BigDecimal oldDecimal = (BigDecimal)oldValue;
+            BigDecimal newDecimal = (BigDecimal)newObject;
+            result = (oldDecimal.add(newDecimal));
         }
         return result;
     }
