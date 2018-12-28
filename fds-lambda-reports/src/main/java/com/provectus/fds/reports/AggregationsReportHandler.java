@@ -1,5 +1,6 @@
 package com.provectus.fds.reports;
 
+import com.provectus.fds.dynamodb.DynamoDAO;
 import com.provectus.fds.dynamodb.repositories.AggregationRepository;
 
 import java.time.Instant;
@@ -16,7 +17,10 @@ public class AggregationsReportHandler extends AbstractReportHandler {
     private final AggregationRepository repository;
 
     public AggregationsReportHandler() {
-        this.repository = new AggregationRepository(this.client);
+        this.repository = new AggregationRepository(
+                this.client
+                , System.getenv().getOrDefault(DYNAMO_TABLE_ENV, DYNAMO_TABLE_DEFAULT)
+        );
     }
 
     public Object getTotal(ExecutionValues values) {

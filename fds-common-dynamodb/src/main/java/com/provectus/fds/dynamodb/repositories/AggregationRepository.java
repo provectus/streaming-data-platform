@@ -2,6 +2,7 @@ package com.provectus.fds.dynamodb.repositories;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.provectus.fds.dynamodb.models.Aggregation;
@@ -16,10 +17,16 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class AggregationRepository {
-    private DynamoDBMapper dynamoDBMapper;
+    private final DynamoDBMapper dynamoDBMapper;
+    private final String tableName;
+    private final DynamoDBMapperConfig config;
 
-    public AggregationRepository(AmazonDynamoDB amazonDynamoDB) {
-        dynamoDBMapper = new DynamoDBMapper(amazonDynamoDB);
+    public AggregationRepository(AmazonDynamoDB amazonDynamoDB, String tableName) {
+        this.dynamoDBMapper = new DynamoDBMapper(amazonDynamoDB);
+        this.tableName = tableName;
+        this.config = new DynamoDBMapperConfig.Builder().withTableNameOverride(
+                DynamoDBMapperConfig.TableNameOverride.withTableNameReplacement(this.tableName)
+        ).build();
     }
 
     public List<Aggregation> getAll(long campaignItemId) {
@@ -34,7 +41,7 @@ public class AggregationRepository {
                 .withExpressionAttributeNames(expressionAttributesNames)
                 .withExpressionAttributeValues(expressionAttributeValues);
 
-        return dynamoDBMapper.query(Aggregation.class, queryExpression);
+        return dynamoDBMapper.query(Aggregation.class, queryExpression,config);
     }
 
     public List<Aggregation> getAllByPeriod(long campaignItemId, ZonedDateTime from, ZonedDateTime to) {
@@ -59,7 +66,7 @@ public class AggregationRepository {
                 .withExpressionAttributeNames(expressionAttributesNames)
                 .withExpressionAttributeValues(expressionAttributeValues);
 
-        return dynamoDBMapper.query(Aggregation.class, queryExpression);
+        return dynamoDBMapper.query(Aggregation.class, queryExpression,config);
     }
 
     public Aggregation total(long campaignItemId) {
