@@ -1,36 +1,102 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
-Description: Fast Data Solution Cloudformation template
+Description: Data streaming solution for Fast Data
 Metadata:
   Authors:
     Description: German Osin (gosin@provectus.com)
-  License:
-    Description: Some Licence.
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: General Configuration
+        Parameters:
+          - ServicePrefix
+          - AnalyticalDBName
+          - S3BucketName
+          - BufInterval
+          - BufSize
+          - ShardCount
+      - Label:
+          default: Network Configuration
+        Parameters:
+          - VPCCIDR
+          - VPCTenancy
+    ParameterLabels:
+      - ServicePrefix:
+          default: Prefix for all entities
+      - AnalyticalDBName:
+          default: Name for all databases
+      - S3BucketName:
+          default: Name of S3 bucket
+      - BufInterval:
+          default: Buffering interval
+      - BufSize:
+          default: Buffering size
+      - ShardCount:
+          default: Number of Kinesis streams shards
+      - VPCCIDR:
+          default: CIDR block for the VPC
+      - VPCTenancy:
+          default: Allowed tenancy of instances launched into the VPC
 Parameters:
-  FDSServicePrefix:
+  ServicePrefix:
+    AllowedPattern: '^[a-zA-Z]{4,61}$'
+    ConstraintDescription: Prefix should be DNS compliant
+    Default: testing
+    Description: Prefix for all entities
     Type: String
-    Default: fdsanalytics
-  FDSAnalyticalDatabaseName:
+  AnalyticalDBName:
+    AllowedPattern: '^[a-z]{4,61}$'
+    ConstraintDescription: Database name must not contain uppercase characters or underscores
+    Default: fdsdb
+    Description: Name for all databases 
     Type: String
-    Default: fdsanalytics
-  FDSS3Bucket:
+  S3BucketName:
+    AllowedPattern: '^[a-z]{4,61}$'
+    ConstraintDescription: Bucket name must not contain uppercase characters or underscores
+    Default: fdsbucket
+    Description: Name of S3 bucket
     Type: String
-    Default: fdsanalytics
   BufInterval:
-    Type: Number
     Default: 60
+    Description: Buffering interval
+    Type: Number
   BufSize:
-    Type: Number
     Default: 50
-  ShardCount:
+    Description: Buffering size
     Type: Number
+  ShardCount:    
     Default: 2
+    Description: Number of Kinesis streams shards
+    Type: Number
+  VPCCIDR:
+    AllowedPattern: '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\/((1[6-9]|2[0-8]))$'
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.1.10.1/24
+    Description: CIDR block for the VPC
+    Type: String
+  VPCTenancy:
+    AllowedValues:
+      - default
+      - dedicated
+    Default: default
+    Description: Allowed tenancy of instances launched into the VPC
+    Type: String
 Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref 'VPCCIDR'
+      InstanceTenancy: !Ref 'VPCTenancy'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+      - Key: Name
+        Value: !Ref 'AWS::StackName'
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Ref 'FDSS3Bucket'
+      BucketName: !Ref 'S3BucketName'
       NotificationConfiguration:
         LambdaConfigurations:
           - Event: s3:ObjectCreated:*
@@ -39,7 +105,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: 2012-10-17
         Statement:
           - Effect: Allow
             Principal:
@@ -50,16 +116,16 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
-        - PolicyName: !Sub '${FDSServicePrefix}_KinesisPermission'
+        - PolicyName: !Sub '${ServicePrefix}KinesisAccessPolicy'
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: 2012-10-17
             Statement:
               - Sid: kinesisanalytics
                 Effect: Allow
                 Action:
                   - kinesisanalytics:StartApplication
                   - kinesisanalytics:DescribeApplication
-                Resource: !Sub 'arn:aws:kinesisanalytics:${AWS::Region}:${AWS::AccountId}:application/${FDSServicePrefix}_FDSApplication'
+                Resource: !Sub 'arn:aws:kinesisanalytics:${AWS::Region}:${AWS::AccountId}:application/${ServicePrefix}Application'
               - Sid: kinesis
                 Effect: Allow
                 Action:
@@ -68,12 +134,12 @@ Resources:
                   - kinesis:ListStreams
                   - kinesis:PutRecords
                 Resource:
-                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${FDSServicePrefix}_bcns'
+                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${ServicePrefix}bcns'
   KinesisAnalyticsRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: 2012-10-17
         Statement:
           - Effect: Allow
             Principal:
@@ -88,9 +154,9 @@ Resources:
             Action:
               - sts:AssumeRole
       Policies:
-        - PolicyName: !Sub '${FDSServicePrefix}_KinesisAnalyticsPermission'
+        - PolicyName: !Sub '${ServicePrefix}KinesisAnalyticsAccessPolicy'
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: 2012-10-17
             Statement:
               - Effect: Allow
                 Sid: ReadInputStream
@@ -121,45 +187,49 @@ Resources:
                   - kinesis:SplitShard
                   - kinesis:UpdateShardCount
                 Resource:
-                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${FDSServicePrefix}_bcns'
-                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${FDSServicePrefix}_aggregates'
-                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${FDSServicePrefix}_clicks'
-                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${FDSServicePrefix}_impressions'
+                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${ServicePrefix}bcns'
+                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${ServicePrefix}aggregates'
+                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${ServicePrefix}clicks'
+                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${ServicePrefix}impressions'
   BcnsStream:
     Type: AWS::Kinesis::Stream
     Properties:
-      Name: !Sub '${FDSServicePrefix}_bcns'
+      Name: !Sub '${ServicePrefix}bcns'
       ShardCount: !Ref 'ShardCount'
   ClickStream:
     Type: AWS::Kinesis::Stream
     Properties:
-      Name: !Sub '${FDSServicePrefix}_clicks'
+      Name: !Sub '${ServicePrefix}clicks'
       ShardCount: !Ref 'ShardCount'
   ImpressionsStream:
     Type: AWS::Kinesis::Stream
     Properties:
-      Name: !Sub '${FDSServicePrefix}_impressions'
+      Name: !Sub '${ServicePrefix}impressions'
       ShardCount: !Ref 'ShardCount'
   AggregatesStream:
     Type: AWS::Kinesis::Stream
     Properties:
-      Name: !Sub '${FDSServicePrefix}_aggregates'
+      Name: !Sub '${ServicePrefix}aggregates'
       ShardCount: !Ref 'ShardCount'
-  FDSApi:
+  Api:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      Name: !Sub '${FDSServicePrefix}_FDS_API'
-      Description: API used for FDS requests
+      Name: !Sub '${ServicePrefix}_API'
+      Description: API used for  requests
       FailOnWarnings: false
+  LogGroupImpressionBcnLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}ImpressionBcnStore'
   ImpressionBcnLambda:
     Type: AWS::Serverless::Function
     DependsOn: LambdaExecutionRole
     Properties:
       CodeUri: ./fds-lambda-api/target/fds-lambda-api-1.0-SNAPSHOT.jar
-      FunctionName: !Sub '${FDSServicePrefix}_ImpressionBcnStore'
+      FunctionName: !Sub '${ServicePrefix}ImpressionBcnStore'
       Environment:
         Variables:
-          STREAM_NAME: !Sub '${FDSServicePrefix}_bcns'
+          STREAM_NAME: !Sub '${ServicePrefix}bcns'
       Handler: com.provectus.fds.api.ImpressionBcnHandler
       MemorySize: 128
       Timeout: 180
@@ -169,19 +239,19 @@ Resources:
     Type: AWS::Lambda::Permission
     DependsOn:
       - ImpressionBcnLambda
-      - FDSApi
+      - Api
     Properties:
       Action: lambda:invokeFunction
       FunctionName: !GetAtt 'ImpressionBcnLambda.Arn'
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${FDSApi}/*'
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*'
   ImpressionBcnResource:
     Type: AWS::ApiGateway::Resource
     DependsOn:
-      - FDSApi
+      - Api
     Properties:
-      RestApiId: !Ref 'FDSApi'
-      ParentId: !GetAtt 'FDSApi.RootResourceId'
+      RestApiId: !Ref 'Api'
+      ParentId: !GetAtt 'Api.RootResourceId'
       PathPart: impressions
   ImpressionBcnRequest:
     DependsOn:
@@ -199,17 +269,21 @@ Resources:
       RequestParameters:
         method.request.querystring.name: true
       ResourceId: !Ref 'ImpressionBcnResource'
-      RestApiId: !Ref 'FDSApi'
+      RestApiId: !Ref 'Api'
       MethodResponses:
         - StatusCode: 200
+  LogGroupClickBcnLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}ClickBcnStore'
   ClickBcnLambda:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./fds-lambda-api/target/fds-lambda-api-1.0-SNAPSHOT.jar
-      FunctionName: !Sub '${FDSServicePrefix}_ClickBcnStore'
+      FunctionName: !Sub '${ServicePrefix}ClickBcnStore'
       Environment:
         Variables:
-          STREAM_NAME: !Sub '${FDSServicePrefix}_bcns'
+          STREAM_NAME: !Sub '${ServicePrefix}bcns'
       Handler: com.provectus.fds.api.ClickBcnHandler
       MemorySize: 128
       Timeout: 180
@@ -221,12 +295,12 @@ Resources:
       Action: lambda:invokeFunction
       FunctionName: !GetAtt 'ClickBcnLambda.Arn'
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${FDSApi}/*'
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*'
   ClickBcnResource:
     Type: AWS::ApiGateway::Resource
     Properties:
-      RestApiId: !Ref 'FDSApi'
-      ParentId: !GetAtt 'FDSApi.RootResourceId'
+      RestApiId: !Ref 'Api'
+      ParentId: !GetAtt 'Api.RootResourceId'
       PathPart: clicks
   ClickBcnRequest:
     DependsOn: ClickBcnLambdaPermission
@@ -243,17 +317,21 @@ Resources:
       RequestParameters:
         method.request.querystring.name: true
       ResourceId: !Ref 'ClickBcnResource'
-      RestApiId: !Ref 'FDSApi'
+      RestApiId: !Ref 'Api'
       MethodResponses:
         - StatusCode: 200
+  LogGroupBidBcnLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}BidBcnStore'
   BidBcnLambda:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./fds-lambda-api/target/fds-lambda-api-1.0-SNAPSHOT.jar
-      FunctionName: !Sub '${FDSServicePrefix}_BidBcnStore'
+      FunctionName: !Sub '${ServicePrefix}BidBcnStore'
       Environment:
         Variables:
-          STREAM_NAME: !Sub '${FDSServicePrefix}_bcns'
+          STREAM_NAME: !Sub '${ServicePrefix}bcns'
       Handler: com.provectus.fds.api.BidBcnHandler
       MemorySize: 128
       Timeout: 180
@@ -265,12 +343,12 @@ Resources:
       Action: lambda:invokeFunction
       FunctionName: !GetAtt 'BidBcnLambda.Arn'
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${FDSApi}/*'
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*'
   BidBcnResource:
     Type: AWS::ApiGateway::Resource
     Properties:
-      RestApiId: !Ref 'FDSApi'
-      ParentId: !GetAtt 'FDSApi.RootResourceId'
+      RestApiId: !Ref 'Api'
+      ParentId: !GetAtt 'Api.RootResourceId'
       PathPart: bids
   BidBcnRequest:
     DependsOn: BidBcnLambdaPermission
@@ -287,13 +365,13 @@ Resources:
       RequestParameters:
         method.request.querystring.name: true
       ResourceId: !Ref 'BidBcnResource'
-      RestApiId: !Ref 'FDSApi'
+      RestApiId: !Ref 'Api'
       MethodResponses:
         - StatusCode: 200
   KinesisAnalyticsApp:
     Type: AWS::KinesisAnalytics::Application
     Properties:
-      ApplicationName: !Sub '${FDSServicePrefix}_FDSApplication'
+      ApplicationName: !Sub '${ServicePrefix}Application'
       ApplicationDescription: Joining & Aggregation app
       ApplicationCode: |
         CREATE STREAM "bcns_impressions" (
@@ -337,15 +415,16 @@ Resources:
                          "domain" VARCHAR(255),
                          "creative_id" VARCHAR(255),
                          "creative_category" VARCHAR(255),
-                         "appuid" VARCHAR(255)
+                         "appuid" VARCHAR(255),
+                         "win_price" BIGINT
         );
 
         CREATE OR REPLACE PUMP "impressions_pump" AS
         INSERT INTO "impressions" ( "txid", "event_timestamp", "campaign_item_id",
-        "domain", "creative_id", "creative_category", "appuid")
+        "domain", "creative_id", "creative_category", "appuid", "win_price")
         SELECT STREAM
         b."txid", i."event_timestamp", b."campaign_item_id", b."domain", b."creative_id",
-        b."creative_category", b."appuid"
+        b."creative_category", b."appuid", i."win_price"
         FROM "bcns_bids" OVER (RANGE INTERVAL '1' MINUTE PRECEDING) as b
         JOIN "bcns_impressions" AS i ON (b."txid"=i."txid");
 
@@ -356,15 +435,16 @@ Resources:
                          "domain" VARCHAR(255),
                          "creative_id" VARCHAR(255),
                          "creative_category" VARCHAR(255),
-                         "appuid" VARCHAR(255)
+                         "appuid" VARCHAR(255),
+                         "win_price" BIGINT
         );
 
         CREATE OR REPLACE PUMP "clicks_pump" AS
         INSERT INTO "clicks" ( "txid", "event_timestamp", "campaign_item_id",
-        "domain", "creative_id", "creative_category", "appuid")
+        "domain", "creative_id", "creative_category", "appuid", "win_price")
         SELECT STREAM
         i."txid", c."event_timestamp", i."campaign_item_id", i."domain", i."creative_id",
-        i."creative_category", i."appuid"
+        i."creative_category", i."appuid", i."win_price"
         FROM "impressions" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) as i
         JOIN "bcns_clicks" AS c ON (i."txid"=c."txid");
 
@@ -379,22 +459,19 @@ Resources:
         CREATE OR REPLACE PUMP "campaign_item_performance_bids_pump" AS
         INSERT INTO "campaign_aggregates" ("campaign_item_id","period","bids")
         SELECT STREAM "campaign_item_id",
-                       STEP("bcns_bids".ROWTIME BY INTERVAL '10' MINUTE) as
-        "period",
-        count(*) as "bids"
+                       STEP("bcns_bids".ROWTIME BY INTERVAL '10' MINUTE) as "period",
+                       count(*) as "bids"
         FROM "bcns_bids"
-        GROUP BY "campaign_item_id", STEP("bcns_bids".ROWTIME BY INTERVAL '10'
-        MINUTE);
+        GROUP BY "campaign_item_id", STEP("bcns_bids".ROWTIME BY INTERVAL '10' MINUTE);
 
         CREATE OR REPLACE PUMP "campaign_item_performance_imps_pump" AS
         INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "imps")
         SELECT STREAM "campaign_item_id",
                        STEP("impressions".ROWTIME BY INTERVAL '10' MINUTE) as
-        "period",
-        count(1) as "imps"
+                      "period",
+                      count(1) as "imps"
         FROM "impressions"
-        GROUP BY "campaign_item_id", STEP("impressions".ROWTIME BY INTERVAL '10'
-        MINUTE);
+        GROUP BY "campaign_item_id", STEP("impressions".ROWTIME BY INTERVAL '10' MINUTE);
 
         CREATE OR REPLACE PUMP "campaign_item_performance_clicks_pump" AS
         INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "clicks")
@@ -479,11 +556,15 @@ Resources:
         KinesisStreamsOutput:
           ResourceARN: !GetAtt 'AggregatesStream.Arn'
           RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
+  LogGroupJsonNewLineAdderLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}JsonNewLineAdder'
   JsonNewLineAdderLambda:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./fds-lambda-compaction/target/fds-lambda-compaction-1.0-SNAPSHOT.jar
-      FunctionName: !Sub '${FDSServicePrefix}_JsonNewLineAdder'
+      FunctionName: !Sub '${ServicePrefix}JsonNewLineAdder'
       Handler: com.provectus.fds.compaction.JsonNewLineAdderLambda
       MemorySize: 128
       Timeout: 180
@@ -493,7 +574,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: 2012-10-17
         Statement:
           - Effect: Allow
             Principal:
@@ -505,9 +586,9 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
-        - PolicyName: !Sub '${FDSServicePrefix}_firehose-s3-access-policy'
+        - PolicyName: !Sub '${ServicePrefix}FirehoseS3AccessPolicy'
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: 2012-10-17
             Statement:
               - Sid: AllowAccessToS3Bucket
                 Effect: Allow
@@ -519,8 +600,8 @@ Resources:
                   - s3:ListBucketMultipartUploads
                   - s3:PutObject
                 Resource:
-                  - !Sub 'arn:aws:s3:::${FDSS3Bucket}'
-                  - !Sub 'arn:aws:s3:::${FDSS3Bucket}/*'
+                  - !Sub 'arn:aws:s3:::${S3BucketName}'
+                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
               - Sid: JsonNewLineAdderAccess
                 Effect: Allow
                 Action:
@@ -528,19 +609,33 @@ Resources:
                   - lambda:GetFunctionConfiguration
                 Resource:
                   - !GetAtt 'JsonNewLineAdderLambda.Arn'
+              - Sid: glue
+                Effect: Allow
+                Action:
+                  - glue:GetDatabase
+                  - glue:GetPartition
+                  - glue:GetTables
+                  - glue:GetPartitions
+                  - glue:UpdateTable
+                  - glue:CreatePartition
+                  - glue:GetDatabases
+                  - glue:UpdatePartition
+                  - glue:GetTable
+                Resource:
+                  - '*'
   RawBcnsS3DeliveryStream:
     DependsOn:
       - S3Bucket
       - S3DeliveryAccessRole
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
-      DeliveryStreamName: !Sub '${FDSServicePrefix}_FDSRawBcnsS3DelieveryStream'
+      DeliveryStreamName: !Sub '${ServicePrefix}RawBcnsS3DelieveryStream'
       DeliveryStreamType: KinesisStreamAsSource
       KinesisStreamSourceConfiguration:
         KinesisStreamARN: !GetAtt 'BcnsStream.Arn'
         RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
       ExtendedS3DestinationConfiguration:
-        BucketARN: !Sub 'arn:aws:s3:::${FDSS3Bucket}'
+        BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
         BufferingHints:
           IntervalInSeconds: !Ref 'BufInterval'
           SizeInMBs: !Ref 'BufSize'
@@ -569,13 +664,13 @@ Resources:
       - S3DeliveryAccessRole
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
-      DeliveryStreamName: !Sub '${FDSServicePrefix}_FDSRawImpressionsS3DelieveryStream'
+      DeliveryStreamName: !Sub '${ServicePrefix}RawImpressionsS3DelieveryStream'
       DeliveryStreamType: KinesisStreamAsSource
       KinesisStreamSourceConfiguration:
         KinesisStreamARN: !GetAtt 'ImpressionsStream.Arn'
         RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
       ExtendedS3DestinationConfiguration:
-        BucketARN: !Sub 'arn:aws:s3:::${FDSS3Bucket}'
+        BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
         BufferingHints:
           IntervalInSeconds: !Ref 'BufInterval'
           SizeInMBs: !Ref 'BufSize'
@@ -597,13 +692,13 @@ Resources:
       - S3DeliveryAccessRole
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
-      DeliveryStreamName: !Sub '${FDSServicePrefix}_FDSRawClicksS3DelieveryStream'
+      DeliveryStreamName: !Sub '${ServicePrefix}RawClicksS3DelieveryStream'
       DeliveryStreamType: KinesisStreamAsSource
       KinesisStreamSourceConfiguration:
         KinesisStreamARN: !GetAtt 'ClickStream.Arn'
         RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
       ExtendedS3DestinationConfiguration:
-        BucketARN: !Sub 'arn:aws:s3:::${FDSS3Bucket}'
+        BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
         BufferingHints:
           IntervalInSeconds: !Ref 'BufInterval'
           SizeInMBs: !Ref 'BufSize'
@@ -625,13 +720,13 @@ Resources:
       - S3DeliveryAccessRole
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
-      DeliveryStreamName: !Sub '${FDSServicePrefix}_FDSRawAggrefatesS3DelieveryStream'
+      DeliveryStreamName: !Sub '${ServicePrefix}RawAggrefatesS3DelieveryStream'
       DeliveryStreamType: KinesisStreamAsSource
       KinesisStreamSourceConfiguration:
         KinesisStreamARN: !GetAtt 'AggregatesStream.Arn'
         RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
       ExtendedS3DestinationConfiguration:
-        BucketARN: !Sub 'arn:aws:s3:::${FDSS3Bucket}'
+        BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
         BufferingHints:
           IntervalInSeconds: !Ref 'BufInterval'
           SizeInMBs: !Ref 'BufSize'
@@ -647,19 +742,19 @@ Resources:
                 - ParameterName: RoleArn
                   ParameterValue: !GetAtt 'S3DeliveryAccessRole.Arn'
               Type: Lambda
-  FDSAnalyticalDatabase:
+  AnalyticalDatabase:
     Type: AWS::Glue::Database
     Properties:
       CatalogId: !Ref 'AWS::AccountId'
       DatabaseInput:
-        Name: !Ref 'FDSAnalyticalDatabaseName'
+        Name: !Ref 'AnalyticalDBName'
         Description: Database to hold tables for fds data
   RawBcnsGlueTable:
     DependsOn:
-      - FDSAnalyticalDatabase
+      - AnalyticalDatabase
     Type: AWS::Glue::Table
     Properties:
-      DatabaseName: !Ref 'FDSAnalyticalDatabaseName'
+      DatabaseName: !Ref 'AnalyticalDBName'
       CatalogId: !Ref 'AWS::AccountId'
       TableInput:
         Name: raw_bcns
@@ -672,7 +767,7 @@ Resources:
           compressionType: GZIP
           typeOfData: file
         StorageDescriptor:
-          Location: !Sub 's3://${FDSS3Bucket}/raw/bcns/'
+          Location: !Sub 's3://${S3BucketName}/raw/bcns/'
           InputFormat: org.apache.hadoop.mapred.TextInputFormat
           OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
           Compressed: true
@@ -693,21 +788,19 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: type
-              Type: string
             - Name: timestamp
               Type: bigint
             - Name: win_price
               Type: bigint
   RawImpressionsGlueTable:
     DependsOn:
-      - FDSAnalyticalDatabase
+      - AnalyticalDatabase
     Type: AWS::Glue::Table
     Properties:
-      DatabaseName: !Ref 'FDSAnalyticalDatabaseName'
+      DatabaseName: !Ref 'AnalyticalDBName'
       CatalogId: !Ref 'AWS::AccountId'
       TableInput:
-        Name: raw_imps
+        Name: raw_impressions
         Description: All input imps in json format
         TableType: EXTERNAL_TABLE
         Parameters:
@@ -717,7 +810,7 @@ Resources:
           compressionType: GZIP
           typeOfData: file
         StorageDescriptor:
-          Location: !Sub 's3://${FDSS3Bucket}/raw/impressions/'
+          Location: !Sub 's3://${S3BucketName}/raw/impressions/'
           InputFormat: org.apache.hadoop.mapred.TextInputFormat
           OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
           Compressed: true
@@ -738,18 +831,16 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: type
-              Type: string
-            - Name: timestamp
+            - Name: event_timestamp
               Type: bigint
             - Name: win_price
               Type: bigint
   RawClicksGlueTable:
     DependsOn:
-      - FDSAnalyticalDatabase
+      - AnalyticalDatabase
     Type: AWS::Glue::Table
     Properties:
-      DatabaseName: !Ref 'FDSAnalyticalDatabaseName'
+      DatabaseName: !Ref 'AnalyticalDBName'
       CatalogId: !Ref 'AWS::AccountId'
       TableInput:
         Name: raw_clicks
@@ -762,7 +853,7 @@ Resources:
           compressionType: GZIP
           typeOfData: file
         StorageDescriptor:
-          Location: !Sub 's3://${FDSS3Bucket}/raw/clicks/'
+          Location: !Sub 's3://${S3BucketName}/raw/clicks/'
           InputFormat: org.apache.hadoop.mapred.TextInputFormat
           OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
           Compressed: true
@@ -783,16 +874,16 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: type
-              Type: string
-            - Name: timestamp
+            - Name: event_timestamp
+              Type: bigint
+            - Name: win_price
               Type: bigint
   RawAggregatesGlueTable:
     DependsOn:
-      - FDSAnalyticalDatabase
+      - AnalyticalDatabase
     Type: AWS::Glue::Table
     Properties:
-      DatabaseName: !Ref 'FDSAnalyticalDatabaseName'
+      DatabaseName: !Ref 'AnalyticalDBName'
       CatalogId: !Ref 'AWS::AccountId'
       TableInput:
         Name: raw_aggregates
@@ -805,7 +896,7 @@ Resources:
           compressionType: GZIP
           typeOfData: file
         StorageDescriptor:
-          Location: !Sub 's3://${FDSS3Bucket}/raw/aggregates/'
+          Location: !Sub 's3://${S3BucketName}/raw/aggregates/'
           InputFormat: org.apache.hadoop.mapred.TextInputFormat
           OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
           Compressed: true
@@ -826,7 +917,7 @@ Resources:
               Type: bigint
   ParquetBcnsGlueTable:
     DependsOn:
-      - FDSAnalyticalDatabase
+      - AnalyticalDatabase
     Type: AWS::Glue::Table
     Properties:
       TableInput:
@@ -838,7 +929,7 @@ Resources:
           - Name: day
             Type: int
         StorageDescriptor:
-          Location: !Sub 's3://${FDSS3Bucket}/parquet/bcns/'
+          Location: !Sub 's3://${S3BucketName}/parquet/bcns/'
           InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
           OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
           Compressed: false
@@ -861,18 +952,16 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: type
-              Type: string
             - Name: timestamp
               Type: bigint
             - Name: win_price
               Type: bigint
         Name: parquet_bcns
-      DatabaseName: !Ref 'FDSAnalyticalDatabaseName'
+      DatabaseName: !Ref 'AnalyticalDBName'
       CatalogId: !Ref 'AWS::AccountId'
   ParquetImpsGlueTable:
     DependsOn:
-      - FDSAnalyticalDatabase
+      - AnalyticalDatabase
     Type: AWS::Glue::Table
     Properties:
       TableInput:
@@ -884,7 +973,7 @@ Resources:
           - Name: day
             Type: int
         StorageDescriptor:
-          Location: !Sub 's3://${FDSS3Bucket}/parquet/impressions/'
+          Location: !Sub 's3://${S3BucketName}/parquet/impressions/'
           InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
           OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
           Compressed: false
@@ -907,18 +996,16 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: type
-              Type: string
-            - Name: timestamp
+            - Name: event_timestamp
               Type: bigint
             - Name: win_price
               Type: bigint
-        Name: parquet_imps
-      DatabaseName: !Ref 'FDSAnalyticalDatabaseName'
+        Name: parquet_impressions
+      DatabaseName: !Ref 'AnalyticalDBName'
       CatalogId: !Ref 'AWS::AccountId'
   ParquetClickGlueTable:
     DependsOn:
-      - FDSAnalyticalDatabase
+      - AnalyticalDatabase
     Type: AWS::Glue::Table
     Properties:
       TableInput:
@@ -930,7 +1017,7 @@ Resources:
           - Name: day
             Type: int
         StorageDescriptor:
-          Location: !Sub 's3://${FDSS3Bucket}/parquet/clicks/'
+          Location: !Sub 's3://${S3BucketName}/parquet/clicks/'
           InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
           OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
           Compressed: false
@@ -953,18 +1040,16 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: type
-              Type: string
-            - Name: timestamp
+            - Name: event_timestamp
               Type: bigint
             - Name: win_price
               Type: bigint
         Name: parquet_clicks
-      DatabaseName: !Ref 'FDSAnalyticalDatabaseName'
+      DatabaseName: !Ref 'AnalyticalDBName'
       CatalogId: !Ref 'AWS::AccountId'
   ParquetAggregatesGlueTable:
     DependsOn:
-      - FDSAnalyticalDatabase
+      - AnalyticalDatabase
     Type: AWS::Glue::Table
     Properties:
       TableInput:
@@ -976,7 +1061,7 @@ Resources:
           - Name: day
             Type: int
         StorageDescriptor:
-          Location: !Sub 's3://${FDSS3Bucket}/parquet/aggregates/'
+          Location: !Sub 's3://${S3BucketName}/parquet/aggregates/'
           InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
           OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
           Compressed: false
@@ -998,15 +1083,23 @@ Resources:
             - Name: clicks
               Type: bigint
         Name: parquet_aggregates
-      DatabaseName: !Ref 'FDSAnalyticalDatabaseName'
+      DatabaseName: !Ref 'AnalyticalDBName'
       CatalogId: !Ref 'AWS::AccountId'
+  LogGroupJsonToParquetLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}JsonToParquetConverter'
   JsonToParquetLambda:
     DependsOn:
       - S3DeliveryAccessRole
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./fds-lambda-compaction/target/fds-lambda-compaction-1.0-SNAPSHOT.jar
-      FunctionName: !Sub '${FDSServicePrefix}_JsonToParquetConverter'
+      FunctionName: !Sub '${ServicePrefix}JsonToParquetConverter'
+      Environment:
+        Variables:
+          GLUE_CATALOG_ID: !Ref 'AWS::AccountId'
+          GLUE_DATABASE_NAME: !Ref 'AnalyticalDBName'
       Handler: com.provectus.fds.compaction.JsonToParquetConverterLambda
       MemorySize: 512
       Timeout: 180
@@ -1018,17 +1111,100 @@ Resources:
       Action: lambda:invokeFunction
       FunctionName: !GetAtt 'JsonToParquetLambda.Arn'
       Principal: s3.amazonaws.com
-      SourceArn: !Sub 'arn:aws:s3:::${FDSS3Bucket}'
-# Custom resource as workaround for starting Kinesis Application after creating
+      SourceArn: !Sub 'arn:aws:s3:::${S3BucketName}'
+  AggregationDynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: campaign_item_id
+          AttributeType: N
+        - AttributeName: period
+          AttributeType: N
+      KeySchema:
+        - AttributeName: campaign_item_id
+          KeyType: HASH
+        - AttributeName: period
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  KinesisToDynamoDbIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowLambdaServiceToAssumeRole
+            Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}KinesisPeristerAccessPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:ListStreams
+                  - kinesis:ListTagsForStream
+                  - kinesis:GetShardIterator
+                  - kinesis:GetRecords
+                  - kinesis:PutRecord
+                  - kinesis:PutRecords
+                  - dynamoDB:PutItem
+                  - dynamoDB:UpdateItem
+                  - dynamodb:BatchGetItem
+                  - dynamoDB:Query
+                  - dynamoDB:Scan
+                  - dynamodb:BatchWriteItem
+                Resource:
+                  - !GetAtt 'AggregatesStream.Arn'
+                  - !GetAtt 'AggregationDynamoTable.Arn'
+  LogGroupKinesisToDynamoDbLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}KinesisToDynamoDbPersister'
+  KinesisToDynamoDbLambda:
+    DependsOn:
+      - KinesisToDynamoDbIAMRole
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./fds-lambda-dynamodb-persister/target/fds-lambda-dynamodb-persister-1.0-SNAPSHOT.jar
+      FunctionName: !Sub '${ServicePrefix}KinesisToDynamoDbPersister'
+      Environment:
+        Variables:
+          DYNAMO_TABLE: !Ref 'AggregationDynamoTable'
+      Handler: com.provectus.fds.dynamodb.DynamoDBPersisterLambda
+      MemorySize: 256
+      Timeout: 180
+      Role: !GetAtt 'KinesisToDynamoDbIAMRole.Arn'
+      Runtime: java8
+  KinesisToDynamoDbConsumer:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt 'AggregatesStream.Arn'
+      FunctionName: !GetAtt 'KinesisToDynamoDbLambda.Arn'
+      StartingPosition: TRIM_HORIZON
+      Enabled: True
+  LogGroupAppStarterLambda:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}AppStarter'
   AppStarterLambda:
     Type: AWS::Serverless::Function
     DependsOn: LambdaExecutionRole
     Properties:
       CodeUri: ./fds-lambda-utils/target/fds-lambda-utils-1.0-SNAPSHOT.jar
-      FunctionName: !Sub '${FDSServicePrefix}_AppStarter'
+      FunctionName: !Sub '${ServicePrefix}AppStarter'
       Environment:
         Variables:
-          STREAM_NAME: !Sub '${FDSServicePrefix}_bcns'
+          STREAM_NAME: !Sub '${ServicePrefix}bcns'
       Handler: com.provectus.fds.utils.ApplicationStartLambda
       MemorySize: 256
       Timeout: 180
@@ -1039,4 +1215,17 @@ Resources:
     DependsOn: KinesisAnalyticsApp
     Properties:
       ServiceToken: !GetAtt 'AppStarterLambda.Arn'
-      ApplicationName: !Sub '${FDSServicePrefix}_FDSApplication'
+      ApplicationName: !Sub '${ServicePrefix}Application'
+  ApiGatewayStage:
+    DependsOn:
+    - ImpressionBcnRequest
+    - ClickBcnRequest
+    - BidBcnRequest
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref 'Api'
+      StageName: !Sub '${ServicePrefix}stage'
+Outputs:
+  RootUrl:
+    Description: Root URL of the API gateway
+    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}stage'

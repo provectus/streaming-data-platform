@@ -69,17 +69,24 @@ public class ParquetUtils {
         return tmpParquetFile;
     }
 
+    public FileMetaData fileMetaData(File file) throws IOException {
+        Path parquetPath = new Path("file://" + file.getAbsolutePath());
+        return mergedMetadata(Arrays.asList(parquetPath));
+    }
+
 
     public void mergeFiles(List<Path> inputFiles, Path outputFile) throws IOException {
         this.mergeFiles(ParquetWriter.DEFAULT_BLOCK_SIZE,inputFiles,outputFile);
     }
 
-    public void mergeFiles(int maxBlockSize, List<Path> inputFiles, Path outputFile) throws IOException {
+    public FileMetaData mergeFiles(int maxBlockSize, List<Path> inputFiles, Path outputFile) throws IOException {
         // Merge schema and extraMeta
         FileMetaData mergedMeta = mergedMetadata(inputFiles);
 
         // Merge data
         this.merge(inputFiles, outputFile, mergedMeta, maxBlockSize);
+
+        return mergedMeta;
     }
 
 
@@ -145,6 +152,8 @@ public class ParquetUtils {
         }
         return parentPath.toArray(new String[parentPath.size()]);
     }
+
+
 
     private FileMetaData mergedMetadata(List<Path> inputFiles) throws IOException {
         return mergeMetadataFiles(inputFiles, configuration).getFileMetaData();

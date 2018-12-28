@@ -20,6 +20,11 @@ aws cloudformation package
 aws cloudformation deploy
     --template-file fds.yaml
     --capabilities CAPABILITY_IAM
-    [ --parameter-overrides FDSServicePrefix=fds FDSAnalyticalDatabaseName=fds  FDSS3Bucket=fds ]
+    [ --parameter-overrides ServicePrefix=demo AnalyticalDBName=fds S3Bucket=demo VPCCIDR=10.1.10.2/24 ]
     --stack-name <stack-name>
+```
+
+### Populate with data
+```
+test.sh <number-of-requests> <stack-name>
 ```

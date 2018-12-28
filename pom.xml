@@ -40,11 +40,12 @@
     </repositories>
 
     <modules>
-      <module>fds-lambda-api</module>
-      <module>fds-lambda-reports</module>
-      <module>fds-lambda-compaction</module>
-      <module>fds-models</module>
+        <module>fds-lambda-api</module>
+        <module>fds-lambda-reports</module>
+        <module>fds-lambda-compaction</module>
+        <module>fds-models</module>
         <module>fds-lambda-utils</module>
+        <module>fds-lambda-dynamodb-persister</module>
         <!-- <module>fds-lambda-dynamodb</module> -->
   </modules>
 
@@ -73,6 +74,11 @@
             <version>${aws.java.sdk.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-glue</artifactId>
+            <version>${aws.java.sdk.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>junit</groupId>
@@ -100,6 +106,11 @@
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-s3</artifactId>
             <version>1.11.466</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-dynamodb</artifactId>
+            <version>1.11.253</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
