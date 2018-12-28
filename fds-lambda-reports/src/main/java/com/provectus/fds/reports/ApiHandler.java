@@ -16,12 +16,12 @@ public class ApiHandler implements RequestStreamHandler {
         AggregationsReportHandler aggregationsHandler = new AggregationsReportHandler();
 
         this.handlerMap.put(
-                new ExecutionContext("GET", "/reports/campaigns/:campaign_item_id"),
+                new ExecutionContext("GET", "/reports/campaigns/{campaign_item_id}"),
                 aggregationsHandler::getTotal
         );
 
         this.handlerMap.put(
-                new ExecutionContext("GET", "/reports/campaigns/:campaign_item_id/period"),
+                new ExecutionContext("GET", "/reports/campaigns/{campaign_item_id}/period"),
                 aggregationsHandler::getByPeriod
         );
     }
