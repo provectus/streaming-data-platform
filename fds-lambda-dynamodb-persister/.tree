@@ -1,0 +1,43 @@
+[INFO] Scanning for projects...
+[WARNING] 
+[WARNING] Some problems were encountered while building the effective model for com.provectus.fds:fds-lambda-dynamodb-persister:jar:1.0-SNAPSHOT
+[WARNING] 'dependencies.dependency.scope' for junit:junit:jar must be one of [provided, compile, runtime, test, system] but is 'tes'. @ com.provectus.fds:fds-lambda-dynamodb-persister:[unknown-version], /Users/germanosin/Documents/projects/fds/squadex-fastdata-solution/fds-lambda-dynamodb-persister/pom.xml, line 33, column 20
+[WARNING] 
+[WARNING] It is highly recommended to fix these problems because they threaten the stability of your build.
+[WARNING] 
+[WARNING] For this reason, future Maven versions might no longer support building such malformed projects.
+[WARNING] 
+[INFO] 
+[INFO] ----------< com.provectus.fds:fds-lambda-dynamodb-persister >-----------
+[INFO] Building fds-lambda-dynamodb-persister 1.0-SNAPSHOT
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-dependency-plugin:2.8:tree (default-cli) @ fds-lambda-dynamodb-persister ---
+[INFO] com.provectus.fds:fds-lambda-dynamodb-persister:jar:1.0-SNAPSHOT
+[INFO] +- com.amazonaws:aws-lambda-java-core:jar:1.2.0:compile
+[INFO] +- com.amazonaws:aws-lambda-java-events:jar:2.2.4:compile
+[INFO] |  \- joda-time:joda-time:jar:2.6:compile
+[INFO] +- com.amazonaws:aws-java-sdk-dynamodb:jar:1.11.253:compile
+[INFO] |  +- com.amazonaws:aws-java-sdk-s3:jar:1.11.466:compile
+[INFO] |  |  \- com.amazonaws:aws-java-sdk-kms:jar:1.11.466:compile
+[INFO] |  +- com.amazonaws:aws-java-sdk-core:jar:1.11.253:compile
+[INFO] |  |  +- commons-logging:commons-logging:jar:1.1.3:compile
+[INFO] |  |  +- org.apache.httpcomponents:httpclient:jar:4.5.2:compile
+[INFO] |  |  |  +- org.apache.httpcomponents:httpcore:jar:4.4.4:compile
+[INFO] |  |  |  \- commons-codec:commons-codec:jar:1.9:compile
+[INFO] |  |  +- software.amazon.ion:ion-java:jar:1.0.2:compile
+[INFO] |  |  \- com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:jar:2.6.7:compile
+[INFO] |  \- com.amazonaws:jmespath-java:jar:1.11.253:compile
+[INFO] +- com.amazonaws:aws-java-sdk-kinesis:jar:1.11.253:compile
+[INFO] +- junit:junit:jar:4.12:tes
+[INFO] |  \- org.hamcrest:hamcrest-core:jar:1.3:runtime
+[INFO] \- com.provectus.fds:fds-models:jar:1.0-SNAPSHOT:test
+[INFO]    +- com.fasterxml.jackson.core:jackson-core:jar:2.6.7:compile
+[INFO]    \- com.fasterxml.jackson.core:jackson-databind:jar:2.6.7:compile
+[INFO]       \- com.fasterxml.jackson.core:jackson-annotations:jar:2.6.0:compile
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  1.298 s
+[INFO] Finished at: 2018-12-28T16:37:43+03:00
+[INFO] ------------------------------------------------------------------------

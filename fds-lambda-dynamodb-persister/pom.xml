@@ -30,7 +30,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <scope>tes</scope>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.provectus.fds</groupId>
