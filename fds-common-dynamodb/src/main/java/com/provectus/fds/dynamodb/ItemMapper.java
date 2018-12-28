@@ -4,7 +4,6 @@ import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.provectus.fds.models.events.Aggregation;
 
 import java.io.IOException;
 import java.math.BigDecimal;

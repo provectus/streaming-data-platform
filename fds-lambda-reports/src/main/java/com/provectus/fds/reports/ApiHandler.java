@@ -2,7 +2,6 @@ package com.provectus.fds.reports;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
-import com.provectus.fds.models.utils.JsonUtils;
 
 import java.io.*;
 import java.util.HashMap;

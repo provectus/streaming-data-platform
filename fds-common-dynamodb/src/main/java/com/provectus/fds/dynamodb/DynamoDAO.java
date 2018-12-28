@@ -2,15 +2,10 @@ package com.provectus.fds.dynamodb;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.document.*;
-import com.amazonaws.services.dynamodbv2.document.spec.BatchGetItemSpec;
-import com.amazonaws.services.dynamodbv2.document.spec.QuerySpec;
 import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
-import com.provectus.fds.models.events.Aggregation;
 
-import java.util.*;
-import java.util.stream.StreamSupport;
-
-import static com.provectus.fds.dynamodb.ItemMapper.CAMPAIGN_TABLE_HASH_KEY;
+import java.util.Collection;
+import java.util.List;
 
 public class DynamoDAO {
     private final String tableName;

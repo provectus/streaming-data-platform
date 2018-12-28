@@ -23,6 +23,7 @@
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-models</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
