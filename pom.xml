@@ -46,6 +46,7 @@
         <module>fds-models</module>
         <module>fds-lambda-utils</module>
         <module>fds-lambda-dynamodb-persister</module>
+        <module>fds-common-dynamodb</module>
         <!-- <module>fds-lambda-dynamodb</module> -->
   </modules>
 
@@ -101,6 +102,13 @@
             <artifactId>fds-models</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.provectus.fds</groupId>
+            <artifactId>fds-common-dynamodb</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
 
         <dependency>
             <groupId>com.amazonaws</groupId>

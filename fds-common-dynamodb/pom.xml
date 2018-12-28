@@ -5,27 +5,24 @@
         <groupId>com.provectus.fds</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    
+
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>fds-lambda-reports</artifactId>
+    <artifactId>fds-common-dynamodb</artifactId>
 
 
     <dependencies>
         <dependency>
             <groupId>com.amazonaws</groupId>
-            <artifactId>aws-lambda-java-core</artifactId>
+            <artifactId>aws-java-sdk-dynamodb</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-lambda-java-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-lambda-java-events</artifactId>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>tes</scope>
         </dependency>
         <dependency>
             <groupId>com.provectus.fds</groupId>
-            <artifactId>fds-common-dynamodb</artifactId>
+            <artifactId>fds-models</artifactId>
         </dependency>
     </dependencies>
 
