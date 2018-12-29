@@ -13,7 +13,7 @@ public class ExecutionContext {
 
     public ExecutionContext(ExecutionValues values) {
         this.method = values.getHttpMethod();
-        this.path = values.getPath();
+        this.path = values.getResource();
     }
 
     @Override

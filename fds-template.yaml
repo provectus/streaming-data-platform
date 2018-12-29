@@ -15,11 +15,6 @@ Metadata:
           - BufInterval
           - BufSize
           - ShardCount
-      - Label:
-          default: Network Configuration
-        Parameters:
-          - VPCCIDR
-          - VPCTenancy
     ParameterLabels:
       - ServicePrefix:
           default: Prefix for all entities
@@ -33,10 +28,6 @@ Metadata:
           default: Buffering size
       - ShardCount:
           default: Number of Kinesis streams shards
-      - VPCCIDR:
-          default: CIDR block for the VPC
-      - VPCTenancy:
-          default: Allowed tenancy of instances launched into the VPC
 Parameters:
   ServicePrefix:
     AllowedPattern: '^[a-zA-Z]{4,61}$'
@@ -61,29 +52,7 @@ Parameters:
   ShardCount:    
     Default: 2
     Type: Number
-  VPCCIDR:
-    AllowedPattern: '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\/((1[6-9]|2[0-8]))$'
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
-    Default: 10.1.10.1/24
-    Type: String
-  VPCTenancy:
-    AllowedValues:
-      - default
-      - dedicated
-    Default: default
-    Description: Allowed tenancy of instances launched into the VPC
-    Type: String
 Resources:
-  VPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: !Ref 'VPCCIDR'
-      InstanceTenancy: !Ref 'VPCTenancy'
-      EnableDnsSupport: true
-      EnableDnsHostnames: true
-      Tags:
-      - Key: Name
-        Value: !Ref 'AWS::StackName'
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -175,6 +144,7 @@ Resources:
                   - kinesis:SubscribeToShard
                   - kinesis:PutRecord
                   - kinesis:PutRecords
+                  - kinesis:DescribeStream
                 Resource:
                   - !GetAtt 'BcnsStream.Arn'
                   - !GetAtt 'AggregatesStream.Arn'
@@ -559,8 +529,8 @@ Resources:
         SELECT STREAM
         b."txid", b."campaign_item_id", b."domain", b."creative_id",
         b."creative_category", b."appuid", i."win_price"
-        FROM "bcns_bids" OVER (RANGE INTERVAL '1' MINUTE PRECEDING) as b
-        JOIN "bcns_impressions" AS i ON (b."txid"=i."txid");
+        FROM "bcns_bids" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) as b
+        JOIN "bcns_impressions" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) AS i ON (b."txid"=i."txid");
 
         CREATE STREAM "clicks"(
                          "txid" VARCHAR(16),
@@ -578,8 +548,8 @@ Resources:
         SELECT STREAM
         i."txid", i."campaign_item_id", i."domain", i."creative_id",
         i."creative_category", i."appuid", i."win_price"
-        FROM "impressions" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) as i
-        JOIN "bcns_clicks" AS c ON (i."txid"=c."txid");
+        FROM "impressions" OVER (RANGE INTERVAL '15' MINUTE PRECEDING) as i
+        JOIN "bcns_clicks" OVER (RANGE INTERVAL '15' MINUTE PRECEDING) AS c ON (i."txid"=c."txid");
 
         CREATE STREAM "campaign_aggregates"(
                         "campaign_item_id" BIGINT,

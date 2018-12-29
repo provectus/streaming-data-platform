@@ -29,6 +29,12 @@ public class AggregationRepository {
         ).build();
     }
 
+    public AggregationRepository() {
+        this.dynamoDBMapper = null;
+        this.tableName =null;
+        this.config = null;
+    }
+
     public List<Aggregation> getAll(long campaignItemId) {
         Map<String, String> expressionAttributesNames = new HashMap<>();
         expressionAttributesNames.put("#campaign_item_id", "campaign_item_id");
@@ -88,10 +94,9 @@ public class AggregationRepository {
                         i -> i,
                         this::merge
                 )
-        ).entrySet().stream().map( e -> {
-            e.getValue().setPeriod(e.getKey().toInstant().getEpochSecond());
-            return e.getValue();
-        } ).sorted(this.sorter(desc)).collect(Collectors.toList());
+        ).entrySet().stream()
+                .map( e -> e.getValue().withPeriod(e.getKey().toInstant().getEpochSecond()))
+                .sorted(this.sorter(desc)).collect(Collectors.toList());
     }
 
     private Comparator<Aggregation> sorter(boolean desc) {
@@ -108,7 +113,6 @@ public class AggregationRepository {
 
 
     private Aggregation merge(Aggregation left, Aggregation right) {
-        left.addAggregation(right);
-        return left;
+        return left.clone().addAggregation(right);
     }
 }

@@ -27,4 +27,7 @@ public class JsonUtils {
     }
 
 
+    public static  <T> String stringify(T object) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(object);
+    }
 }

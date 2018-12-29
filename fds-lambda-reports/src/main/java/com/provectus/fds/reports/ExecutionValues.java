@@ -1,5 +1,6 @@
 package com.provectus.fds.reports;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
@@ -8,8 +9,9 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ExecutionValues {
-    private String path;
+    private String resource;
     private String httpMethod;
     private JsonNode headers;
     private JsonNode queryStringParameters;
@@ -19,12 +21,12 @@ public class ExecutionValues {
     public ExecutionValues() {
     }
 
-    public String getPath() {
-        return path;
+    public String getResource() {
+        return resource;
     }
 
-    public void setPath(String path) {
-        this.path = path;
+    public void setResource(String resource) {
+        this.resource = resource;
     }
 
     public String getHttpMethod() {
@@ -150,10 +152,7 @@ public class ExecutionValues {
     }
 
     private Optional<Long> getLong(Optional<JsonNode> params, String name) {
-        return params
-                .flatMap(p -> Optional.ofNullable(p.get(name)))
-                .filter(JsonNode::isLong)
-                .map(JsonNode::asLong);
+        return getString(params, name).map(Long::parseLong);
     }
 
     public  <T> T orThrow(Optional<T> value, String name) {
@@ -163,7 +162,7 @@ public class ExecutionValues {
     @Override
     public String toString() {
         return "ExecutionValues{" +
-                "path='" + path + '\'' +
+                "resource='" + resource + '\'' +
                 ", httpMethod='" + httpMethod + '\'' +
                 ", headers=" + headers +
                 ", queryStringParameters=" + queryStringParameters +
