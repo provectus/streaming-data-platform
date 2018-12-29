@@ -127,6 +127,14 @@ Resources:
                   - kinesis:PutRecords
                 Resource:
                   - !GetAtt 'BcnsStream.Arn'
+              - Sid: dynamo
+                Effect: Allow
+                Action:
+                  - dynamodb:BatchGetItem
+                  - dynamoDB:Query
+                  - dynamoDB:Scan
+                Resource:
+                  - !GetAtt 'AggregationDynamoTable.Arn'
   KinesisAnalyticsRole:
     Type: AWS::IAM::Role
     Properties:
@@ -147,38 +155,31 @@ Resources:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
+                Sid: InvokeLambda
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt 'ReportingLambda.Arn'
+              - Effect: Allow
+                Sid: WriteLogs
+                Action:
+                  - logs:PutLogEvents
+                Resource:
+                  - !GetAtt 'LogGroupKinesisAnalyticsApp.Arn'
+              - Effect: Allow
                 Sid: ReadInputStream
                 Action:
                   - kinesis:ListShards
-                  - kinesis:ListStreams
-                  - kinesis:DescribeLimits
-                  - kinesis:DescribeStream
-                  - kinesis:DescribeStreamConsumer
-                  - kinesis:DescribeStreamSummary
                   - kinesis:GetRecords
                   - kinesis:GetShardIterator
-                  - kinesis:ListTagsForStream
                   - kinesis:SubscribeToShard
-                  - kinesis:AddTagsToStream
-                  - kinesis:CreateStream
-                  - kinesis:DecreaseStreamRetentionPeriod
-                  - kinesis:DeleteStream
-                  - kinesis:DeregisterStreamConsumer
-                  - kinesis:DisableEnhancedMonitoring
-                  - kinesis:EnableEnhancedMonitoring
-                  - kinesis:IncreaseStreamRetentionPeriod
-                  - kinesis:MergeShards
                   - kinesis:PutRecord
                   - kinesis:PutRecords
-                  - kinesis:RegisterStreamConsumer
-                  - kinesis:RemoveTagsFromStream
-                  - kinesis:SplitShard
-                  - kinesis:UpdateShardCount
                 Resource:
-                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${ServicePrefix}bcns'
-                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${ServicePrefix}aggregates'
-                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${ServicePrefix}clicks'
-                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${ServicePrefix}impressions'
+                  - !GetAtt 'BcnsStream.Arn'
+                  - !GetAtt 'AggregatesStream.Arn'
+                  - !GetAtt 'ClickStream.Arn'
+                  - !GetAtt 'ImpressionsStream.Arn'
   BcnsStream:
     Type: AWS::Kinesis::Stream
     Properties:
@@ -202,7 +203,7 @@ Resources:
   v2Api:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      Name: !Sub '${ServicePrefix}_APIv2'
+      Name: !Sub '${ServicePrefix}APIv2'
       Description: APIv2 used for  requests
       FailOnWarnings: false
       Body:
@@ -347,7 +348,7 @@ Resources:
   Api:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      Name: !Sub '${ServicePrefix}_API'
+      Name: !Sub '${ServicePrefix}API'
       Description: API used for  requests
       FailOnWarnings: false
   LogGroupImpressionBcnLambda:
@@ -501,6 +502,10 @@ Resources:
       RestApiId: !Ref 'Api'
       MethodResponses:
         - StatusCode: 200
+  LogGroupKinesisAnalyticsApp:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/aws/kinesisanalytics/${ServicePrefix}KinesisAnalyticsApp'
   KinesisAnalyticsApp:
     Type: AWS::KinesisAnalytics::Application
     Properties:
@@ -509,17 +514,15 @@ Resources:
       ApplicationCode: |
         CREATE STREAM "bcns_impressions" (
          "txid" VARCHAR(64),
-           "event_timestamp" BIGINT,
            "win_price" BIGINT
         );
 
         CREATE OR REPLACE PUMP "bcns_impressions_pump" AS
-         INSERT INTO "bcns_impressions" ("txid","event_timestamp","win_price")
-        SELECT "txid","event_timestamp","win_price" FROM "bcns_001" WHERE "type"='imp';
+         INSERT INTO "bcns_impressions" ("txid","win_price")
+        SELECT "txid","win_price" FROM "bcns_001" WHERE "type"='imp';
 
         CREATE STREAM "bcns_bids" (
                          "txid" VARCHAR(64),
-                         "event_timestamp" BIGINT,
                          "campaign_item_id" BIGINT,
                          "domain" VARCHAR(255),
                          "creative_id" VARCHAR(255),
@@ -528,22 +531,20 @@ Resources:
         );
 
         CREATE OR REPLACE PUMP "bcns_bids_pump" AS
-        INSERT INTO "bcns_bids" ("txid","campaign_item_id","domain","creative_id","creative_category","appuid","event_timestamp")
-        SELECT "txid","campaign_item_id","domain","creative_id","creative_category","appuid","event_timestamp"
+        INSERT INTO "bcns_bids" ("txid","campaign_item_id","domain","creative_id","creative_category","appuid")
+        SELECT "txid","campaign_item_id","domain","creative_id","creative_category","appuid"
         FROM "bcns_001" WHERE "type"='bid';
 
         CREATE STREAM "bcns_clicks" (
-                        "txid" VARCHAR(64),
-                        "event_timestamp" BIGINT
+                        "txid" VARCHAR(64)
         );
 
         CREATE OR REPLACE PUMP "bcns_clicks_pump" AS
-        INSERT INTO "bcns_clicks" ("txid","event_timestamp")
-        SELECT "txid","event_timestamp" FROM "bcns_001" WHERE "type"='click';
+        INSERT INTO "bcns_clicks" ("txid")
+        SELECT "txid" FROM "bcns_001" WHERE "type"='click';
 
         CREATE STREAM "impressions"(
                          "txid" VARCHAR(64),
-                         "event_timestamp" BIGINT,
                          "campaign_item_id" BIGINT,
                          "domain" VARCHAR(255),
                          "creative_id" VARCHAR(255),
@@ -553,17 +554,16 @@ Resources:
         );
 
         CREATE OR REPLACE PUMP "impressions_pump" AS
-        INSERT INTO "impressions" ( "txid", "event_timestamp", "campaign_item_id",
+        INSERT INTO "impressions" ( "txid", "campaign_item_id",
         "domain", "creative_id", "creative_category", "appuid", "win_price")
         SELECT STREAM
-        b."txid", i."event_timestamp", b."campaign_item_id", b."domain", b."creative_id",
+        b."txid", b."campaign_item_id", b."domain", b."creative_id",
         b."creative_category", b."appuid", i."win_price"
         FROM "bcns_bids" OVER (RANGE INTERVAL '1' MINUTE PRECEDING) as b
         JOIN "bcns_impressions" AS i ON (b."txid"=i."txid");
 
         CREATE STREAM "clicks"(
                          "txid" VARCHAR(16),
-                         "event_timestamp" BIGINT,
                          "campaign_item_id" BIGINT,
                          "domain" VARCHAR(255),
                          "creative_id" VARCHAR(255),
@@ -573,10 +573,10 @@ Resources:
         );
 
         CREATE OR REPLACE PUMP "clicks_pump" AS
-        INSERT INTO "clicks" ( "txid", "event_timestamp", "campaign_item_id",
+        INSERT INTO "clicks" ( "txid", "campaign_item_id",
         "domain", "creative_id", "creative_category", "appuid", "win_price")
         SELECT STREAM
-        i."txid", c."event_timestamp", i."campaign_item_id", i."domain", i."creative_id",
+        i."txid", i."campaign_item_id", i."domain", i."creative_id",
         i."creative_category", i."appuid", i."win_price"
         FROM "impressions" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) as i
         JOIN "bcns_clicks" AS c ON (i."txid"=c."txid");
@@ -641,9 +641,6 @@ Resources:
               - Name: type
                 SqlType: VARCHAR(16)
                 Mapping: $.type
-              - Name: event_timestamp
-                SqlType: BIGINT
-                Mapping: $.timestamp
               - Name: win_price
                 SqlType: BIGINT
                 Mapping: $.win_price
@@ -921,8 +918,6 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: timestamp
-              Type: bigint
             - Name: win_price
               Type: bigint
   RawImpressionsGlueTable:
@@ -964,8 +959,6 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: event_timestamp
-              Type: bigint
             - Name: win_price
               Type: bigint
   RawClicksGlueTable:
@@ -1007,8 +1000,6 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: event_timestamp
-              Type: bigint
             - Name: win_price
               Type: bigint
   RawAggregatesGlueTable:
@@ -1040,8 +1031,6 @@ Resources:
           Columns:
             - Name: campaign_item_id
               Type: bigint
-            - Name: period
-              Type: timestamp
             - Name: bids
               Type: bigint
             - Name: imps
@@ -1085,8 +1074,6 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: timestamp
-              Type: bigint
             - Name: win_price
               Type: bigint
         Name: parquet_bcns
@@ -1129,8 +1116,6 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: event_timestamp
-              Type: bigint
             - Name: win_price
               Type: bigint
         Name: parquet_impressions
@@ -1173,8 +1158,6 @@ Resources:
               Type: string
             - Name: creative_category
               Type: string
-            - Name: event_timestamp
-              Type: bigint
             - Name: win_price
               Type: bigint
         Name: parquet_clicks
@@ -1363,7 +1346,6 @@ Resources:
     Properties:
       RestApiId: !Ref 'v2Api'
       StageName: !Sub '${ServicePrefix}stagev2'
-
 # Reporting API
   ReportingApi:
     Type: AWS::ApiGateway::RestApi
@@ -1489,4 +1471,4 @@ Outputs:
     Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}stage'
   RootUrlForV2:
     Description: Root URL of the API gateway
-    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}stagev2'
+    Value: !Sub 'https://${v2Api}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}stagev2'
