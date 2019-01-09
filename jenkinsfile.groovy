@@ -1,20 +1,13 @@
 def repository = 'squadex-fastdata-solution'
-
-def buildFunction = {
-    echo "mvn clean package"
+def organization = 'provectus'
+node("JenkinsOnDemand") {
+    stage("Checkout") {
+        autoCheckout(repository, organization)
+    }
+    stage("Build") {
+        sh 'mvn clean package'
+    }
+    stage("Test") {
+        echo 'mvn verify'
+    }
 }
-
-pipelineCommon(
-        repository,
-        false,
-        [],
-        {},
-        buildFunction,
-        buildFunction,
-        buildFunction,
-        null,
-        "",
-        "",
-        {},
-        null
-)
