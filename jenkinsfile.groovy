@@ -5,9 +5,13 @@ node("JenkinsOnDemand") {
         autoCheckout(repository, organization)
     }
     stage("Build") {
-        sh 'mvn clean package'
+        withMaven {
+            sh 'mvn clean package'
+        }
     }
     stage("Test") {
-        echo 'mvn verify'
+        withMaven {
+            echo 'mvn verify'
+        }
     }
 }
