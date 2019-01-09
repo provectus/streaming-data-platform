@@ -1,18 +1,21 @@
 def repository = 'squadex-fastdata-solution'
 def organization = 'provectus'
 node('JenkinsOnDemand') {
-    tool type: 'maven'
+    stage('Initialize') {
+        sh '''
+        curl -o apache-maven.tar.gz http://archive.apache.org/dist/maven/maven-3/3.6.0/binaries/apache-maven-3.6.0-bin.tar.gz
+        tar xzvf apache-maven.tar.gz -C /tmp/
+        '''
+    }
     stage('Checkout') {
         autoCheckout(repository, organization)
     }
     stage('Build') {
-        withMaven {
-            sh 'mvn clean package'
-        }
+            sh '/tmp/apache-maven-3.6.0/bin/mvn clean package'
     }
     stage('Test') {
         withMaven {
-            echo 'mvn verify'
+            echo '/tmp/apache-maven-3.6.0/bin/mvn verify'
         }
     }
 }
