@@ -1,15 +1,16 @@
 def repository = 'squadex-fastdata-solution'
 def organization = 'provectus'
-node("JenkinsOnDemand") {
-    stage("Checkout") {
+node('JenkinsOnDemand') {
+    tool type: 'maven'
+    stage('Checkout') {
         autoCheckout(repository, organization)
     }
-    stage("Build") {
+    stage('Build') {
         withMaven {
             sh 'mvn clean package'
         }
     }
-    stage("Test") {
+    stage('Test') {
         withMaven {
             echo 'mvn verify'
         }
