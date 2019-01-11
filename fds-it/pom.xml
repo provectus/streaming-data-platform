@@ -27,37 +27,38 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-cloudformation</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-lambda-api</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-lambda-compaction</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-lambda-dynamodb-persister</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-lambda-reports</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-models</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
-            <version>3.1.5</version>
+            <scope>test</scope>
         </dependency>
-        <!--<dependency>-->
-            <!--<groupId>org.apache.maven.plugins</groupId>-->
-            <!--<artifactId>maven-surefire-report-plugin</artifactId>-->
-            <!--<version>3.0.0-M3</version>-->
-        <!--</dependency>-->
     </dependencies>
     <build>
         <plugins>
