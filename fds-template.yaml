@@ -258,6 +258,8 @@ Resources:
                   integration.request.header.Content-Type: '''application/x-amz-json-1.1'''
                 requestTemplates:
                   application/json: !Sub |
+                    #set($allParams = $input.path('$'))
+                    #set($discard=$allParams.put("type", "bid"))
                     {
                         "StreamName": "${BcnsStream}",
                         "Data": "$util.base64Encode($input.json('$'))",
@@ -286,6 +288,8 @@ Resources:
                   integration.request.header.Content-Type: '''application/x-amz-json-1.1'''
                 requestTemplates:
                   application/json: !Sub |
+                    #set($allParams = $input.path('$'))
+                    #set($discard=$allParams.put("type", "click"))
                     {
                         "StreamName": "${BcnsStream}",
                         "Data": "$util.base64Encode($input.json('$'))",
@@ -314,6 +318,8 @@ Resources:
                   integration.request.header.Content-Type: '''application/x-amz-json-1.1'''
                 requestTemplates:
                   application/json: !Sub |
+                    #set($allParams = $input.path('$'))
+                    #set($discard=$allParams.put("type", "imp"))
                     {
                         "StreamName": "${BcnsStream}",
                         "Data": "$util.base64Encode($input.json('$'))",
