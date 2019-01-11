@@ -46,7 +46,10 @@ public class CloudFormation implements AutoCloseable {
                         .withParameterValue(stackName),
                 new Parameter()
                         .withParameterKey("S3BucketName")
-                        .withParameterValue(String.format("fds%s", stackName))
+                        .withParameterValue(String.format("fds%s", stackName)),
+                new Parameter()
+                        .withParameterKey("AggragationPeriod")
+                        .withParameterValue("2")
         );
         createRequest.setParameters(parameters);
         CreateStackResult createResult = this.stackBuilder.createStack(createRequest);

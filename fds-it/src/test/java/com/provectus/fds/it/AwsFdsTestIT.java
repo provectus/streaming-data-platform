@@ -10,9 +10,7 @@ import com.provectus.fds.models.bcns.ImpressionBcn;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Response;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,7 +27,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class AwsFdsTestIT {
-    private static final String STACK_NAME_PREFIX = "fdsit";
+    private static final String STACK_NAME_PREFIX = "integration";
     private static final String REGION = "us-west-2";
 
     public static final String URL_FOR_API = "UrlForAPI";
@@ -46,19 +44,19 @@ public class AwsFdsTestIT {
     private final AsyncHttpClient httpClient = asyncHttpClient(config());
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Before
-    public void beforeClass() throws Exception {
+    @BeforeClass
+    public static void beforeClass() throws Exception {
         cloudFormation = new CloudFormation(REGION
-                , String.format("%s_%s", STACK_NAME_PREFIX, UUID.randomUUID().toString())
+                , String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-","")).substring(0,30)
                 , new File("fds.yaml")
         );
-        reportUrl = cloudFormation.getOutput(URL_FOR_API).getOutputValue();
-        apiUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
+        reportUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
+        apiUrl = cloudFormation.getOutput(URL_FOR_API).getOutputValue();
     }
 
-    @After
-    public void afterClass() throws Exception {
-        if (cloudFormation!=null) cloudFormation.close();
+    @AfterClass
+    public static void afterClass() throws Exception {
+        if (cloudFormation != null) cloudFormation.close();
     }
 
     @Test
@@ -72,8 +70,8 @@ public class AwsFdsTestIT {
         ThreadLocalRandom random = ThreadLocalRandom.current();
 
         int numberOfBids = random.nextInt(100, 200);
-        int numberOfImps = random.nextInt(numberOfBids/4, numberOfBids/2);
-        int numberOfClicks = random.nextInt(numberOfImps/4, numberOfImps/2);
+        int numberOfImps = random.nextInt(numberOfBids / 4, numberOfBids / 2);
+        int numberOfClicks = random.nextInt(numberOfImps / 4, numberOfImps / 2);
 
         String domain = "www.google.com";
         String creativeCategory = "testCreativeCategory";
@@ -88,21 +86,21 @@ public class AwsFdsTestIT {
             String appuid = UUID.randomUUID().toString();
             long winPrice = random.nextInt(1_000, 2_000);
 
-            Bid bid = new Bid(txid,campaignItemId, domain,creativeId,creativeCategory, appuid);
-            ImpressionBcn impressionBcn = new ImpressionBcn(txid, Instant.now().toEpochMilli(),winPrice);
+            Bid bid = new Bid(txid, campaignItemId, domain, creativeId, creativeCategory, appuid);
+            ImpressionBcn impressionBcn = new ImpressionBcn(txid, Instant.now().toEpochMilli(), winPrice);
             ClickBcn clickBcn = new ClickBcn(txid, Instant.now().toEpochMilli());
 
 
             futuresByType.computeIfAbsent(BID_TYPE, (k) -> new ArrayList<>())
                     .add(sendRequest(BID_TYPE, bid));
 
-            if (numberOfImps>0) {
+            if (numberOfImps > 0) {
                 futuresByType.computeIfAbsent(IMP_TYPE, (k) -> new ArrayList<>())
                         .add(sendRequest(IMP_TYPE, impressionBcn));
                 numberOfImps--;
             }
 
-            if (numberOfClicks>0) {
+            if (numberOfClicks > 0) {
                 futuresByType.computeIfAbsent(CLICK_TYPE, (k) -> new ArrayList<>())
                         .add(sendRequest(CLICK_TYPE, clickBcn));
                 numberOfClicks--;
@@ -113,17 +111,13 @@ public class AwsFdsTestIT {
         int countOfImpressions = awaitSuccessfull(futuresByType.get(IMP_TYPE));
         int countOfClicks = awaitSuccessfull(futuresByType.get(CLICK_TYPE));
 
-        awaitReport(campaignItemId, countOfBids, countOfImpressions, countOfClicks);
-    }
-
-    private void awaitReport(long campaignItemId, int countOfBids, int countOfImpressions, int countOfClicks) {
         await().atMost(15, TimeUnit.MINUTES)
-                .until( () -> {
+                .pollInterval(10, TimeUnit.SECONDS)
+                .until(() -> {
                     Aggregation report = getReport(campaignItemId);
-                    assertEquals(countOfBids,report.getBids());
-                    assertEquals(countOfImpressions, report.getImps());
-                    assertEquals(countOfClicks, report.getClicks());
-                    return true;
+                    return countOfBids == report.getBids() &&
+                            countOfImpressions == report.getImps() &&
+                            countOfClicks == report.getClicks();
                 });
     }
 
@@ -132,22 +126,21 @@ public class AwsFdsTestIT {
         for (ListenableFuture<Response> future : futures) {
             try {
                 Response response = future.get();
-                if (response.getStatusCode()==200) {
+                if (response.getStatusCode() == 200) {
                     n++;
                 }
             } catch (Throwable e) {
-
+                System.out.println("ERROR: " + e.getMessage());
             }
         }
         return n;
     }
 
     private Aggregation getReport(long campaignItemId) throws IOException, ExecutionException, InterruptedException {
-        Response response = httpClient.prepareGet(reportUrl +"/reports/campaigns/"+campaignItemId)
+        Response response = httpClient.prepareGet(reportUrl + "/reports/campaigns/" + campaignItemId)
                 .addHeader("User-Agent", USER_AGENT)
                 .execute()
                 .get();
-
         return objectMapper.readValue(response.getResponseBodyAsBytes(), Aggregation.class);
     }
 

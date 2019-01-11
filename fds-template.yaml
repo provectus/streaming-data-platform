@@ -15,6 +15,7 @@ Metadata:
           - BufInterval
           - BufSize
           - ShardCount
+          - AggregationmPeriod
     ParameterLabels:
       - ServicePrefix:
           default: Prefix for all entities
@@ -28,18 +29,20 @@ Metadata:
           default: Buffering size
       - ShardCount:
           default: Number of Kinesis streams shards
+      - AggregationmPeriod:
+          default: Period of triggering aggreation function
 Parameters:
   ServicePrefix:
-    AllowedPattern: '^[a-zA-Z]{4,61}$'
+    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
     ConstraintDescription: Prefix should be DNS compliant
     Default: testing
     Type: String
   AnalyticalDBName:
-    AllowedPattern: '^[a-z]{4,61}$'
+    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
     Default: fdsdb
     Type: String
   S3BucketName:
-    AllowedPattern: '^[a-z]{4,61}$'
+    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
     ConstraintDescription: Bucket name must not contain uppercase characters or underscores
     Default: fdsbucket
     Type: String
@@ -51,6 +54,9 @@ Parameters:
     Type: Number
   ShardCount:    
     Default: 2
+    Type: Number
+  AggregationmPeriod:
+    Default: 10
     Type: Number
 Resources:
   S3Bucket:
@@ -339,7 +345,7 @@ Resources:
     Properties:
       ApplicationName: !Sub '${ServicePrefix}Application'
       ApplicationDescription: Joining & Aggregation app
-      ApplicationCode: |
+      ApplicationCode: !Sub |
         CREATE STREAM "bcns_impressions" (
          "txid" VARCHAR(64),
            "win_price" BIGINT
@@ -420,27 +426,27 @@ Resources:
         CREATE OR REPLACE PUMP "campaign_item_performance_bids_pump" AS
         INSERT INTO "campaign_aggregates" ("campaign_item_id","period","bids")
         SELECT STREAM "campaign_item_id",
-                       STEP("bcns_bids".ROWTIME BY INTERVAL '10' MINUTE) as "period",
+                       STEP("bcns_bids".ROWTIME BY INTERVAL '${AggregationmPeriod}' MINUTE) as "period",
                        count(*) as "bids"
         FROM "bcns_bids"
-        GROUP BY "campaign_item_id", STEP("bcns_bids".ROWTIME BY INTERVAL '10' MINUTE);
+        GROUP BY "campaign_item_id", STEP("bcns_bids".ROWTIME BY INTERVAL '${AggregationmPeriod}' MINUTE);
 
         CREATE OR REPLACE PUMP "campaign_item_performance_imps_pump" AS
         INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "imps")
         SELECT STREAM "campaign_item_id",
-                       STEP("impressions".ROWTIME BY INTERVAL '10' MINUTE) as
+                       STEP("impressions".ROWTIME BY INTERVAL '${AggregationmPeriod}' MINUTE) as
                       "period",
                       count(1) as "imps"
         FROM "impressions"
-        GROUP BY "campaign_item_id", STEP("impressions".ROWTIME BY INTERVAL '10' MINUTE);
+        GROUP BY "campaign_item_id", STEP("impressions".ROWTIME BY INTERVAL '${AggregationmPeriod}' MINUTE);
 
         CREATE OR REPLACE PUMP "campaign_item_performance_clicks_pump" AS
         INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "clicks")
         SELECT STREAM "campaign_item_id",
-                       STEP("clicks".ROWTIME BY INTERVAL '10' MINUTE) as "period",
+                       STEP("clicks".ROWTIME BY INTERVAL '${AggregationmPeriod}' MINUTE) as "period",
                        count(1) as "clicks"
         FROM "clicks"
-        GROUP BY "campaign_item_id", STEP("clicks".ROWTIME BY INTERVAL '10' MINUTE);
+        GROUP BY "campaign_item_id", STEP("clicks".ROWTIME BY INTERVAL '${AggregationmPeriod}' MINUTE);
       Inputs:
         - KinesisStreamsInput:
             ResourceARN: !GetAtt 'BcnsStream.Arn'
