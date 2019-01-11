@@ -15,6 +15,7 @@ import java.util.List;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class AwsFdsTestIT {
+    // TODO stackName should be based on commit hash
     private static String stackName = "fdsit";
     private static String apiUrl;
     private static String reportUrl;
@@ -99,7 +100,7 @@ public class AwsFdsTestIT {
         );
     }
 
-    //AfterClass
+    @AfterClass
     public static void afterClass() throws Exception {
         AmazonCloudFormation stackbuilder = AmazonCloudFormationClientBuilder.standard()
                 .withRegion(REGION)
@@ -175,7 +176,8 @@ public class AwsFdsTestIT {
         while ((output = bufferedReader.readLine()) != null) {
             stringBuilder.append(output);
         }
-        System.out.println(output);
+        System.out.println(stringBuilder.toString());
+        // TODO need use actual report
         return new int[]{10, 10, 10};
     }
 
