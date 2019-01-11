@@ -1158,7 +1158,7 @@ Resources:
     Type: AWS::ApiGateway::Deployment
     Properties:
       RestApiId: !Ref 'Api'
-      StageName: !Sub '${ServicePrefix}stage'
+      StageName: !Sub '${ServicePrefix}'
 # Reporting API
   ReportingApi:
     Type: AWS::ApiGateway::RestApi
@@ -1271,7 +1271,15 @@ Resources:
       Timeout: 180
       Role: !GetAtt 'LambdaExecutionRole.Arn'
       Runtime: java8
+  ReportingApiGatewayStage:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref 'ReportingApi'
+      StageName: !Sub '${ServicePrefix}'
 Outputs:
-  RootUrlFor:
+  UrlForAPI:
     Description: Root URL of the API gateway
-    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}stage'
+    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}'
+  UrlForReports:
+    Description: Root URL of the reports gateway
+    Value: !Sub 'https://${ReportingApi}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}'

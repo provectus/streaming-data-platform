@@ -3,16 +3,17 @@ package com.provectus.fds.it;
 import com.amazonaws.services.cloudformation.AmazonCloudFormation;
 import com.amazonaws.services.cloudformation.AmazonCloudFormationClientBuilder;
 import com.amazonaws.services.cloudformation.model.*;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.runners.MethodSorters;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class AwsFdsTestIT {
     private static String stackName = "fdsit";
     private static String apiUrl;
@@ -69,8 +70,8 @@ public class AwsFdsTestIT {
         return String.format("%s (%s)", stackStatus, stackReason);
     }
 
-    @Before
-    public void beforeClass() throws Exception {
+    @BeforeClass
+    public static void beforeClass() throws Exception {
         AmazonCloudFormation stackbuilder = AmazonCloudFormationClientBuilder.standard()
                 .withRegion(REGION)
                 .build();
@@ -92,31 +93,24 @@ public class AwsFdsTestIT {
         );
         createRequest.setParameters(parameters);
         stackbuilder.createStack(createRequest);
-        DescribeStacksResult describeStacksResult = stackbuilder.describeStacks(
-                new DescribeStacksRequest().withStackName(stackName)
-        );
         System.out.println(String.format("Stack creation completed, the stack %s completed with %s",
                 stackName,
                 waitForCompletion(stackbuilder))
         );
     }
 
-    @After
-    public void afterClass() throws Exception {
+    //AfterClass
+    public static void afterClass() throws Exception {
         AmazonCloudFormation stackbuilder = AmazonCloudFormationClientBuilder.standard()
                 .withRegion(REGION)
                 .build();
         DeleteStackRequest deleteStackRequest = new DeleteStackRequest();
         deleteStackRequest.setStackName(stackName);
         stackbuilder.deleteStack(deleteStackRequest);
-        System.out.println(String.format("Stack deletion completed, the stack %s completed with %s",
-                stackName,
-                waitForCompletion(stackbuilder))
-        );
     }
 
     @Test
-    public void testStackOutputs() {
+    public void testOutputs() {
         AmazonCloudFormation stackbuilder = AmazonCloudFormationClientBuilder.standard()
                 .withRegion(REGION)
                 .build();
@@ -136,7 +130,7 @@ public class AwsFdsTestIT {
     }
 
     @Test
-    public void testAthenaReport() throws IOException {
+    public void testReports() throws IOException {
         int length = 10;
         String appuid = "testAppuid";
         String domain = "testDomain";
@@ -175,6 +169,13 @@ public class AwsFdsTestIT {
         con.setRequestMethod("GET");
         con.setDoInput(true);
         con.setRequestProperty("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8");
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(con.getInputStream()));
+        StringBuilder stringBuilder = new StringBuilder();
+        String output;
+        while ((output = bufferedReader.readLine()) != null) {
+            stringBuilder.append(output);
+        }
+        System.out.println(output);
         return new int[]{10, 10, 10};
     }
 
@@ -185,7 +186,7 @@ public class AwsFdsTestIT {
         con.setRequestProperty("Content-Type", "application/json");
         con.setRequestProperty("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8");
         OutputStream os = con.getOutputStream();
-        os.write(request.getBytes("UTF-8"));
+        os.write(request.getBytes(StandardCharsets.UTF_8));
         os.flush();
         return con.getResponseCode() == 200 ? 1 : 0;
     }

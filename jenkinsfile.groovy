@@ -15,9 +15,6 @@ node("JenkinsOnDemand") {
         sh "/tmp/apache-maven-3.6.0/bin/mvn clean package"
     }
     stage("Test") {
-        sh """
-        aws cloudformation package --template-file fds-template.yaml --s3-bucket fds-lambda-java-${env.COMMIT_ID} --output-template-file fds.yaml
-        /tmp/apache-maven-3.6.0/bin/mvn verify
-        """
+        sh "/tmp/apache-maven-3.6.0/bin/mvn verify"
     }
 }

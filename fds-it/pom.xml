@@ -120,7 +120,7 @@
                         </goals>
                         <configuration>
                             <executable>aws</executable>
-                            <commandlineArgs>s3 mb s3://itstack-artifacts --region us-west-2 \|:</commandlineArgs>
+                            <commandlineArgs>s3 mb s3://itstack-artifacts --region us-west-2</commandlineArgs>
                         </configuration>
                     </execution>
                     <execution>
