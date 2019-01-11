@@ -15,6 +15,9 @@ node("JenkinsOnDemand") {
         sh "/tmp/apache-maven-3.6.0/bin/mvn clean package"
     }
     stage("Test") {
-        sh "/tmp/apache-maven-3.6.0/bin/mvn verify"
+        sh """
+        export PATH=$PATH:$HOME/.local/bin
+	/tmp/apache-maven-3.6.0/bin/mvn verify
+	"""
     }
 }
