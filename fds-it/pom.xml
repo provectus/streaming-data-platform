@@ -112,7 +112,7 @@
                 <version>1.6.0</version>
                 <groupId>org.codehaus.mojo</groupId>
                 <executions>
-                    <!--execution>
+                    <execution>
                         <id>Create S3 bucket</id>
                         <phase>pre-integration-test</phase>
                         <goals>
@@ -120,7 +120,7 @@
                         </goals>
                         <configuration>
                             <executable>aws</executable>
-                            <commandlineArgs>s3 mb s3://itstack-artifacts -region us-west-2</commandlineArgs>
+                            <commandlineArgs>s3 mb s3://itstack-artifacts --region us-west-2 \|:</commandlineArgs>
                         </configuration>
                     </execution>
                     <execution>
@@ -131,7 +131,7 @@
                         </goals>
                         <configuration>
                             <executable>aws</executable>
-                            <commandlineArgs>cloudformation package -template-file ../fds-template.yaml -output-template-file fds.yaml -s3-bucket itstack-artifacts</commandlineArgs>
+                            <commandlineArgs>cloudformation package --template-file ../fds-template.yaml --output-template-file fds.yaml --s3-bucket itstack-artifacts</commandlineArgs>
                         </configuration>
                     </execution>
                     <execution>
@@ -142,9 +142,9 @@
                         </goals>
                         <configuration>
                             <executable>aws</executable>
-                            <commandlineArgs>s3 rb s3://itstack-artifacts -force</commandlineArgs>
+                            <commandlineArgs>s3 rb s3://itstack-artifacts --force</commandlineArgs>
                         </configuration>
-                    </execution-->
+                    </execution>
                 </executions>
             </plugin>
         </plugins>
