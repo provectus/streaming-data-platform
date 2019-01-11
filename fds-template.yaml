@@ -556,7 +556,8 @@ Resources:
                         "period" TIMESTAMP,
                         "bids" BIGINT,
                         "imps" BIGINT,
-                        "clicks" BIGINT
+                        "clicks" BIGINT,
+                        "spend" BIGINT
          );
 
         CREATE OR REPLACE PUMP "campaign_item_performance_bids_pump" AS
