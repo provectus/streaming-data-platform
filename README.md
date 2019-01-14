@@ -85,3 +85,73 @@ The following request could retrieve report for each campaign item:
 ```$xslt
 curl -o bid-report.json '<UrlForReports>/reports/campaigns/<campaign_item_id>'
 ``` 
+##### Bid
+```
+title: Bid
+type: object
+properties:
+  appuid:
+    required: true
+    type: string
+  campaign_item_id:
+    required: true
+    type: integer
+  creative_category:
+    type: string
+  creative_id:
+    type: string
+  txid:
+    required: true
+    type: string
+  domain:
+    type: string
+  win_price:
+    type: integer
+  type:
+    type: string
+    default: bid
+```
+##### Click
+```
+title: Click
+type: object
+properties:
+  txid:
+    required: true
+    type: string
+  type:
+    type: string
+    default: click
+```
+##### Impression
+```
+title: Impression
+type: object
+properties:
+  txid:
+    required: true
+    type: string
+  win_price:
+    required: true
+    type: integer
+  type:
+    type: string
+    default: imp
+```
+##### Aggregation
+```
+title: Aggregation
+type: object
+properties:
+  campaign_item_id:
+    required: true
+    type: integer
+  period:
+    type: integer
+  clicks:
+    type: integer
+  imps:
+    type: integer
+  bids:
+    type: integer
+```
