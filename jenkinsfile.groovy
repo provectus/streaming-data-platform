@@ -15,9 +15,12 @@ node("JenkinsOnDemand") {
         sh "/tmp/apache-maven-3.6.0/bin/mvn clean package"
     }
     stage("Test") {
-        sh """
-        export PATH=$PATH:$HOME/.local/bin
-	/tmp/apache-maven-3.6.0/bin/mvn verify
-	"""
+	withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'CFNBot', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+            sh """
+            export PATH=$PATH:$HOME/.local/bin
+            /tmp/apache-maven-3.6.0/bin/mvn verify
+            """
+        }
+	junit allowEmptyResults: true, testResults: 'fds-it/target/surefire-reports/*.xml'
     }
 }

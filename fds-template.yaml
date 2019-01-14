@@ -15,7 +15,7 @@ Metadata:
           - BufInterval
           - BufSize
           - ShardCount
-          - AggregationmPeriod
+          - AggregationPeriod
     ParameterLabels:
       - ServicePrefix:
           default: Prefix for all entities
@@ -29,7 +29,7 @@ Metadata:
           default: Buffering size
       - ShardCount:
           default: Number of Kinesis streams shards
-      - AggregationmPeriod:
+      - AggregationPeriod:
           default: Period of triggering aggreation function
 Parameters:
   ServicePrefix:
@@ -55,7 +55,7 @@ Parameters:
   ShardCount:    
     Default: 2
     Type: Number
-  AggregationmPeriod:
+  AggregationPeriod:
     Default: 10
     Type: Number
 Resources:
@@ -426,27 +426,27 @@ Resources:
         CREATE OR REPLACE PUMP "campaign_item_performance_bids_pump" AS
         INSERT INTO "campaign_aggregates" ("campaign_item_id","period","bids")
         SELECT STREAM "campaign_item_id",
-                       STEP("bcns_bids".ROWTIME BY INTERVAL '${AggregationmPeriod}' MINUTE) as "period",
+                       STEP("bcns_bids".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE) as "period",
                        count(*) as "bids"
         FROM "bcns_bids"
-        GROUP BY "campaign_item_id", STEP("bcns_bids".ROWTIME BY INTERVAL '${AggregationmPeriod}' MINUTE);
+        GROUP BY "campaign_item_id", STEP("bcns_bids".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE);
 
         CREATE OR REPLACE PUMP "campaign_item_performance_imps_pump" AS
         INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "imps")
         SELECT STREAM "campaign_item_id",
-                       STEP("impressions".ROWTIME BY INTERVAL '${AggregationmPeriod}' MINUTE) as
+                       STEP("impressions".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE) as
                       "period",
                       count(1) as "imps"
         FROM "impressions"
-        GROUP BY "campaign_item_id", STEP("impressions".ROWTIME BY INTERVAL '${AggregationmPeriod}' MINUTE);
+        GROUP BY "campaign_item_id", STEP("impressions".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE);
 
         CREATE OR REPLACE PUMP "campaign_item_performance_clicks_pump" AS
         INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "clicks")
         SELECT STREAM "campaign_item_id",
-                       STEP("clicks".ROWTIME BY INTERVAL '${AggregationmPeriod}' MINUTE) as "period",
+                       STEP("clicks".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE) as "period",
                        count(1) as "clicks"
         FROM "clicks"
-        GROUP BY "campaign_item_id", STEP("clicks".ROWTIME BY INTERVAL '${AggregationmPeriod}' MINUTE);
+        GROUP BY "campaign_item_id", STEP("clicks".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE);
       Inputs:
         - KinesisStreamsInput:
             ResourceARN: !GetAtt 'BcnsStream.Arn'
