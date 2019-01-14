@@ -30,4 +30,3 @@ target/
 *.iml
 fds.yaml
 packaged-template.yaml
-gatling/results

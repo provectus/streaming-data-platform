@@ -18,9 +18,5 @@ public class JsonUtils {
         return objectMapper.writeValueAsBytes(value);
     }
 
-    public static <T> T read(Reader reader, Class clazz) throws IOException {
-        return objectMapper.readerFor(clazz).readValue(reader);
-    }
-
 
 }

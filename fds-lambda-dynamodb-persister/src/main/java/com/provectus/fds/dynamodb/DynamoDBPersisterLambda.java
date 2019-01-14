@@ -9,6 +9,7 @@ import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.KinesisEvent;
 
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,8 @@ public class DynamoDBPersisterLambda implements RequestHandler<KinesisEvent, Int
         AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard().build();
         this.dynamoDAO = new DynamoDAO(System.getenv().getOrDefault(DYNAMO_TABLE_ENV, DYNAMO_TABLE_DEFAULT), client);
     }
+
+
 
     @Override
     public Integer handleRequest(KinesisEvent event, Context context) {

@@ -10,12 +10,10 @@ import java.util.List;
 public class DynamoDAO {
     private final String tableName;
     private final DynamoDB client;
-    private final Table table;
 
     public DynamoDAO(String tableName, AmazonDynamoDB amazonDynamoDB) {
         this.client = new DynamoDB(amazonDynamoDB);
         this.tableName = tableName;
-        this.table = client.getTable(this.tableName);
     }
 
     public List<Item> batchGet(Collection<PrimaryKey> keys) {
