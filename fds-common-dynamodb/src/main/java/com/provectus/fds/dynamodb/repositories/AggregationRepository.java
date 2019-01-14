@@ -14,6 +14,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class AggregationRepository {
@@ -96,18 +99,27 @@ public class AggregationRepository {
                 )
         ).entrySet().stream()
                 .map( e -> e.getValue().withPeriod(e.getKey().toInstant().getEpochSecond()))
-                .sorted(this.sorter(desc)).collect(Collectors.toList());
+                .sorted(this.periodSorter(desc)).collect(Collectors.toList());
     }
 
-    private Comparator<Aggregation> sorter(boolean desc) {
+    private Comparator<Aggregation> periodSorter(boolean desc) {
+        return this.sorter(desc, Aggregation::getPeriod, Long::compare);
+    }
+
+    private <T> Comparator<Aggregation> sorter(boolean desc, Function<Aggregation, T> getter, Comparator<T> comparator) {
         return (o1, o2) -> {
-            long left = o1.getPeriod();
-            long right = o2.getPeriod();
+            T left;
+            T right;
+
             if (desc) {
-                left = o2.getPeriod();
-                right = o1.getPeriod();
+                left = getter.apply(o2);
+                right = getter.apply(o1);
+            } else {
+                left = getter.apply(o1);
+                right = getter.apply(o2);
             }
-            return Long.compare(left, right);
+
+            return comparator.compare(left, right);
         };
     }
 
