@@ -12,6 +12,7 @@
     1. [Populate with data](#populate-with-data)
 ## About
 ### Architecture
+![diagram.svg](images/diagram.svg)
 ### Region availability
 | Services          | Northern Virginia | Ohio | Oregon | Northern California | Montreal | São Paulo | Ireland | Frankfurt | London | Paris | Stockholm | Singapore | Tokyo | Sydney | Seoul | Mumbai |
 |-------------------|-------------------|------|--------|---------------------|----------|-----------|---------|-----------|--------|-------|-----------|-----------|-------|--------|-------|--------|
