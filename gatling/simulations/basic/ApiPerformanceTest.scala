@@ -37,20 +37,20 @@ class ApiPerformanceTest extends Simulation {
     ))
     .exec(
       http("Bid request")
-        .post("/germanstagev2/bid")
-        .body(StringBody("""{"win_price": 0, "appuid": "${Appuid}", "campaign_item_id": ${Campaign_item_id}, "creative_category": "${Creative_category}", "creative_id":"${Creative_id}", "txid":"${Txid}", "domain":"${Domain}", "type":"bid"}""")).asJson
+        .post("/bid")
+        .body(StringBody("""{"win_price": 0, "appuid": "${Appuid}", "campaign_item_id": ${Campaign_item_id}, "creative_category": "${Creative_category}", "creative_id":"${Creative_id}", "txid":"${Txid}", "domain":"${Domain}"}""")).asJson
         .check(status.is(200))
     )
     .exec(
         http("Impression request")
-          .post("/germanstagev2/impression")
-          .body(StringBody("""{"txid":"${Txid}", "win_price": 10, "type":"imp" }""")).asJson
+          .post("/impression")
+          .body(StringBody("""{"txid":"${Txid}", "win_price": 10 }""")).asJson
           .check(status.is(200))
     )
     .exec(
       http("Click request")
-        .post("/germanstagev2/click")
-        .body(StringBody("""{"txid":"${Txid}", "type":"click"}""")).asJson
+        .post("/click")
+        .body(StringBody("""{"txid":"${Txid}"}""")).asJson
         .check(status.is(200))
     )
   setUp(scn.inject(rampUsersPerSec(1) to(2) during(duration)).protocols(httpProtocol))
