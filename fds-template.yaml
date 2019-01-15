@@ -69,7 +69,7 @@ Rules:
               - 'eu-west-1'
               - 'eu-central-1'
             - !Ref 'AWS::Region'
-        AssertDescription: This stack is only available in the US East (N. Virginia), US West (Oregon), EU (Ireland) regions. Please launch the stack in one of these regions to continue.
+        AssertDescription: This stack is only available in the US East (N. Virginia, Ohio), US West (Oregon), EU (Ireland and Frankfurt) regions. Please launch the stack in one of these regions to continue.
 Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
