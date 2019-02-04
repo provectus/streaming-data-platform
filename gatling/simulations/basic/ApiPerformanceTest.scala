@@ -53,5 +53,5 @@ class ApiPerformanceTest extends Simulation {
         .body(StringBody("""{"txid":"${Txid}"}""")).asJson
         .check(status.is(200))
     )
-  setUp(scn.inject(rampUsersPerSec(1) to(2) during(duration)).protocols(httpProtocol))
+  setUp(scn.inject(rampUsersPerSec(1) to(10) during(duration)).protocols(httpProtocol))
 }
