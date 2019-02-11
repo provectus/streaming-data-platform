@@ -25,6 +25,24 @@ The template is designed for the following initiatives:
 
 ### Architecture
 ![diagram.svg](images/diagram.svg)
+
+### How it works
+
+Streaming Data Platform is delivered as cloudformation template quick start. 
+
+Data ingestion layer supports API Gateway endpoint, SFTP, RDS Capture Data Changes, S3 events, DynamoDB, and other connectors. 
+
+All data is streamed in Kinesis, partitioned by business key and split by separate kinesis streams for horizontal scalability. 
+
+Blueprint Kinesis Analytics processor is a point of customization to filter, enrich and aggregate incoming data. 
+
+Ingested and processed messages are stored on S3 with minimum latency. 
+
+Smart partitioning on S3 and columnar format enables subsecond SQL queries from Athena clients. 
+
+Each type of message is registered in AWS Glue with associated metadata for catologization and self-description purposes. 
+AWS Athena is an interactive ad-hoc SQL interface on top of these tables. Aggregated and processed data is stored in DynamoDB for online reporting capabilities. 
+
 ### Region availability
 All services which was used in stack available only in the following AWS regions:
 - Northern Virginia (`us-east-1`)
