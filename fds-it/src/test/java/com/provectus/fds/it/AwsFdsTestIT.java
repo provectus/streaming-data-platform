@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provectus.fds.dynamodb.models.Aggregation;
 import com.provectus.fds.it.aws.CloudFormation;
-import com.provectus.fds.models.bcns.Bid;
+import com.provectus.fds.models.bcns.BidBcn;
 import com.provectus.fds.models.bcns.ClickBcn;
 import com.provectus.fds.models.bcns.ImpressionBcn;
 import org.asynchttpclient.AsyncHttpClient;
@@ -86,13 +86,13 @@ public class AwsFdsTestIT {
             String appuid = UUID.randomUUID().toString();
             long winPrice = random.nextInt(1_000, 2_000);
 
-            Bid bid = new Bid(txid, campaignItemId, domain, creativeId, creativeCategory, appuid);
+            BidBcn bidBcn = new BidBcn(txid, campaignItemId, domain, creativeId, creativeCategory, appuid);
             ImpressionBcn impressionBcn = new ImpressionBcn(txid, Instant.now().toEpochMilli(), winPrice);
             ClickBcn clickBcn = new ClickBcn(txid, Instant.now().toEpochMilli());
 
 
             futuresByType.computeIfAbsent(BID_TYPE, (k) -> new ArrayList<>())
-                    .add(sendRequest(BID_TYPE, bid));
+                    .add(sendRequest(BID_TYPE, bidBcn));
 
             if (numberOfImps > 0) {
                 futuresByType.computeIfAbsent(IMP_TYPE, (k) -> new ArrayList<>())

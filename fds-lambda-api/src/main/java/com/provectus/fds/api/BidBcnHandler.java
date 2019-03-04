@@ -2,19 +2,19 @@ package com.provectus.fds.api;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.provectus.fds.models.bcns.Bcn;
-import com.provectus.fds.models.bcns.Bid;
+import com.provectus.fds.models.bcns.Partitioned;
+import com.provectus.fds.models.bcns.BidBcn;
 
 import java.io.IOException;
 import java.util.Optional;
 
 public class BidBcnHandler extends AbstractBcnHandler {
     @Override
-    public Optional<Bcn> buildBcn(JsonNode parameters, Context context) throws IOException {
-        Optional<Bcn> result =  Optional.empty();
-        if (parameters.has("txid") && parameters.has("appuid") && parameters.has("campaign_item_id")) {
-            String txid = parameters.get("txid").asText();
-            String appuid = parameters.get("appuid").asText();
+    public Optional<Partitioned> buildBcn(JsonNode parameters, Context context) throws IOException {
+        Optional<Partitioned> result =  Optional.empty();
+        if (parameters.has("txId") && parameters.has("appUID") && parameters.has("campaign_item_id")) {
+            String txid = parameters.get("txId").asText();
+            String appuid = parameters.get("appUID").asText();
             long campaignItemId = parameters.get("campaign_item_id").asLong();
             String domain = "";
             if (parameters.has("domain")) {
@@ -31,7 +31,7 @@ public class BidBcnHandler extends AbstractBcnHandler {
             }
 
             result = Optional.of(
-                    new Bid(
+                    new BidBcn(
                             txid,
                             campaignItemId,
                             domain,

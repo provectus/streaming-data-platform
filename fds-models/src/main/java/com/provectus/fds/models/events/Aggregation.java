@@ -1,9 +1,13 @@
 package com.provectus.fds.models.events;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
+import lombok.Setter;
 
 import java.util.Optional;
 
+@Setter
+@Builder
 public class Aggregation {
     @JsonProperty("campaign_item_id")
     private long campaignItemId;
@@ -24,39 +28,43 @@ public class Aggregation {
         return campaignItemId;
     }
 
-    public void setCampaignItemId(long campaignItemId) {
-        this.campaignItemId = campaignItemId;
-    }
-
     public long getClicks() {
         return Optional.ofNullable(clicks).orElse(0L);
-    }
-
-    public void setClicks(long clicks) {
-        this.clicks = clicks;
     }
 
     public long getImps() {
         return Optional.ofNullable(imps).orElse(0L);
     }
 
-    public void setImps(long imps) {
-        this.imps = imps;
-    }
-
     public long getBids() {
         return Optional.ofNullable(bids).orElse(0L);
-    }
-
-    public void setBids(long bids) {
-        this.bids = bids;
     }
 
     public String getPeriod() {
         return period;
     }
 
-    public void setPeriod(String period) {
-        this.period = period;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Aggregation)) return false;
+
+        Aggregation that = (Aggregation) o;
+
+        if (getCampaignItemId() != that.getCampaignItemId()) return false;
+        if (getClicks() != that.getClicks()) return false;
+        if (getImps() != that.getImps()) return false;
+        if (getBids() != that.getBids()) return false;
+        return getPeriod().equals(that.getPeriod());
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (getCampaignItemId() ^ (getCampaignItemId() >>> 32));
+        result = 31 * result + getPeriod().hashCode();
+        result = 31 * result + (int) (getClicks() ^ (getClicks() >>> 32));
+        result = 31 * result + (int) (getImps() ^ (getImps() >>> 32));
+        result = 31 * result + (int) (getBids() ^ (getBids() >>> 32));
+        return result;
     }
 }

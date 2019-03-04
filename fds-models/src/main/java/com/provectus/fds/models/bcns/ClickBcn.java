@@ -1,44 +1,63 @@
 package com.provectus.fds.models.bcns;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.provectus.fds.models.utils.JsonUtils;
+import lombok.Builder;
 
 import java.io.IOException;
 
-public class ClickBcn implements Bcn {
-    private final String txid;
+@Builder
+public class ClickBcn implements Partitioned {
+    private final String txId;
     private final long timestamp;
-    private final String type = "click";
 
-    @JsonCreator
-    public ClickBcn(
-              @JsonProperty("txid") String txid
-            , @JsonProperty("timestamp") long timestamp
-    ) {
-        this.txid = txid;
-        this.timestamp = timestamp;
+    @JsonProperty("tx_id")
+    public String getTxId() {
+        return txId;
     }
 
-    public String getTxid() {
-        return txid;
-    }
-
+    @JsonProperty("timestamp")
     public long getTimestamp() {
         return timestamp;
     }
 
-    public String getType() {
-        return type;
-    }
-
     @Override
     public String getPartitionKey() {
-        return txid;
+        return txId;
     }
 
     @Override
     public byte[] getBytes() throws IOException {
         return JsonUtils.write(this);
+    }
+
+    @Override
+    public long extractTimestamp() {
+        return timestamp;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ClickBcn)) return false;
+
+        ClickBcn clickBcn = (ClickBcn) o;
+
+        if (getTimestamp() != clickBcn.getTimestamp()) return false;
+        return getTxId().equals(clickBcn.getTxId());
+    }
+
+    @Override
+    public int hashCode() {
+        int result = getTxId().hashCode();
+        result = 31 * result + (int) (getTimestamp() ^ (getTimestamp() >>> 32));
+        return result;
+    }
+
+    public static ClickBcn from(Bcn bcn) {
+        return ClickBcn.builder()
+                .txId(bcn.getTxId())
+                .timestamp(bcn.getTimestamp())
+                .build();
     }
 }

@@ -7,7 +7,7 @@ import com.amazonaws.services.kinesis.model.PutRecordResult;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.provectus.fds.models.bcns.Bcn;
+import com.provectus.fds.models.bcns.Partitioned;
 import com.provectus.fds.models.utils.JsonUtils;
 
 import java.io.*;
@@ -39,9 +39,9 @@ public abstract class AbstractBcnHandler implements RequestStreamHandler {
             JsonNode inputNode = JsonUtils.readTree(reader);
             if (inputNode.has("queryStringParameters")) {
                 JsonNode parameters = inputNode.get("queryStringParameters");
-                Optional<Bcn> bcn = this.buildBcn(parameters, context);
+                Optional<Partitioned> bcn = this.buildBcn(parameters, context);
                 if (bcn.isPresent()) {
-                    Bcn rawBcn = bcn.get();
+                    Partitioned rawBcn = bcn.get();
 
                     this.send(
                             rawBcn.getPartitionKey(),
@@ -90,6 +90,6 @@ public abstract class AbstractBcnHandler implements RequestStreamHandler {
     }
 
 
-    public abstract Optional<Bcn> buildBcn(JsonNode parameters, Context context) throws IOException;
+    public abstract Optional<Partitioned> buildBcn(JsonNode parameters, Context context) throws IOException;
 
 }

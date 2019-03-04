@@ -52,7 +52,7 @@ Parameters:
   BufSize:
     Default: 50
     Type: Number
-  ShardCount:    
+  ShardCount:
     Default: 2
     Type: Number
   AggregationPeriod:
@@ -350,153 +350,178 @@ Resources:
                 uri: !Sub 'arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord'
   LogGroupKinesisAnalyticsApp:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: !Sub '/aws/kinesisanalytics/${ServicePrefix}KinesisAnalyticsApp'
+  #  KinesisAnalyticsApp:
+  #    Type: AWS::KinesisAnalytics::Application
+  #    Properties:
+  #      ApplicationName: !Sub '${ServicePrefix}Application'
+  #      ApplicationDescription: Joining & Aggregation app
+  #      ApplicationCode: !Sub |
+  #        CREATE STREAM "bcns_impressions" (
+  #         "txid" VARCHAR(64),
+  #           "win_price" BIGINT
+  #        );
+  #
+  #        CREATE OR REPLACE PUMP "bcns_impressions_pump" AS
+  #         INSERT INTO "bcns_impressions" ("txid","win_price")
+  #        SELECT "txid","win_price" FROM "bcns_001" WHERE "type"='imp';
+  #
+  #        CREATE STREAM "bcns_bids" (
+  #                         "txid" VARCHAR(64),
+  #                         "campaign_item_id" BIGINT,
+  #                         "domain" VARCHAR(255),
+  #                         "creative_id" VARCHAR(255),
+  #                         "creative_category" VARCHAR(255),
+  #                         "appuid" VARCHAR(255)
+  #        );
+  #
+  #        CREATE OR REPLACE PUMP "bcns_bids_pump" AS
+  #        INSERT INTO "bcns_bids" ("txid","campaign_item_id","domain","creative_id","creative_category","appuid")
+  #        SELECT "txid","campaign_item_id","domain","creative_id","creative_category","appuid"
+  #        FROM "bcns_001" WHERE "type"='bid';
+  #
+  #        CREATE STREAM "bcns_clicks" (
+  #                        "txid" VARCHAR(64)
+  #        );
+  #
+  #        CREATE OR REPLACE PUMP "bcns_clicks_pump" AS
+  #        INSERT INTO "bcns_clicks" ("txid")
+  #        SELECT "txid" FROM "bcns_001" WHERE "type"='click';
+  #
+  #        CREATE STREAM "impressions"(
+  #                         "txid" VARCHAR(64),
+  #                         "campaign_item_id" BIGINT,
+  #                         "domain" VARCHAR(255),
+  #                         "creative_id" VARCHAR(255),
+  #                         "creative_category" VARCHAR(255),
+  #                         "appuid" VARCHAR(255),
+  #                         "win_price" BIGINT
+  #        );
+  #
+  #        CREATE OR REPLACE PUMP "impressions_pump" AS
+  #        INSERT INTO "impressions" ( "txid", "campaign_item_id",
+  #        "domain", "creative_id", "creative_category", "appuid", "win_price")
+  #        SELECT STREAM
+  #        b."txid", b."campaign_item_id", b."domain", b."creative_id",
+  #        b."creative_category", b."appuid", i."win_price"
+  #        FROM "bcns_bids" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) as b
+  #        JOIN "bcns_impressions" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) AS i ON (b."txid"=i."txid");
+  #
+  #        CREATE STREAM "clicks"(
+  #                         "txid" VARCHAR(16),
+  #                         "campaign_item_id" BIGINT,
+  #                         "domain" VARCHAR(255),
+  #                         "creative_id" VARCHAR(255),
+  #                         "creative_category" VARCHAR(255),
+  #                         "appuid" VARCHAR(255),
+  #                         "win_price" BIGINT
+  #        );
+  #
+  #        CREATE OR REPLACE PUMP "clicks_pump" AS
+  #        INSERT INTO "clicks" ( "txid", "campaign_item_id",
+  #        "domain", "creative_id", "creative_category", "appuid", "win_price")
+  #        SELECT STREAM
+  #        i."txid", i."campaign_item_id", i."domain", i."creative_id",
+  #        i."creative_category", i."appuid", i."win_price"
+  #        FROM "impressions" OVER (RANGE INTERVAL '15' MINUTE PRECEDING) as i
+  #        JOIN "bcns_clicks" OVER (RANGE INTERVAL '15' MINUTE PRECEDING) AS c ON (i."txid"=c."txid");
+  #
+  #        CREATE STREAM "campaign_aggregates"(
+  #                        "campaign_item_id" BIGINT,
+  #                        "period" TIMESTAMP,
+  #                        "bids" BIGINT,
+  #                        "imps" BIGINT,
+  #                        "clicks" BIGINT,
+  #                        "spend" BIGINT
+  #         );
+  #
+  #        CREATE OR REPLACE PUMP "campaign_item_performance_bids_pump" AS
+  #        INSERT INTO "campaign_aggregates" ("campaign_item_id","period","bids")
+  #        SELECT STREAM "campaign_item_id",
+  #                       STEP("bcns_bids".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE) as "period",
+  #                       count(*) as "bids"
+  #        FROM "bcns_bids"
+  #        GROUP BY "campaign_item_id", STEP("bcns_bids".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE);
+  #
+  #        CREATE OR REPLACE PUMP "campaign_item_performance_imps_pump" AS
+  #        INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "imps")
+  #        SELECT STREAM "campaign_item_id",
+  #                       STEP("impressions".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE) as
+  #                      "period",
+  #                      count(1) as "imps"
+  #        FROM "impressions"
+  #        GROUP BY "campaign_item_id", STEP("impressions".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE);
+  #
+  #        CREATE OR REPLACE PUMP "campaign_item_performance_clicks_pump" AS
+  #        INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "clicks")
+  #        SELECT STREAM "campaign_item_id",
+  #                       STEP("clicks".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE) as "period",
+  #                       count(1) as "clicks"
+  #        FROM "clicks"
+  #        GROUP BY "campaign_item_id", STEP("clicks".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE);
+  #      Inputs:
+  #        - KinesisStreamsInput:
+  #            ResourceARN: !GetAtt 'BcnsStream.Arn'
+  #            RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
+  #          NamePrefix: bcns
+  #          InputSchema:
+  #            RecordColumns:
+  #              - Name: txid
+  #                SqlType: VARCHAR(64)
+  #                Mapping: $.txid
+  #              - Name: campaign_item_id
+  #                SqlType: BIGINT
+  #                Mapping: $.campaign_item_id
+  #              - Name: domain
+  #                SqlType: VARCHAR(255)
+  #                Mapping: $.domain
+  #              - Name: creative_id
+  #                SqlType: VARCHAR(255)
+  #                Mapping: $.creative_id
+  #              - Name: appuid
+  #                SqlType: VARCHAR(255)
+  #                Mapping: $.appuid
+  #              - Name: creative_category
+  #                SqlType: VARCHAR(255)
+  #                Mapping: $.creative_category
+  #              - Name: type
+  #                SqlType: VARCHAR(16)
+  #                Mapping: $.type
+  #              - Name: win_price
+  #                SqlType: BIGINT
+  #                Mapping: $.win_price
+  #            RecordEncoding: UTF-8
+  #            RecordFormat:
+  #              RecordFormatType: JSON
+  #              MappingParameters:
+  #                JSONMappingParameters:
+  #                  RecordRowPath: $
   KinesisAnalyticsApp:
-    Type: AWS::KinesisAnalytics::Application
+    Type: AWS::KinesisAnalyticsV2::Application
     Properties:
       ApplicationName: !Sub '${ServicePrefix}Application'
-      ApplicationDescription: Joining & Aggregation app
-      ApplicationCode: !Sub |
-        CREATE STREAM "bcns_impressions" (
-         "txid" VARCHAR(64),
-           "win_price" BIGINT
-        );
-
-        CREATE OR REPLACE PUMP "bcns_impressions_pump" AS
-         INSERT INTO "bcns_impressions" ("txid","win_price")
-        SELECT "txid","win_price" FROM "bcns_001" WHERE "type"='imp';
-
-        CREATE STREAM "bcns_bids" (
-                         "txid" VARCHAR(64),
-                         "campaign_item_id" BIGINT,
-                         "domain" VARCHAR(255),
-                         "creative_id" VARCHAR(255),
-                         "creative_category" VARCHAR(255),
-                         "appuid" VARCHAR(255)
-        );
-
-        CREATE OR REPLACE PUMP "bcns_bids_pump" AS
-        INSERT INTO "bcns_bids" ("txid","campaign_item_id","domain","creative_id","creative_category","appuid")
-        SELECT "txid","campaign_item_id","domain","creative_id","creative_category","appuid"
-        FROM "bcns_001" WHERE "type"='bid';
-
-        CREATE STREAM "bcns_clicks" (
-                        "txid" VARCHAR(64)
-        );
-
-        CREATE OR REPLACE PUMP "bcns_clicks_pump" AS
-        INSERT INTO "bcns_clicks" ("txid")
-        SELECT "txid" FROM "bcns_001" WHERE "type"='click';
-
-        CREATE STREAM "impressions"(
-                         "txid" VARCHAR(64),
-                         "campaign_item_id" BIGINT,
-                         "domain" VARCHAR(255),
-                         "creative_id" VARCHAR(255),
-                         "creative_category" VARCHAR(255),
-                         "appuid" VARCHAR(255),
-                         "win_price" BIGINT
-        );
-
-        CREATE OR REPLACE PUMP "impressions_pump" AS
-        INSERT INTO "impressions" ( "txid", "campaign_item_id",
-        "domain", "creative_id", "creative_category", "appuid", "win_price")
-        SELECT STREAM
-        b."txid", b."campaign_item_id", b."domain", b."creative_id",
-        b."creative_category", b."appuid", i."win_price"
-        FROM "bcns_bids" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) as b
-        JOIN "bcns_impressions" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) AS i ON (b."txid"=i."txid");
-
-        CREATE STREAM "clicks"(
-                         "txid" VARCHAR(16),
-                         "campaign_item_id" BIGINT,
-                         "domain" VARCHAR(255),
-                         "creative_id" VARCHAR(255),
-                         "creative_category" VARCHAR(255),
-                         "appuid" VARCHAR(255),
-                         "win_price" BIGINT
-        );
-
-        CREATE OR REPLACE PUMP "clicks_pump" AS
-        INSERT INTO "clicks" ( "txid", "campaign_item_id",
-        "domain", "creative_id", "creative_category", "appuid", "win_price")
-        SELECT STREAM
-        i."txid", i."campaign_item_id", i."domain", i."creative_id",
-        i."creative_category", i."appuid", i."win_price"
-        FROM "impressions" OVER (RANGE INTERVAL '15' MINUTE PRECEDING) as i
-        JOIN "bcns_clicks" OVER (RANGE INTERVAL '15' MINUTE PRECEDING) AS c ON (i."txid"=c."txid");
-
-        CREATE STREAM "campaign_aggregates"(
-                        "campaign_item_id" BIGINT,
-                        "period" TIMESTAMP,
-                        "bids" BIGINT,
-                        "imps" BIGINT,
-                        "clicks" BIGINT,
-                        "spend" BIGINT
-         );
-
-        CREATE OR REPLACE PUMP "campaign_item_performance_bids_pump" AS
-        INSERT INTO "campaign_aggregates" ("campaign_item_id","period","bids")
-        SELECT STREAM "campaign_item_id",
-                       STEP("bcns_bids".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE) as "period",
-                       count(*) as "bids"
-        FROM "bcns_bids"
-        GROUP BY "campaign_item_id", STEP("bcns_bids".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE);
-
-        CREATE OR REPLACE PUMP "campaign_item_performance_imps_pump" AS
-        INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "imps")
-        SELECT STREAM "campaign_item_id",
-                       STEP("impressions".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE) as
-                      "period",
-                      count(1) as "imps"
-        FROM "impressions"
-        GROUP BY "campaign_item_id", STEP("impressions".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE);
-
-        CREATE OR REPLACE PUMP "campaign_item_performance_clicks_pump" AS
-        INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "clicks")
-        SELECT STREAM "campaign_item_id",
-                       STEP("clicks".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE) as "period",
-                       count(1) as "clicks"
-        FROM "clicks"
-        GROUP BY "campaign_item_id", STEP("clicks".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE);
-      Inputs:
-        - KinesisStreamsInput:
-            ResourceARN: !GetAtt 'BcnsStream.Arn'
-            RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
-          NamePrefix: bcns
-          InputSchema:
-            RecordColumns:
-              - Name: txid
-                SqlType: VARCHAR(64)
-                Mapping: $.txid
-              - Name: campaign_item_id
-                SqlType: BIGINT
-                Mapping: $.campaign_item_id
-              - Name: domain
-                SqlType: VARCHAR(255)
-                Mapping: $.domain
-              - Name: creative_id
-                SqlType: VARCHAR(255)
-                Mapping: $.creative_id
-              - Name: appuid
-                SqlType: VARCHAR(255)
-                Mapping: $.appuid
-              - Name: creative_category
-                SqlType: VARCHAR(255)
-                Mapping: $.creative_category
-              - Name: type
-                SqlType: VARCHAR(16)
-                Mapping: $.type
-              - Name: win_price
-                SqlType: BIGINT
-                Mapping: $.win_price
-            RecordEncoding: UTF-8
-            RecordFormat:
-              RecordFormatType: JSON
-              MappingParameters:
-                JSONMappingParameters:
-                  RecordRowPath: $
+      ApplicationDescription: Flink joining & aggregation app
+      RuntimeEnvironment: FLINK-1_6
+      ServiceExecutionRole: !GetAtt 'KinesisAnalyticsRole.Arn'
+      ApplicationConfiguration:
+        ApplicationCodeConfiguration:
+          CodeContent:
+            S3ContentLocation:
+              BucketARN: arn:aws:s3:::fds-flink-streaming
+              FileKey: fds-flink-streaming-1.0.0.jar
+          CodeContentType: JARFILE
+        EnvironmentProperties:
+          PropertyGroups:
+            - PropertyGroupId: SourceConfigProperties
+              PropertyMap:
+                aws.region: !Sub '${AWS::Region}'
+                flink.stream.initpos: LATEST
+                input.stream.name: bcns_001
+            - PropertyGroupId: SinkConfigProperties
+              PropertyMap:
+                aws.region: !Sub '${AWS::Region}'
+                oputput.stream.name: campaign_aggregates
   KinesisAnalyticsAppClicksOutputs:
     Type: AWS::KinesisAnalytics::ApplicationOutput
     DependsOn: KinesisAnalyticsApp
@@ -535,7 +560,7 @@ Resources:
           RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
   LogGroupJsonNewLineAdderLambda:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: !Sub '/aws/lambda/${ServicePrefix}JsonNewLineAdder'
   JsonNewLineAdderLambda:
     Type: AWS::Serverless::Function
@@ -1050,7 +1075,7 @@ Resources:
       CatalogId: !Ref 'AWS::AccountId'
   LogGroupJsonToParquetLambda:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: !Sub '/aws/lambda/${ServicePrefix}JsonToParquetConverter'
   JsonToParquetLambda:
     DependsOn:
@@ -1131,7 +1156,7 @@ Resources:
                   - !GetAtt 'AggregationDynamoTable.Arn'
   LogGroupKinesisToDynamoDbLambda:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: !Sub '/aws/lambda/${ServicePrefix}KinesisToDynamoDbPersister'
   KinesisToDynamoDbLambda:
     DependsOn:
@@ -1157,7 +1182,7 @@ Resources:
       Enabled: True
   LogGroupAppStarterLambda:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: !Sub '/aws/lambda/${ServicePrefix}AppStarter'
   AppStarterLambda:
     Type: AWS::Serverless::Function
@@ -1184,7 +1209,7 @@ Resources:
     Properties:
       RestApiId: !Ref 'Api'
       StageName: !Sub '${ServicePrefix}'
-# Reporting API
+  # Reporting API
   ReportingApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
