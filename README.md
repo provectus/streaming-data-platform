@@ -182,7 +182,7 @@ properties:
     type: integer
   clicks:
     type: integer
-  imps:
+  impressions:
     type: integer
   bids:
     type: integer

@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 
 import java.io.IOException;
+import java.util.StringJoiner;
 
 
 @Builder
@@ -38,11 +39,6 @@ public class Impression implements Partitioned {
     }
 
     @Override
-    public long extractTimestamp() {
-        return bidBcn.getTimestamp();
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Impression)) return false;
@@ -65,5 +61,13 @@ public class Impression implements Partitioned {
                 .bidBcn(bidBcn)
                 .impressionBcn(impressionBcn)
                 .build();
+    }
+
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", Impression.class.getSimpleName() + "[", "]")
+                .add("bidBcn=" + bidBcn)
+                .add("impressionBcn=" + impressionBcn)
+                .toString();
     }
 }

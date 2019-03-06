@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 
 import java.io.IOException;
-
+import java.util.StringJoiner;
 
 @Builder
 @AllArgsConstructor
@@ -17,7 +17,6 @@ public class BidBcn implements Partitioned {
     private final String domain;
     private final String creativeCategory;
     private final String appUID;
-    private final long timestamp;
 
     @JsonProperty("tx_id")
     public String getTxId() {
@@ -47,10 +46,6 @@ public class BidBcn implements Partitioned {
         return appUID;
     }
 
-    public long getTimestamp() {
-        return timestamp;
-    }
-
     @Override
     public String getPartitionKey() {
         return txId;
@@ -62,11 +57,6 @@ public class BidBcn implements Partitioned {
     }
 
     @Override
-    public long extractTimestamp() {
-        return timestamp;
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof BidBcn)) return false;
@@ -74,7 +64,6 @@ public class BidBcn implements Partitioned {
         BidBcn bidBcn = (BidBcn) o;
 
         if (getCampaignItemId() != bidBcn.getCampaignItemId()) return false;
-        if (getTimestamp() != bidBcn.getTimestamp()) return false;
         if (!getTxId().equals(bidBcn.getTxId())) return false;
         if (!getCreativeId().equals(bidBcn.getCreativeId())) return false;
         if (!getDomain().equals(bidBcn.getDomain())) return false;
@@ -90,8 +79,19 @@ public class BidBcn implements Partitioned {
         result = 31 * result + getDomain().hashCode();
         result = 31 * result + getCreativeCategory().hashCode();
         result = 31 * result + getAppUID().hashCode();
-        result = 31 * result + (int) (getTimestamp() ^ (getTimestamp() >>> 32));
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", BidBcn.class.getSimpleName() + "[", "]")
+                .add("txId='" + txId + "'")
+                .add("campaignItemId=" + campaignItemId)
+                .add("creativeId='" + creativeId + "'")
+                .add("domain='" + domain + "'")
+                .add("creativeCategory='" + creativeCategory + "'")
+                .add("appUID='" + appUID + "'")
+                .toString();
     }
 
     public static BidBcn from(Bcn bcn) {
@@ -102,7 +102,6 @@ public class BidBcn implements Partitioned {
                 .domain(bcn.getDomain())
                 .creativeCategory(bcn.getCreativeCategory())
                 .appUID(bcn.getAppUID())
-                .timestamp(bcn.getTimestamp())
                 .build();
     }
 }

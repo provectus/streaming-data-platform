@@ -18,7 +18,6 @@ public class Bcn implements Partitioned {
     private final String creativeCategory;
     private final String appUID;
     private final long winPrice;
-    private final long timestamp;
     private final String type;
 
     @JsonCreator
@@ -30,7 +29,6 @@ public class Bcn implements Partitioned {
             @JsonProperty("creative_category") String creativeCategory,
             @JsonProperty("app_uid") String appUID,
             @JsonProperty("win_price") long winPrice,
-            @JsonProperty("timestamp") long timestamp,
             @JsonProperty("type") String type) {
         this.txId = txid;
         this.campaignItemId = campaignItemId;
@@ -38,7 +36,6 @@ public class Bcn implements Partitioned {
         this.creativeId = creativeId;
         this.creativeCategory = creativeCategory;
         this.appUID = appUID;
-        this.timestamp = timestamp;
         this.winPrice = winPrice;
         this.type = type;
     }
@@ -54,11 +51,6 @@ public class Bcn implements Partitioned {
     }
 
     @Override
-    public long extractTimestamp() {
-        return timestamp;
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Bcn)) return false;
@@ -67,7 +59,6 @@ public class Bcn implements Partitioned {
 
         if (getCampaignItemId() != bcn.getCampaignItemId()) return false;
         if (getWinPrice() != bcn.getWinPrice()) return false;
-        if (getTimestamp() != bcn.getTimestamp()) return false;
         if (!getTxId().equals(bcn.getTxId())) return false;
         if (!getDomain().equals(bcn.getDomain())) return false;
         if (!getCreativeId().equals(bcn.getCreativeId())) return false;
@@ -85,7 +76,6 @@ public class Bcn implements Partitioned {
         result = 31 * result + getCreativeCategory().hashCode();
         result = 31 * result + getAppUID().hashCode();
         result = 31 * result + (int) (getWinPrice() ^ (getWinPrice() >>> 32));
-        result = 31 * result + (int) (getTimestamp() ^ (getTimestamp() >>> 32));
         result = 31 * result + getType().hashCode();
         return result;
     }

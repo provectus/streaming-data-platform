@@ -10,7 +10,4 @@ public interface Partitioned {
 
     @JsonIgnore
     byte[] getBytes() throws IOException;
-
-    @JsonIgnore
-    long extractTimestamp();
 }

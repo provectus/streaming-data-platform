@@ -517,11 +517,16 @@ Resources:
               PropertyMap:
                 aws.region: !Sub '${AWS::Region}'
                 flink.stream.initpos: LATEST
-                input.stream.name: bcns_001
+                input.stream.name: bcns
             - PropertyGroupId: SinkConfigProperties
               PropertyMap:
                 aws.region: !Sub '${AWS::Region}'
                 oputput.stream.name: campaign_aggregates
+            - PropertyGroupId: AggregationProperties
+                PropertyMap:
+                  aws.region: !Sub '${AWS::Region}'
+                  flink.stream.initpos: LATEST
+                  input.stream.name: bcns
   KinesisAnalyticsAppClicksOutputs:
     Type: AWS::KinesisAnalytics::ApplicationOutput
     DependsOn: KinesisAnalyticsApp

@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Setter;
 
 import java.util.Optional;
+import java.util.StringJoiner;
 
 @Setter
 @Builder
@@ -66,5 +67,16 @@ public class Aggregation {
         result = 31 * result + (int) (getImps() ^ (getImps() >>> 32));
         result = 31 * result + (int) (getBids() ^ (getBids() >>> 32));
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", Aggregation.class.getSimpleName() + "[", "]")
+                .add("campaignItemId=" + campaignItemId)
+                .add("period='" + period + "'")
+                .add("clicks=" + clicks)
+                .add("imps=" + imps)
+                .add("bids=" + bids)
+                .toString();
     }
 }
