@@ -17,15 +17,11 @@ public class ImpressionBcnHandler extends AbstractBcnHandler {
 
         Optional<Partitioned> result = Optional.empty();
 
-        if (parameters.has("txId") && parameters.has("win_price")) {
-            String txid = parameters.get("txId").asText();
+        if (parameters.has("tx_id") && parameters.has("win_price")) {
+            String txid = parameters.get("tx_id").asText();
             long winPrice = parameters.get("win_price").asLong();
 
-            result = Optional.of(new ImpressionBcn(
-                    txid
-                    , Instant.now().toEpochMilli()
-                    , winPrice
-            ));
+            result = Optional.of(new ImpressionBcn(txid, winPrice));
         }
 
         return result;

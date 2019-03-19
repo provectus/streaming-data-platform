@@ -20,10 +20,8 @@ public class StreamingProperties {
     private static final String SINK_STREAM_NAME = "sink.stream.name";
     private static final String SINK_AWS_REGION = "sink.aws.region";
 
-    private static final String AGGREGATION_BIDS_WINDOW_SIZE = "aggregation.bids.window.size";
-    private static final String AGGREGATION_BIDS_WINDOW_SLIDE = "aggregation.bids.window.slide";
-    private static final String AGGREGATION_CLICKS_WINDOW_SIZE = "aggregation.clicks.window.size";
-    private static final String AGGREGATION_CLICKS_WINDOW_SLIDE = "aggregation.clicks.window.slide";
+    private static final String AGGREGATION_BIDS_SESSION_TIMEOUT = "aggregation.bids.session.timeout";
+    private static final String AGGREGATION_CLICKS_SESSION_TIMEOUT = "aggregation.clicks.session.timeout";
     private static final String AGGREGATION_PERIOD = "aggregation.period";
 
     private static final StreamingProperties instance = new StreamingProperties();
@@ -35,10 +33,8 @@ public class StreamingProperties {
     private String sinkStreamName;
     private String sinkAwsRegion;
 
-    private Time bidsWindowSize;
-    private Time bidsWindowSlide = Time.seconds(30);
-    private Time clicksWindowSize;
-    private Time clicksWindowSlide = Time.seconds(30);
+    private Time bidsSessionTimeout;
+    private Time clicksSessionTimeout;
     private Time aggregationPeriod;
 
     private StreamingProperties() {
@@ -53,8 +49,8 @@ public class StreamingProperties {
         sinkStreamName = (String) sinkProperties.get(SINK_STREAM_NAME);
         sinkAwsRegion = (String) sinkProperties.get(SINK_AWS_REGION);
 
-        bidsWindowSize = Time.minutes((Long) aggregationProperties.get(AGGREGATION_BIDS_WINDOW_SIZE));
-        clicksWindowSize = Time.minutes((Long) aggregationProperties.get(AGGREGATION_CLICKS_WINDOW_SIZE));
+        bidsSessionTimeout = Time.minutes((Long) aggregationProperties.get(AGGREGATION_BIDS_SESSION_TIMEOUT));
+        clicksSessionTimeout = Time.minutes((Long) aggregationProperties.get(AGGREGATION_CLICKS_SESSION_TIMEOUT));
         aggregationPeriod = Time.minutes((Long) aggregationProperties.get(AGGREGATION_PERIOD));
     }
 

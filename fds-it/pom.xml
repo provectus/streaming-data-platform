@@ -122,6 +122,17 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>Copy streaming job to S3 bucket</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>aws</executable>
+                            <commandlineArgs>s3 cp ../fds-flink-streaming/target/fds-flink-streaming-1.0-SNAPSHOT.jar s3://itstack-artifacts/fds-flink-streaming.jar</commandlineArgs>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>Upload to S3</id>
                         <phase>pre-integration-test</phase>
                         <goals>

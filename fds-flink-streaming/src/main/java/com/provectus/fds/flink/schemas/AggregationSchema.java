@@ -10,7 +10,7 @@ public class AggregationSchema implements SerializationSchema<Aggregation> {
     public byte[] serialize(Aggregation aggregation) {
         try {
             return JsonUtils.write(aggregation);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Error during Aggregation serialization", e);
         }
     }

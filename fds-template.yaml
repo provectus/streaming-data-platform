@@ -15,7 +15,11 @@ Metadata:
           - BufInterval
           - BufSize
           - ShardCount
+          - SourceStreamName
+          - SinkStreamName
           - AggregationPeriod
+          - BidsSessionTimeout
+          - ClicksSessionTimeout
     ParameterLabels:
       - ServicePrefix:
           default: Prefix for all entities
@@ -29,8 +33,16 @@ Metadata:
           default: Buffering size
       - ShardCount:
           default: Number of Kinesis streams shards
+      - SourceStreamName:
+          default: A name of the input Kinesis stream
+      - SinkStreamName:
+          default: A name of the output Kinesis stream
       - AggregationPeriod:
           default: Period of triggering aggreation function
+      - BidsSessionTimeout:
+          default: Session length (in minutes) for joing bids with impressions
+      - ClicksSessionTimeout:
+          default: Session length (in minutes) for joing impressions with clicks
 Parameters:
   ServicePrefix:
     AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
@@ -55,8 +67,24 @@ Parameters:
   ShardCount:
     Default: 2
     Type: Number
+  SourceStreamName:
+    AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
+    ConstraintDescription: Should be a valid Kinesis topic name
+    Default: bcns
+    Type: String
+  SinkStreamName:
+    AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
+    ConstraintDescription: Should be a valid Kinesis topic name
+    Default: aggregates
+    Type: String
   AggregationPeriod:
     Default: 10
+    Type: Number
+  BidsSessionTimeout:
+    Default: 5
+    Type: Number
+  ClicksSessionTimeout:
+    Default: 15
     Type: Number
 Rules:
   RegionSupport:
@@ -71,15 +99,6 @@ Rules:
             - !Ref 'AWS::Region'
         AssertDescription: This stack is only available in the US East (N. Virginia, Ohio), US West (Oregon), EU (Ireland and Frankfurt) regions. Please launch the stack in one of these regions to continue.
 Resources:
-  S3Bucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      AccessControl: Private
-      BucketName: !Ref 'S3BucketName'
-      NotificationConfiguration:
-        LambdaConfigurations:
-          - Event: s3:ObjectCreated:*
-            Function: !GetAtt 'JsonToParquetLambda.Arn'
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -107,7 +126,6 @@ Resources:
                   - !GetAtt 'LogGroupJsonNewLineAdderLambda.Arn'
                   - !GetAtt 'LogGroupJsonToParquetLambda.Arn'
                   - !GetAtt 'LogGroupKinesisToDynamoDbLambda.Arn'
-                  - !GetAtt 'LogGroupAppStarterLambda.Arn'
               - Sid: kinesisanalytics
                 Effect: Allow
                 Action:
@@ -159,6 +177,7 @@ Resources:
               - Effect: Allow
                 Sid: WriteLogs
                 Action:
+                  - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource:
                   - !GetAtt 'LogGroupKinesisAnalyticsApp.Arn'
@@ -177,6 +196,20 @@ Resources:
                   - !GetAtt 'AggregatesStream.Arn'
                   - !GetAtt 'ClickStream.Arn'
                   - !GetAtt 'ImpressionsStream.Arn'
+              - Effect: Allow
+                Sid: ListS3Buckets
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3BucketName}'
+              - Effect: Allow
+                Sid: S3BucketAccess
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
   BcnsStream:
     Type: AWS::Kinesis::Stream
     Properties:
@@ -352,6 +385,11 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub '/aws/kinesisanalytics/${ServicePrefix}KinesisAnalyticsApp'
+  LogStreamKinesisAnalyticsApp:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Sub '${LogGroupKinesisAnalyticsApp}'
+      LogStreamName: 'LogStreamKinesisAnalyticsApp'
   #  KinesisAnalyticsApp:
   #    Type: AWS::KinesisAnalytics::Application
   #    Properties:
@@ -497,8 +535,47 @@ Resources:
   #              MappingParameters:
   #                JSONMappingParameters:
   #                  RecordRowPath: $
+  #  KinesisAnalyticsAppClicksOutputs:
+  #    Type: AWS::KinesisAnalytics::ApplicationOutput
+  #    DependsOn: KinesisAnalyticsApp
+  #    Properties:
+  #      ApplicationName: !Ref 'KinesisAnalyticsApp'
+  #      Output:
+  #        Name: clicks
+  #        DestinationSchema:
+  #          RecordFormatType: JSON
+  #        KinesisStreamsOutput:
+  #          ResourceARN: !GetAtt 'ClickStream.Arn'
+  #          RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
+  #  KinesisAnalyticsAppImpsOutputs:
+  #    Type: AWS::KinesisAnalytics::ApplicationOutput
+  #    DependsOn: KinesisAnalyticsApp
+  #    Properties:
+  #      ApplicationName: !Ref 'KinesisAnalyticsApp'
+  #      Output:
+  #        Name: impressions
+  #        DestinationSchema:
+  #          RecordFormatType: JSON
+  #        KinesisStreamsOutput:
+  #          ResourceARN: !GetAtt 'ImpressionsStream.Arn'
+  #          RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
+  #  KinesisAnalyticsAggregatesAppOutputs:
+  #    Type: AWS::KinesisAnalytics::ApplicationOutput
+  #    DependsOn: KinesisAnalyticsApp
+  #    Properties:
+  #      ApplicationName: !Ref 'KinesisAnalyticsApp'
+  #      Output:
+  #        Name: campaign_aggregates
+  #        DestinationSchema:
+  #          RecordFormatType: JSON
+  #        KinesisStreamsOutput:
+  #          ResourceARN: !GetAtt 'AggregatesStream.Arn'
+  #          RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
   KinesisAnalyticsApp:
     Type: AWS::KinesisAnalyticsV2::Application
+    DependsOn:
+      - BcnsStream
+      - AggregatesStream
     Properties:
       ApplicationName: !Sub '${ServicePrefix}Application'
       ApplicationDescription: Flink joining & aggregation app
@@ -506,63 +583,27 @@ Resources:
       ServiceExecutionRole: !GetAtt 'KinesisAnalyticsRole.Arn'
       ApplicationConfiguration:
         ApplicationCodeConfiguration:
+          CodeContentType: ZIPFILE
           CodeContent:
             S3ContentLocation:
-              BucketARN: arn:aws:s3:::fds-flink-streaming
-              FileKey: fds-flink-streaming-1.0.0.jar
-          CodeContentType: JARFILE
+              BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
+              FileKey: fds-flink-streaming.jar
         EnvironmentProperties:
           PropertyGroups:
             - PropertyGroupId: SourceConfigProperties
               PropertyMap:
-                aws.region: !Sub '${AWS::Region}'
-                flink.stream.initpos: LATEST
-                input.stream.name: bcns
+                source.aws.region: !Sub '${AWS::Region}'
+                source.stream.init.pos: LATEST
+                source.stream.name: !Ref 'BcnsStream'
             - PropertyGroupId: SinkConfigProperties
               PropertyMap:
-                aws.region: !Sub '${AWS::Region}'
-                oputput.stream.name: campaign_aggregates
+                sink.aws.region: !Sub '${AWS::Region}'
+                sink.stream.name: !Ref 'AggregatesStream'
             - PropertyGroupId: AggregationProperties
-                PropertyMap:
-                  aws.region: !Sub '${AWS::Region}'
-                  flink.stream.initpos: LATEST
-                  input.stream.name: bcns
-  KinesisAnalyticsAppClicksOutputs:
-    Type: AWS::KinesisAnalytics::ApplicationOutput
-    DependsOn: KinesisAnalyticsApp
-    Properties:
-      ApplicationName: !Ref 'KinesisAnalyticsApp'
-      Output:
-        Name: clicks
-        DestinationSchema:
-          RecordFormatType: JSON
-        KinesisStreamsOutput:
-          ResourceARN: !GetAtt 'ClickStream.Arn'
-          RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
-  KinesisAnalyticsAppImpsOutputs:
-    Type: AWS::KinesisAnalytics::ApplicationOutput
-    DependsOn: KinesisAnalyticsApp
-    Properties:
-      ApplicationName: !Ref 'KinesisAnalyticsApp'
-      Output:
-        Name: impressions
-        DestinationSchema:
-          RecordFormatType: JSON
-        KinesisStreamsOutput:
-          ResourceARN: !GetAtt 'ImpressionsStream.Arn'
-          RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
-  KinesisAnalyticsAggregatesAppOutputs:
-    Type: AWS::KinesisAnalytics::ApplicationOutput
-    DependsOn: KinesisAnalyticsApp
-    Properties:
-      ApplicationName: !Ref 'KinesisAnalyticsApp'
-      Output:
-        Name: campaign_aggregates
-        DestinationSchema:
-          RecordFormatType: JSON
-        KinesisStreamsOutput:
-          ResourceARN: !GetAtt 'AggregatesStream.Arn'
-          RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
+              PropertyMap:
+                aggregation.bids.session.timeout: !Sub '${BidsSessionTimeout}'
+                aggregation.clicks.session.timeout: !Sub '${ClicksSessionTimeout}'
+                aggregation.period: !Sub '${AggregationPeriod}'
   LogGroupJsonNewLineAdderLambda:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -632,7 +673,6 @@ Resources:
                   - '*'
   RawBcnsS3DeliveryStream:
     DependsOn:
-      - S3Bucket
       - S3DeliveryAccessRole
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
@@ -667,7 +707,6 @@ Resources:
       SourceArn: !GetAtt 'RawBcnsS3DeliveryStream.Arn'
   RawImpressionsS3DeliveryStream:
     DependsOn:
-      - S3Bucket
       - S3DeliveryAccessRole
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
@@ -695,7 +734,6 @@ Resources:
               Type: Lambda
   RawClicksS3DeliveryStream:
     DependsOn:
-      - S3Bucket
       - S3DeliveryAccessRole
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
@@ -723,7 +761,6 @@ Resources:
               Type: Lambda
   RawAggregatesS3DeliveryStream:
     DependsOn:
-      - S3Bucket
       - S3DeliveryAccessRole
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
@@ -1185,30 +1222,6 @@ Resources:
       FunctionName: !GetAtt 'KinesisToDynamoDbLambda.Arn'
       StartingPosition: TRIM_HORIZON
       Enabled: True
-  LogGroupAppStarterLambda:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}AppStarter'
-  AppStarterLambda:
-    Type: AWS::Serverless::Function
-    DependsOn: LambdaExecutionRole
-    Properties:
-      CodeUri: ./fds-lambda-utils/target/fds-lambda-utils-1.0-SNAPSHOT.jar
-      FunctionName: !Sub '${ServicePrefix}AppStarter'
-      Environment:
-        Variables:
-          STREAM_NAME: !Ref 'BcnsStream'
-      Handler: com.provectus.fds.utils.ApplicationStartLambda
-      MemorySize: 256
-      Timeout: 180
-      Role: !GetAtt 'LambdaExecutionRole.Arn'
-      Runtime: java8
-  AppStarter:
-    Type: Custom::AppStarter
-    DependsOn: KinesisAnalyticsApp
-    Properties:
-      ServiceToken: !GetAtt 'AppStarterLambda.Arn'
-      ApplicationName: !Sub '${ServicePrefix}Application'
   ApiGatewayStage:
     Type: AWS::ApiGateway::Deployment
     Properties:

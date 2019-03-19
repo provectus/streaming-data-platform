@@ -10,11 +10,11 @@ import com.provectus.fds.models.bcns.ImpressionBcn;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Response;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 import static org.asynchttpclient.Dsl.config;
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class AwsFdsTestIT {
@@ -46,17 +45,19 @@ public class AwsFdsTestIT {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        cloudFormation = new CloudFormation(REGION
-                , String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-","")).substring(0,30)
-                , new File("fds.yaml")
-        );
-        reportUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
-        apiUrl = cloudFormation.getOutput(URL_FOR_API).getOutputValue();
+//        cloudFormation = new CloudFormation(REGION
+//                , String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-","")).substring(0,30)
+//                , new File("fds.yaml")
+//        );
+//        reportUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
+//        apiUrl = cloudFormation.getOutput(URL_FOR_API).getOutputValue();
+        reportUrl = "https://rb2vh5mfp1.execute-api.us-west-2.amazonaws.com/it-test";
+        apiUrl = "https://388mn88449.execute-api.us-west-2.amazonaws.com/it-test";
     }
 
     @AfterClass
     public static void afterClass() throws Exception {
-        if (cloudFormation != null) cloudFormation.close();
+//        if (cloudFormation != null) cloudFormation.close();
     }
 
     @Test
@@ -87,8 +88,8 @@ public class AwsFdsTestIT {
             long winPrice = random.nextInt(1_000, 2_000);
 
             BidBcn bidBcn = new BidBcn(txid, campaignItemId, domain, creativeId, creativeCategory, appuid);
-            ImpressionBcn impressionBcn = new ImpressionBcn(txid, Instant.now().toEpochMilli(), winPrice);
-            ClickBcn clickBcn = new ClickBcn(txid, Instant.now().toEpochMilli());
+            ImpressionBcn impressionBcn = new ImpressionBcn(txid, winPrice);
+            ClickBcn clickBcn = new ClickBcn(txid);
 
 
             futuresByType.computeIfAbsent(BID_TYPE, (k) -> new ArrayList<>())

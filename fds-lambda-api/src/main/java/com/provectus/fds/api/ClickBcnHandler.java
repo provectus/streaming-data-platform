@@ -14,15 +14,10 @@ public class ClickBcnHandler extends AbstractBcnHandler {
     @Override
     public Optional<Partitioned> buildBcn(JsonNode parameters, Context context) throws IOException {
         Optional<Partitioned> result = Optional.empty();
-        if (parameters.has("txId")) {
-            String txid = parameters.get("txId").asText();
+        if (parameters.has("tx_id")) {
+            String txid = parameters.get("tx_id").asText();
 
-            result = Optional.of(
-                    new ClickBcn(
-                            txid,
-                            Instant.now().toEpochMilli()
-                    )
-            );
+            result = Optional.of(new ClickBcn(txid));
         }
         return result;
     }

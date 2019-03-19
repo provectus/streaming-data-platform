@@ -11,7 +11,7 @@ import com.provectus.fds.models.events.Impression;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SplitStream;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
-import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.assigners.EventTimeSessionWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 
@@ -37,9 +37,9 @@ class StreamingJob {
 
         // Joining logic
         DataStream<Impression> impressionStream = createImpressionStream(bidBcnStream, impressionBcnStream,
-                properties.getBidsWindowSize(), properties.getBidsWindowSlide());
+                properties.getBidsSessionTimeout());
         DataStream<Click> clickStream = createClickStream(impressionStream, clickBcnStream,
-                properties.getClicksWindowSize(), properties.getClicksWindowSlide());
+                properties.getClicksSessionTimeout());
 
         // Aggregation streams
         Time period = properties.getAggregationPeriod();
@@ -53,25 +53,23 @@ class StreamingJob {
 
     static DataStream<Impression> createImpressionStream(DataStream<BidBcn> bidBcnStream,
                                                          DataStream<ImpressionBcn> impressionBcnStream,
-                                                         Time windowSize,
-                                                         Time windowSlide) {
+                                                         Time sessionTimeout) {
         return bidBcnStream
                 .join(impressionBcnStream)
                 .where(BidBcn::getPartitionKey)
                 .equalTo(ImpressionBcn::getPartitionKey)
-                .window(SlidingEventTimeWindows.of(windowSize, windowSlide))
+                .window(EventTimeSessionWindows.withGap(sessionTimeout))
                 .apply(Impression::from);
     }
 
     static DataStream<Click> createClickStream(DataStream<Impression> impressionStream,
                                                DataStream<ClickBcn> clickBcnStream,
-                                               Time windowSize,
-                                               Time windowSlide) {
+                                               Time sessionTimeout) {
         return impressionStream
                 .join(clickBcnStream)
                 .where(Impression::getPartitionKey)
                 .equalTo(ClickBcn::getPartitionKey)
-                .window(SlidingEventTimeWindows.of(windowSize, windowSlide))
+                .window(EventTimeSessionWindows.withGap(sessionTimeout))
                 .apply(Click::from);
     }
 

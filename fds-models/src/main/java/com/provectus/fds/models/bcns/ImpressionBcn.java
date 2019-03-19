@@ -2,12 +2,14 @@ package com.provectus.fds.models.bcns;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.provectus.fds.models.utils.JsonUtils;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 
 import java.io.IOException;
 import java.util.StringJoiner;
 
 @Builder
+@AllArgsConstructor
 public class ImpressionBcn implements Partitioned {
     private final String txId;
     private final long winPrice;
