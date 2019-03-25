@@ -7,17 +7,31 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.io.IOException;
+import java.util.StringJoiner;
 
 @Getter
 @Builder
 public class Bcn implements Partitioned {
+    @JsonProperty("tx_id")
     private final String txId;
+
+    @JsonProperty("campaign_item_id")
     private final long campaignItemId;
+
     private final String domain;
+
+    @JsonProperty("creative_id")
     private final String creativeId;
+
+    @JsonProperty("creative_category")
     private final String creativeCategory;
+
+    @JsonProperty("app_uid")
     private final String appUID;
+
+    @JsonProperty("win_price")
     private final long winPrice;
+
     private final String type;
 
     @JsonCreator
@@ -78,5 +92,19 @@ public class Bcn implements Partitioned {
         result = 31 * result + (int) (getWinPrice() ^ (getWinPrice() >>> 32));
         result = 31 * result + getType().hashCode();
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", Bcn.class.getSimpleName() + "[", "]")
+                .add("txId='" + txId + "'")
+                .add("campaignItemId=" + campaignItemId)
+                .add("domain='" + domain + "'")
+                .add("creativeId='" + creativeId + "'")
+                .add("creativeCategory='" + creativeCategory + "'")
+                .add("appUID='" + appUID + "'")
+                .add("winPrice=" + winPrice)
+                .add("type='" + type + "'")
+                .toString();
     }
 }

@@ -1,5 +1,6 @@
 package com.provectus.fds.models.events;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Setter;
@@ -17,7 +18,13 @@ public class Aggregation {
     private Long imps;
     private Long bids;
 
-    public Aggregation(long campaignItemId, String period, Long clicks, Long imps, Long bids) {
+    @JsonCreator
+    public Aggregation(
+            @JsonProperty("campaign_item_id") long campaignItemId,
+            @JsonProperty("period") String period,
+            @JsonProperty("clicks") Long clicks,
+            @JsonProperty("imps") Long imps,
+            @JsonProperty("bids") Long bids) {
         this.campaignItemId = campaignItemId;
         this.period = period;
         this.clicks = clicks;

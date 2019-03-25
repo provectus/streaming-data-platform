@@ -105,7 +105,7 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
+            <!--<plugin>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>1.6.0</version>
                 <groupId>org.codehaus.mojo</groupId>
@@ -118,7 +118,7 @@
                         </goals>
                         <configuration>
                             <executable>aws</executable>
-                            <commandlineArgs>s3 mb s3://itstack-artifacts --region us-west-2</commandlineArgs>
+                            <commandlineArgs>s3 mb s3://itstack-artifacts &#45;&#45;region us-west-2</commandlineArgs>
                         </configuration>
                     </execution>
                     <execution>
@@ -140,7 +140,7 @@
                         </goals>
                         <configuration>
                             <executable>aws</executable>
-                            <commandlineArgs>cloudformation package --template-file ../fds-template.yaml --output-template-file fds.yaml --s3-bucket itstack-artifacts</commandlineArgs>
+                            <commandlineArgs>cloudformation package &#45;&#45;template-file ../fds-template.yaml &#45;&#45;output-template-file fds.yaml &#45;&#45;s3-bucket itstack-artifacts</commandlineArgs>
                         </configuration>
                     </execution>
                     <execution>
@@ -151,11 +151,11 @@
                         </goals>
                         <configuration>
                             <executable>aws</executable>
-                            <commandlineArgs>s3 rb s3://itstack-artifacts --force</commandlineArgs>
+                            <commandlineArgs>s3 rb s3://itstack-artifacts &#45;&#45;force</commandlineArgs>
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
+            </plugin>-->
         </plugins>
     </build>
 </project>

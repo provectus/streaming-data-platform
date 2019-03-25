@@ -175,22 +175,23 @@ Resources:
                 Resource:
                   - !GetAtt 'ReportingLambda.Arn'
               - Effect: Allow
-                Sid: WriteLogs
+                Sid: AllowLogsGroups
                 Action:
+                  - logs:DescribeLogGroups
+                Resource:
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
+              - Effect: Allow
+                Sid: AllowLogsStreams
+                Action:
+                  - logs:DescribeLogStreams
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource:
-                  - !GetAtt 'LogGroupKinesisAnalyticsApp.Arn'
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupKinesisAnalyticsApp}:log-stream:*'
               - Effect: Allow
                 Sid: ReadInputStream
                 Action:
-                  - kinesis:ListShards
-                  - kinesis:GetRecords
-                  - kinesis:GetShardIterator
-                  - kinesis:SubscribeToShard
-                  - kinesis:PutRecord
-                  - kinesis:PutRecords
-                  - kinesis:DescribeStream
+                  - kinesis:*
                 Resource:
                   - !GetAtt 'BcnsStream.Arn'
                   - !GetAtt 'AggregatesStream.Arn'
@@ -208,6 +209,7 @@ Resources:
                   - s3:PutObject
                   - s3:GetObject
                   - s3:DeleteObject
+                  - s3:GetObjectVersion
                 Resource:
                   - !Sub 'arn:aws:s3:::${S3BucketName}/*'
   BcnsStream:
@@ -230,12 +232,39 @@ Resources:
     Properties:
       Name: !Sub '${ServicePrefix}aggregates'
       ShardCount: !Ref 'ShardCount'
+  LogGroupApi:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/kinesisanalytics/${ServicePrefix}Api'
+  LogStreamApi:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Sub '${LogGroupApi}'
+      LogStreamName: 'LogStreamApi'
   Api:
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: !Sub '${ServicePrefix}API'
       Description: API used for  requests
       FailOnWarnings: false
+      Policy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:DescribeLogGroups
+              - logs:DescribeLogStreams
+              - logs:PutLogEvents
+              - logs:GetLogEvents
+              - logs:FilterLogEvents
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Resource:
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupApi}:log-stream:*'
       Body:
         openapi: 3.0.0
         components:
@@ -244,7 +273,7 @@ Resources:
               title: Bid
               type: object
               properties:
-                appuid:
+                app_uid:
                   required: true
                   type: string
                 campaign_item_id:
@@ -254,7 +283,7 @@ Resources:
                   type: string
                 creative_id:
                   type: string
-                txid:
+                tx_id:
                   required: true
                   type: string
                 domain:
@@ -268,7 +297,7 @@ Resources:
               title: Impression
               type: object
               properties:
-                txid:
+                tx_id:
                   required: true
                   type: string
                 win_price:
@@ -281,7 +310,7 @@ Resources:
               title: Click
               type: object
               properties:
-                txid:
+                tx_id:
                   required: true
                   type: string
                 type:
@@ -314,7 +343,7 @@ Resources:
                     {
                         "StreamName": "${BcnsStream}",
                         "Data": "$util.base64Encode($input.json('$'))",
-                        "PartitionKey": $input.json('txid')
+                        "PartitionKey": $input.json('tx_id')
                     }
                 responses:
                   default:
@@ -344,7 +373,7 @@ Resources:
                     {
                         "StreamName": "${BcnsStream}",
                         "Data": "$util.base64Encode($input.json('$'))",
-                        "PartitionKey": $input.json('txid')
+                        "PartitionKey": $input.json('tx_id')
                     }
                 responses:
                   default:
@@ -374,7 +403,7 @@ Resources:
                     {
                         "StreamName": "${BcnsStream}",
                         "Data": "$util.base64Encode($input.json('$'))",
-                        "PartitionKey": $input.json('txid')
+                        "PartitionKey": $input.json('tx_id')
                     }
                 responses:
                   default:
