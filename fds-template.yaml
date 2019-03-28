@@ -212,6 +212,27 @@ Resources:
                   - s3:GetObjectVersion
                 Resource:
                   - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+  CloudWatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "apigateway.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+  Account:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        "Fn::GetAtt":
+          - CloudWatchRole
+          - Arn
   BcnsStream:
     Type: AWS::Kinesis::Stream
     Properties:
@@ -247,24 +268,6 @@ Resources:
       Name: !Sub '${ServicePrefix}API'
       Description: API used for  requests
       FailOnWarnings: false
-      Policy:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action:
-              - logs:CreateLogGroup
-              - logs:CreateLogStream
-              - logs:DescribeLogGroups
-              - logs:DescribeLogStreams
-              - logs:PutLogEvents
-              - logs:GetLogEvents
-              - logs:FilterLogEvents
-            Principal:
-              Service:
-                - apigateway.amazonaws.com
-            Resource:
-              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
-              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupApi}:log-stream:*'
       Body:
         openapi: 3.0.0
         components:
@@ -1256,6 +1259,9 @@ Resources:
     Properties:
       RestApiId: !Ref 'Api'
       StageName: !Sub '${ServicePrefix}'
+      StageDescription:
+        AccessLogSetting:
+          DestinationArn: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupApi}'
   # Reporting API
   ReportingApi:
     Type: AWS::ApiGateway::RestApi
@@ -1373,6 +1379,9 @@ Resources:
     Properties:
       RestApiId: !Ref 'ReportingApi'
       StageName: !Sub '${ServicePrefix}'
+      StageDescription:
+        AccessLogSetting:
+          DestinationArn: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupApi}'
 Outputs:
   UrlForAPI:
     Description: Root URL of the API gateway
