@@ -11,10 +11,12 @@ public class AggregationWindowProcessor extends ProcessWindowFunction<Metrics, A
     public void process(Long key, Context context, Iterable<Metrics> result, Collector<Aggregation> out) {
         Metrics metrics = result.iterator().next();
 
-        out.collect(new Aggregation(key,
-                DateTimeUtils.format(context.window().getStart()),
-                metrics.getClicks(),
-                metrics.getImpressions(),
-                metrics.getBids()));
+        out.collect(Aggregation.builder()
+                .campaignItemId(key)
+                .period(DateTimeUtils.format(context.window().getStart()))
+                .bids(metrics.getBids())
+                .imps(metrics.getImpressions())
+                .clicks(metrics.getClicks())
+                .build());
     }
 }

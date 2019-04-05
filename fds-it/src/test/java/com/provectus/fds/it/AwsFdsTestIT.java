@@ -50,8 +50,8 @@ public class AwsFdsTestIT {
 //        );
 //        reportUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
 //        apiUrl = cloudFormation.getOutput(URL_FOR_API).getOutputValue();
-        apiUrl = "https://u9o2n4umeh.execute-api.us-west-2.amazonaws.com/it-test2";
-        reportUrl = "https://2y3e7f9fy5.execute-api.us-west-2.amazonaws.com/it-test2";
+        apiUrl = "https://u2oklbxuda.execute-api.us-west-2.amazonaws.com/it-test";
+        reportUrl = "https://83a9lbxg2b.execute-api.us-west-2.amazonaws.com/it-test";
     }
 
     @AfterClass

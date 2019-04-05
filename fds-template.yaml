@@ -78,10 +78,10 @@ Parameters:
     Default: aggregates
     Type: String
   AggregationPeriod:
-    Default: 10
+    Default: 15
     Type: Number
   BidsSessionTimeout:
-    Default: 5
+    Default: 15
     Type: Number
   ClicksSessionTimeout:
     Default: 15

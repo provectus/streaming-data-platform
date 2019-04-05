@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.util.Optional;
-import java.util.StringJoiner;
 
 @Builder
 @Setter
@@ -16,22 +15,22 @@ public class Aggregation {
     @JsonProperty("campaign_item_id")
     private long campaignItemId;
     private String period;
-    private Long clicks;
-    private Long imps;
     private Long bids;
+    private Long imps;
+    private Long clicks;
 
     @JsonCreator
     public Aggregation(
             @JsonProperty("campaign_item_id") long campaignItemId,
             @JsonProperty("period") String period,
-            @JsonProperty("clicks") Long clicks,
+            @JsonProperty("bids") Long bids,
             @JsonProperty("imps") Long imps,
-            @JsonProperty("bids") Long bids) {
+            @JsonProperty("clicks") Long clicks) {
         this.campaignItemId = campaignItemId;
         this.period = period;
-        this.clicks = clicks;
-        this.imps = imps;
         this.bids = bids;
+        this.imps = imps;
+        this.clicks = clicks;
     }
 
     public Long getCampaignItemId() {
