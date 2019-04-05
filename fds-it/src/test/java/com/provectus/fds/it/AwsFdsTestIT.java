@@ -1,6 +1,5 @@
 package com.provectus.fds.it;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provectus.fds.dynamodb.models.Aggregation;
 import com.provectus.fds.it.aws.CloudFormation;
@@ -51,8 +50,8 @@ public class AwsFdsTestIT {
 //        );
 //        reportUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
 //        apiUrl = cloudFormation.getOutput(URL_FOR_API).getOutputValue();
-        reportUrl = "https://f6jgdr2orb.execute-api.us-west-2.amazonaws.com/it-test";
-        apiUrl = "https://9bvlof7oe0.execute-api.us-west-2.amazonaws.com/it-test";
+        apiUrl = "https://u9o2n4umeh.execute-api.us-west-2.amazonaws.com/it-test2";
+        reportUrl = "https://2y3e7f9fy5.execute-api.us-west-2.amazonaws.com/it-test2";
     }
 
     @AfterClass
@@ -67,7 +66,7 @@ public class AwsFdsTestIT {
     }
 
     @Test
-    public void testDynamoTotalReport() throws IOException, ExecutionException, InterruptedException {
+    public void testDynamoTotalReport() throws IOException {
         ThreadLocalRandom random = ThreadLocalRandom.current();
 
         int numberOfBids = random.nextInt(100, 200);
@@ -145,12 +144,16 @@ public class AwsFdsTestIT {
         return objectMapper.readValue(response.getResponseBodyAsBytes(), Aggregation.class);
     }
 
-    private <T> ListenableFuture<Response> sendRequest(String type, T model) throws JsonProcessingException {
-        return httpClient.preparePost(String.format("%s/%s", apiUrl, type))
-                .addHeader("Content-Type", "application/json")
-                .addHeader("User-Agent", USER_AGENT)
-                .setBody(objectMapper.writeValueAsBytes(model))
-                .execute();
+    private <T> ListenableFuture<Response> sendRequest(String type, T model) {
+        try {
+            return httpClient.preparePost(String.format("%s/%s", apiUrl, type))
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("User-Agent", USER_AGENT)
+                    .setBody(objectMapper.writeValueAsBytes(model))
+                    .execute();
+        } catch (Exception e) {
+            throw new RuntimeException("Exception during request", e);
+        }
     }
 
 }

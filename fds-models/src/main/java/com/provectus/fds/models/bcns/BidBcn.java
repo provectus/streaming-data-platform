@@ -2,48 +2,49 @@ package com.provectus.fds.models.bcns;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.provectus.fds.models.utils.JsonUtils;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.io.IOException;
 import java.util.StringJoiner;
 
 @Builder
-@AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class BidBcn implements Partitioned {
-    private final String txId;
-    private final long campaignItemId;
-    private final String creativeId;
-    private final String domain;
-    private final String creativeCategory;
-    private final String appUID;
-
     @JsonProperty("tx_id")
-    public String getTxId() {
-        return txId;
-    }
+    private String txId;
 
     @JsonProperty("campaign_item_id")
-    public long getCampaignItemId() {
-        return campaignItemId;
-    }
-
-    public String getDomain() {
-        return domain;
-    }
+    private long campaignItemId;
 
     @JsonProperty("creative_id")
-    public String getCreativeId() {
-        return creativeId;
-    }
+    private String creativeId;
 
     @JsonProperty("creative_category")
-    public String getCreativeCategory() {
-        return creativeCategory;
-    }
+    private String creativeCategory;
 
-    public String getAppUID() {
-        return appUID;
+    @JsonProperty("app_uid")
+    private String appUID;
+
+    private String domain;
+
+    public BidBcn(
+            @JsonProperty("tx_id") String txId,
+            @JsonProperty("campaign_item_id") long campaignItemId,
+            @JsonProperty("creative_id") String creativeId,
+            @JsonProperty("creative_category") String creativeCategory,
+            @JsonProperty("app_uid") String appUID,
+            @JsonProperty("domain") String domain) {
+        this.txId = txId;
+        this.campaignItemId = campaignItemId;
+        this.creativeId = creativeId;
+        this.creativeCategory = creativeCategory;
+        this.appUID = appUID;
+        this.domain = domain;
     }
 
     @Override

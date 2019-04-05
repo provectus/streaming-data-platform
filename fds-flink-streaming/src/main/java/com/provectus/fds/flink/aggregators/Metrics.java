@@ -1,25 +1,14 @@
 package com.provectus.fds.flink.aggregators;
 
-class Metrics {
-    private final long clicks;
-    private final long impressions;
-    private final long bids;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-    Metrics(long clicks, long impressions, long bids) {
-        this.clicks = clicks;
-        this.impressions = impressions;
-        this.bids = bids;
-    }
-
-    long getClicks() {
-        return clicks;
-    }
-
-    long getImpressions() {
-        return impressions;
-    }
-
-    long getBids() {
-        return bids;
-    }
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Metrics {
+    private long clicks;
+    private long impressions;
+    private long bids;
 }

@@ -5,34 +5,38 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.provectus.fds.models.utils.JsonUtils;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.io.IOException;
 import java.util.StringJoiner;
 
 @Getter
 @Builder
+@Setter
+@NoArgsConstructor
 public class Bcn implements Partitioned {
     @JsonProperty("tx_id")
-    private final String txId;
+    private String txId;
 
     @JsonProperty("campaign_item_id")
-    private final long campaignItemId;
+    private long campaignItemId;
 
-    private final String domain;
+    private String domain;
 
     @JsonProperty("creative_id")
-    private final String creativeId;
+    private String creativeId;
 
     @JsonProperty("creative_category")
-    private final String creativeCategory;
+    private String creativeCategory;
 
     @JsonProperty("app_uid")
-    private final String appUID;
+    private String appUID;
 
     @JsonProperty("win_price")
-    private final long winPrice;
+    private long winPrice;
 
-    private final String type;
+    private String type;
 
     @JsonCreator
     public Bcn(

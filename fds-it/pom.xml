@@ -19,41 +19,43 @@
             <artifactId>async-http-client</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
+
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-cloudformation</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-lambda-api</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-lambda-compaction</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-lambda-dynamodb-persister</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-lambda-reports</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-models</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>

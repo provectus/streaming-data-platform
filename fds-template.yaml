@@ -158,6 +158,7 @@ Resources:
           - Effect: Allow
             Principal:
               Service:
+                - kinesis.amazonaws.com
                 - kinesisanalytics.amazonaws.com
                 - firehose.amazonaws.com
                 - apigateway.amazonaws.com
@@ -169,19 +170,19 @@ Resources:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
-                Sid: InvokeLambda
-                Action:
-                  - lambda:InvokeFunction
-                Resource:
-                  - !GetAtt 'ReportingLambda.Arn'
-              - Effect: Allow
-                Sid: AllowLogsGroups
+                Sid: LogGroupsAccess
                 Action:
                   - logs:DescribeLogGroups
                 Resource:
                   - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
               - Effect: Allow
-                Sid: AllowLogsStreams
+                Sid: CloudWatchAccess
+                Action:
+                  - cloudwatch:*
+                Resource:
+                  - '*'
+              - Effect: Allow
+                Sid: LogStreamsAccess
                 Action:
                   - logs:DescribeLogStreams
                   - logs:CreateLogStream
@@ -189,7 +190,7 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupKinesisAnalyticsApp}:log-stream:*'
               - Effect: Allow
-                Sid: ReadInputStream
+                Sid: KinesisStreamsAccess
                 Action:
                   - kinesis:*
                 Resource:
@@ -198,14 +199,9 @@ Resources:
                   - !GetAtt 'ClickStream.Arn'
                   - !GetAtt 'ImpressionsStream.Arn'
               - Effect: Allow
-                Sid: ListS3Buckets
-                Action:
-                  - s3:ListBucket
-                Resource:
-                  - !Sub 'arn:aws:s3:::${S3BucketName}'
-              - Effect: Allow
                 Sid: S3BucketAccess
                 Action:
+                  - s3:ListBucket
                   - s3:PutObject
                   - s3:GetObject
                   - s3:DeleteObject
@@ -226,7 +222,7 @@ Resources:
       Path: "/"
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
-  Account:
+  ApiGatewayAccount:
     Type: AWS::ApiGateway::Account
     Properties:
       CloudWatchRoleArn:
@@ -422,187 +418,6 @@ Resources:
     Properties:
       LogGroupName: !Sub '${LogGroupKinesisAnalyticsApp}'
       LogStreamName: 'LogStreamKinesisAnalyticsApp'
-  #  KinesisAnalyticsApp:
-  #    Type: AWS::KinesisAnalytics::Application
-  #    Properties:
-  #      ApplicationName: !Sub '${ServicePrefix}Application'
-  #      ApplicationDescription: Joining & Aggregation app
-  #      ApplicationCode: !Sub |
-  #        CREATE STREAM "bcns_impressions" (
-  #         "txid" VARCHAR(64),
-  #           "win_price" BIGINT
-  #        );
-  #
-  #        CREATE OR REPLACE PUMP "bcns_impressions_pump" AS
-  #         INSERT INTO "bcns_impressions" ("txid","win_price")
-  #        SELECT "txid","win_price" FROM "bcns_001" WHERE "type"='imp';
-  #
-  #        CREATE STREAM "bcns_bids" (
-  #                         "txid" VARCHAR(64),
-  #                         "campaign_item_id" BIGINT,
-  #                         "domain" VARCHAR(255),
-  #                         "creative_id" VARCHAR(255),
-  #                         "creative_category" VARCHAR(255),
-  #                         "appuid" VARCHAR(255)
-  #        );
-  #
-  #        CREATE OR REPLACE PUMP "bcns_bids_pump" AS
-  #        INSERT INTO "bcns_bids" ("txid","campaign_item_id","domain","creative_id","creative_category","appuid")
-  #        SELECT "txid","campaign_item_id","domain","creative_id","creative_category","appuid"
-  #        FROM "bcns_001" WHERE "type"='bid';
-  #
-  #        CREATE STREAM "bcns_clicks" (
-  #                        "txid" VARCHAR(64)
-  #        );
-  #
-  #        CREATE OR REPLACE PUMP "bcns_clicks_pump" AS
-  #        INSERT INTO "bcns_clicks" ("txid")
-  #        SELECT "txid" FROM "bcns_001" WHERE "type"='click';
-  #
-  #        CREATE STREAM "impressions"(
-  #                         "txid" VARCHAR(64),
-  #                         "campaign_item_id" BIGINT,
-  #                         "domain" VARCHAR(255),
-  #                         "creative_id" VARCHAR(255),
-  #                         "creative_category" VARCHAR(255),
-  #                         "appuid" VARCHAR(255),
-  #                         "win_price" BIGINT
-  #        );
-  #
-  #        CREATE OR REPLACE PUMP "impressions_pump" AS
-  #        INSERT INTO "impressions" ( "txid", "campaign_item_id",
-  #        "domain", "creative_id", "creative_category", "appuid", "win_price")
-  #        SELECT STREAM
-  #        b."txid", b."campaign_item_id", b."domain", b."creative_id",
-  #        b."creative_category", b."appuid", i."win_price"
-  #        FROM "bcns_bids" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) as b
-  #        JOIN "bcns_impressions" OVER (RANGE INTERVAL '5' MINUTE PRECEDING) AS i ON (b."txid"=i."txid");
-  #
-  #        CREATE STREAM "clicks"(
-  #                         "txid" VARCHAR(16),
-  #                         "campaign_item_id" BIGINT,
-  #                         "domain" VARCHAR(255),
-  #                         "creative_id" VARCHAR(255),
-  #                         "creative_category" VARCHAR(255),
-  #                         "appuid" VARCHAR(255),
-  #                         "win_price" BIGINT
-  #        );
-  #
-  #        CREATE OR REPLACE PUMP "clicks_pump" AS
-  #        INSERT INTO "clicks" ( "txid", "campaign_item_id",
-  #        "domain", "creative_id", "creative_category", "appuid", "win_price")
-  #        SELECT STREAM
-  #        i."txid", i."campaign_item_id", i."domain", i."creative_id",
-  #        i."creative_category", i."appuid", i."win_price"
-  #        FROM "impressions" OVER (RANGE INTERVAL '15' MINUTE PRECEDING) as i
-  #        JOIN "bcns_clicks" OVER (RANGE INTERVAL '15' MINUTE PRECEDING) AS c ON (i."txid"=c."txid");
-  #
-  #        CREATE STREAM "campaign_aggregates"(
-  #                        "campaign_item_id" BIGINT,
-  #                        "period" TIMESTAMP,
-  #                        "bids" BIGINT,
-  #                        "imps" BIGINT,
-  #                        "clicks" BIGINT,
-  #                        "spend" BIGINT
-  #         );
-  #
-  #        CREATE OR REPLACE PUMP "campaign_item_performance_bids_pump" AS
-  #        INSERT INTO "campaign_aggregates" ("campaign_item_id","period","bids")
-  #        SELECT STREAM "campaign_item_id",
-  #                       STEP("bcns_bids".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE) as "period",
-  #                       count(*) as "bids"
-  #        FROM "bcns_bids"
-  #        GROUP BY "campaign_item_id", STEP("bcns_bids".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE);
-  #
-  #        CREATE OR REPLACE PUMP "campaign_item_performance_imps_pump" AS
-  #        INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "imps")
-  #        SELECT STREAM "campaign_item_id",
-  #                       STEP("impressions".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE) as
-  #                      "period",
-  #                      count(1) as "imps"
-  #        FROM "impressions"
-  #        GROUP BY "campaign_item_id", STEP("impressions".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE);
-  #
-  #        CREATE OR REPLACE PUMP "campaign_item_performance_clicks_pump" AS
-  #        INSERT INTO "campaign_aggregates" ("campaign_item_id", "period", "clicks")
-  #        SELECT STREAM "campaign_item_id",
-  #                       STEP("clicks".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE) as "period",
-  #                       count(1) as "clicks"
-  #        FROM "clicks"
-  #        GROUP BY "campaign_item_id", STEP("clicks".ROWTIME BY INTERVAL '${AggregationPeriod}' MINUTE);
-  #      Inputs:
-  #        - KinesisStreamsInput:
-  #            ResourceARN: !GetAtt 'BcnsStream.Arn'
-  #            RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
-  #          NamePrefix: bcns
-  #          InputSchema:
-  #            RecordColumns:
-  #              - Name: txid
-  #                SqlType: VARCHAR(64)
-  #                Mapping: $.txid
-  #              - Name: campaign_item_id
-  #                SqlType: BIGINT
-  #                Mapping: $.campaign_item_id
-  #              - Name: domain
-  #                SqlType: VARCHAR(255)
-  #                Mapping: $.domain
-  #              - Name: creative_id
-  #                SqlType: VARCHAR(255)
-  #                Mapping: $.creative_id
-  #              - Name: appuid
-  #                SqlType: VARCHAR(255)
-  #                Mapping: $.appuid
-  #              - Name: creative_category
-  #                SqlType: VARCHAR(255)
-  #                Mapping: $.creative_category
-  #              - Name: type
-  #                SqlType: VARCHAR(16)
-  #                Mapping: $.type
-  #              - Name: win_price
-  #                SqlType: BIGINT
-  #                Mapping: $.win_price
-  #            RecordEncoding: UTF-8
-  #            RecordFormat:
-  #              RecordFormatType: JSON
-  #              MappingParameters:
-  #                JSONMappingParameters:
-  #                  RecordRowPath: $
-  #  KinesisAnalyticsAppClicksOutputs:
-  #    Type: AWS::KinesisAnalytics::ApplicationOutput
-  #    DependsOn: KinesisAnalyticsApp
-  #    Properties:
-  #      ApplicationName: !Ref 'KinesisAnalyticsApp'
-  #      Output:
-  #        Name: clicks
-  #        DestinationSchema:
-  #          RecordFormatType: JSON
-  #        KinesisStreamsOutput:
-  #          ResourceARN: !GetAtt 'ClickStream.Arn'
-  #          RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
-  #  KinesisAnalyticsAppImpsOutputs:
-  #    Type: AWS::KinesisAnalytics::ApplicationOutput
-  #    DependsOn: KinesisAnalyticsApp
-  #    Properties:
-  #      ApplicationName: !Ref 'KinesisAnalyticsApp'
-  #      Output:
-  #        Name: impressions
-  #        DestinationSchema:
-  #          RecordFormatType: JSON
-  #        KinesisStreamsOutput:
-  #          ResourceARN: !GetAtt 'ImpressionsStream.Arn'
-  #          RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
-  #  KinesisAnalyticsAggregatesAppOutputs:
-  #    Type: AWS::KinesisAnalytics::ApplicationOutput
-  #    DependsOn: KinesisAnalyticsApp
-  #    Properties:
-  #      ApplicationName: !Ref 'KinesisAnalyticsApp'
-  #      Output:
-  #        Name: campaign_aggregates
-  #        DestinationSchema:
-  #          RecordFormatType: JSON
-  #        KinesisStreamsOutput:
-  #          ResourceARN: !GetAtt 'AggregatesStream.Arn'
-  #          RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
   KinesisAnalyticsApp:
     Type: AWS::KinesisAnalyticsV2::Application
     DependsOn:
@@ -625,7 +440,7 @@ Resources:
             - PropertyGroupId: SourceConfigProperties
               PropertyMap:
                 source.aws.region: !Sub '${AWS::Region}'
-                source.stream.init.pos: LATEST
+                source.stream.init.pos: 'TRIM_HORIZON'
                 source.stream.name: !Ref 'BcnsStream'
             - PropertyGroupId: SinkConfigProperties
               PropertyMap:
@@ -636,6 +451,33 @@ Resources:
                 aggregation.bids.session.timeout: !Sub '${BidsSessionTimeout}'
                 aggregation.clicks.session.timeout: !Sub '${ClicksSessionTimeout}'
                 aggregation.period: !Sub '${AggregationPeriod}'
+        FlinkApplicationConfiguration:
+          CheckpointConfiguration:
+            ConfigurationType: CUSTOM
+            CheckpointingEnabled: true
+            CheckpointInterval: 600000
+            MinPauseBetweenCheckpoints: 60000
+          MonitoringConfiguration:
+            ConfigurationType: CUSTOM
+            MetricsLevel: PARALLELISM
+            LogLevel: INFO
+        ApplicationSnapshotConfiguration:
+          SnapshotsEnabled: false
+  KinesisAnalyticsAppCloudWatchLoggingOption:
+    Type: "AWS::KinesisAnalyticsV2::ApplicationCloudWatchLoggingOption"
+    Properties:
+      ApplicationName: !Ref KinesisAnalyticsApp
+      CloudWatchLoggingOption:
+        LogStreamARN:
+          !Join
+          - ':'
+          - - 'arn:aws:logs'
+            - !Ref AWS::Region
+            - !Ref AWS::AccountId
+            - 'log-group'
+            - !Ref LogGroupKinesisAnalyticsApp
+            - 'log-stream'
+            - !Ref LogStreamKinesisAnalyticsApp
   LogGroupJsonNewLineAdderLambda:
     Type: AWS::Logs::LogGroup
     Properties:

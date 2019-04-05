@@ -12,19 +12,25 @@ import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer;
 import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisProducer;
 import org.apache.flink.streaming.connectors.kinesis.config.AWSConfigConstants;
 import org.apache.flink.streaming.connectors.kinesis.config.ConsumerConfigConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
 public class StreamingApp {
-    private static StreamingProperties properties = StreamingProperties.getInstance();
+    private static final Logger log = LoggerFactory.getLogger(StreamingApp.class);
+
+    private static StreamingProperties properties = StreamingProperties.fromRuntime();
 
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment environment = StreamExecutionEnvironment.getExecutionEnvironment();
         environment.setStreamTimeCharacteristic(TimeCharacteristic.IngestionTime);
 
-        StreamingJob job = new StreamingJob(getInputStream(environment), getSink(), properties);
+        new StreamingJob(getInputStream(environment), getSink(), properties);
 
-        environment.execute();
+        environment.execute("Streaming Data Platform");
+
+        log.info("StreamingApp has started");
     }
 
     private static DataStream<Bcn> getInputStream(StreamExecutionEnvironment environment) {
@@ -32,7 +38,9 @@ public class StreamingApp {
         config.setProperty(ConsumerConfigConstants.AWS_REGION, properties.getSourceAwsRegion());
         config.setProperty(ConsumerConfigConstants.STREAM_INITIAL_POSITION, properties.getSourceStreamInitPos());
 
-        return environment.addSource(new FlinkKinesisConsumer<>(properties.getSourceStreamName(), new BcnSchema(), config));
+        return environment.addSource(
+                new FlinkKinesisConsumer<>(properties.getSourceStreamName(), new BcnSchema(), config),
+                String.format("Kinesis stream: %s", properties.getSourceStreamName()));
     }
 
     private static FlinkKinesisProducer<Aggregation> getSink() {

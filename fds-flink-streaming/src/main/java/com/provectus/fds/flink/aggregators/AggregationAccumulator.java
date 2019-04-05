@@ -3,22 +3,26 @@ package com.provectus.fds.flink.aggregators;
 import com.provectus.fds.models.bcns.BidBcn;
 import com.provectus.fds.models.events.Click;
 import com.provectus.fds.models.events.Impression;
+import lombok.Getter;
+import lombok.Setter;
 
-class AggregationAccumulator<T> {
+@Getter
+@Setter
+public class AggregationAccumulator<T> {
     private long clicks;
     private long impressions;
     private long bids;
 
-    AggregationAccumulator() {
+    public AggregationAccumulator() {
     }
 
-    private AggregationAccumulator(AggregationAccumulator<T> acc) {
+    public AggregationAccumulator(AggregationAccumulator<T> acc) {
         this.clicks = acc.clicks;
         this.impressions = acc.impressions;
         this.bids = acc.bids;
     }
 
-    AggregationAccumulator<T> add(T value) {
+    public AggregationAccumulator<T> add(T value) {
         Class<?> tClass = value.getClass();
 
         if (BidBcn.class.isAssignableFrom(tClass)) {
@@ -34,7 +38,7 @@ class AggregationAccumulator<T> {
         return this;
     }
 
-    AggregationAccumulator<T> merge(AggregationAccumulator<T> other) {
+    public AggregationAccumulator<T> merge(AggregationAccumulator<T> other) {
         AggregationAccumulator<T> newAcc = new AggregationAccumulator<>(this);
         newAcc.clicks += other.clicks;
         newAcc.impressions += other.impressions;
@@ -43,7 +47,7 @@ class AggregationAccumulator<T> {
         return newAcc;
     }
 
-    Metrics build() {
+    public Metrics build() {
         return new Metrics(clicks, impressions, bids);
     }
 }

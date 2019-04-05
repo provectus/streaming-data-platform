@@ -24,8 +24,6 @@ public class StreamingProperties {
     private static final String AGGREGATION_CLICKS_SESSION_TIMEOUT = "aggregation.clicks.session.timeout";
     private static final String AGGREGATION_PERIOD = "aggregation.period";
 
-    private static final StreamingProperties instance = new StreamingProperties();
-
     private String sourceStreamName;
     private String sourceStreamInitPos;
     private String sourceAwsRegion;
@@ -37,25 +35,32 @@ public class StreamingProperties {
     private Time clicksSessionTimeout;
     private Time aggregationPeriod;
 
-    private StreamingProperties() {
-        Properties sourceProperties = getProperties(SOURCE_CONFIG_PROPERTIES);
-        Properties sinkProperties = getProperties(SINK_CONFIG_PROPERTIES);
-        Properties aggregationProperties = getProperties(AGGREGATION_PROPERTIES);
-
+    private StreamingProperties(Properties sourceProperties, Properties sinkProperties, Properties aggregationProperties) {
         sourceStreamName = (String) sourceProperties.get(SOURCE_STREAM_NAME);
         sourceStreamInitPos = (String) sourceProperties.get(SOURCE_STREAM_INIT_POS);
-        sourceAwsRegion = (String) sourceProperties.get(SINK_AWS_REGION);
+        sourceAwsRegion = (String) sourceProperties.get(SOURCE_AWS_REGION);
 
         sinkStreamName = (String) sinkProperties.get(SINK_STREAM_NAME);
         sinkAwsRegion = (String) sinkProperties.get(SINK_AWS_REGION);
 
-        bidsSessionTimeout = Time.minutes((Long) aggregationProperties.get(AGGREGATION_BIDS_SESSION_TIMEOUT));
-        clicksSessionTimeout = Time.minutes((Long) aggregationProperties.get(AGGREGATION_CLICKS_SESSION_TIMEOUT));
-        aggregationPeriod = Time.minutes((Long) aggregationProperties.get(AGGREGATION_PERIOD));
+        bidsSessionTimeout = Time.minutes(Long.parseLong(aggregationProperties.get(AGGREGATION_BIDS_SESSION_TIMEOUT).toString()));
+        clicksSessionTimeout = Time.minutes(Long.parseLong(aggregationProperties.get(AGGREGATION_CLICKS_SESSION_TIMEOUT).toString()));
+        aggregationPeriod = Time.minutes(Long.parseLong(aggregationProperties.get(AGGREGATION_PERIOD).toString()));
     }
 
-    public static StreamingProperties getInstance() {
-        return instance;
+    public static StreamingProperties fromRuntime() {
+        Properties sourceProperties = getProperties(SOURCE_CONFIG_PROPERTIES);
+        Properties sinkProperties = getProperties(SINK_CONFIG_PROPERTIES);
+        Properties aggregationProperties = getProperties(AGGREGATION_PROPERTIES);
+
+        return new StreamingProperties(sourceProperties, sinkProperties, aggregationProperties);
+    }
+
+    public static StreamingProperties fromProperties(
+            Properties sourceProperties,
+            Properties sinkProperties,
+            Properties aggregationProperties) {
+        return new StreamingProperties(sourceProperties, sinkProperties, aggregationProperties);
     }
 
     private static Properties getProperties(String name) {

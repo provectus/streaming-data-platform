@@ -1,22 +1,27 @@
 package com.provectus.fds.models.events;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.provectus.fds.models.bcns.ClickBcn;
 import com.provectus.fds.models.bcns.Partitioned;
 import com.provectus.fds.models.utils.JsonUtils;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.io.IOException;
 import java.util.StringJoiner;
 
 
 @Builder
-@AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class Click implements Partitioned {
-    private final Impression impression;
+    private Impression impression;
 
-    public Impression getImpression() {
-        return impression;
+    public Click(@JsonProperty("impression") Impression impression) {
+        this.impression = impression;
     }
 
     @Override

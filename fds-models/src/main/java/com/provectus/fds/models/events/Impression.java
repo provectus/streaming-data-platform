@@ -5,27 +5,31 @@ import com.provectus.fds.models.bcns.BidBcn;
 import com.provectus.fds.models.bcns.ImpressionBcn;
 import com.provectus.fds.models.bcns.Partitioned;
 import com.provectus.fds.models.utils.JsonUtils;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.io.IOException;
 import java.util.StringJoiner;
 
 
 @Builder
-@AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class Impression implements Partitioned {
-    private final BidBcn bidBcn;
-    private final ImpressionBcn impressionBcn;
-
     @JsonProperty("bid_bcn")
-    public BidBcn getBidBcn() {
-        return bidBcn;
-    }
+    private BidBcn bidBcn;
 
     @JsonProperty("impression_bcn")
-    public ImpressionBcn getImpressionBcn() {
-        return impressionBcn;
+    private ImpressionBcn impressionBcn;
+
+    public Impression(
+            @JsonProperty("bid_bcn") BidBcn bidBcn,
+            @JsonProperty("impression_bcn") ImpressionBcn impressionBcn) {
+        this.bidBcn = bidBcn;
+        this.impressionBcn = impressionBcn;
     }
 
     @Override

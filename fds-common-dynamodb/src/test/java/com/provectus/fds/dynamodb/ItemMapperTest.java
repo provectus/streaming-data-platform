@@ -32,11 +32,11 @@ public class ItemMapperTest {
 
         for (Aggregation aggregation : aggregations) {
             Item item = itemMapper.fromByteBuffer(serialize(aggregation));
-            assertEquals(aggregation.getCampaignItemId(), item.getLong("campaign_item_id"));
+            assertEquals((long) aggregation.getCampaignItemId(), item.getLong("campaign_item_id"));
             //assertEquals(aggregation.getPeriod(), item.getString("period"));
-            assertEquals(aggregation.getClicks(), item.getLong("clicks"));
-            assertEquals(aggregation.getImps(), item.getLong("imps"));
-            assertEquals(aggregation.getBids(), item.getLong("bids"));
+            assertEquals((long) aggregation.getClicks(), item.getLong("clicks"));
+            assertEquals((long) aggregation.getImps(), item.getLong("imps"));
+            assertEquals((long) aggregation.getBids(), item.getLong("bids"));
 
         }
     }
@@ -73,7 +73,7 @@ public class ItemMapperTest {
 
     @Test
     public void mergeItems() {
-        Map<PrimaryKey, Item> merged =itemMapper.mergeItems(
+        Map<PrimaryKey, Item> merged = itemMapper.mergeItems(
                 aggregations.stream()
                         .map(this::serialize)
                         .collect(Collectors.toList())
@@ -83,9 +83,9 @@ public class ItemMapperTest {
         Aggregation aggregation1 = aggregations.get(0);
         Aggregation aggregation2 = aggregations.get(1);
 
-        assertEquals(aggregation1.getClicks()+aggregation2.getClicks(), mergedItem.getLong("clicks"));
-        assertEquals(aggregation1.getBids()+aggregation2.getBids(), mergedItem.getLong("bids"));
-        assertEquals(aggregation1.getImps()+aggregation2.getImps(), mergedItem.getLong("imps"));
+        assertEquals(aggregation1.getClicks() + aggregation2.getClicks(), mergedItem.getLong("clicks"));
+        assertEquals(aggregation1.getBids() + aggregation2.getBids(), mergedItem.getLong("bids"));
+        assertEquals(aggregation1.getImps() + aggregation2.getImps(), mergedItem.getLong("imps"));
     }
 
     @Test
@@ -96,9 +96,9 @@ public class ItemMapperTest {
         Item aggregation2_item = itemMapper.fromByteBuffer(serialize(aggregation2));
         Item resultItem = itemMapper.mergeItem(itemMapper.primaryKey(aggregation1_item), aggregation1_item, aggregation2_item);
         assertEquals(itemMapper.primaryKey(aggregation2_item), itemMapper.primaryKey(resultItem));
-        assertEquals(aggregation1.getClicks()+aggregation2.getClicks(), resultItem.getLong("clicks"));
-        assertEquals(aggregation1.getBids()+aggregation2.getBids(), resultItem.getLong("bids"));
-        assertEquals(aggregation1.getImps()+aggregation2.getImps(), resultItem.getLong("imps"));
+        assertEquals(aggregation1.getClicks() + aggregation2.getClicks(), resultItem.getLong("clicks"));
+        assertEquals(aggregation1.getBids() + aggregation2.getBids(), resultItem.getLong("bids"));
+        assertEquals(aggregation1.getImps() + aggregation2.getImps(), resultItem.getLong("imps"));
     }
 
     @Test

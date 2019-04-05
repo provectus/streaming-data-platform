@@ -2,26 +2,30 @@ package com.provectus.fds.models.bcns;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.provectus.fds.models.utils.JsonUtils;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.io.IOException;
 import java.util.StringJoiner;
 
 @Builder
-@AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class ImpressionBcn implements Partitioned {
-    private final String txId;
-    private final long winPrice;
-
     @JsonProperty("tx_id")
-    public String getTxId() {
-        return txId;
-    }
+    private String txId;
 
     @JsonProperty("win_price")
-    public long getWinPrice() {
-        return winPrice;
+    private long winPrice;
+
+    public ImpressionBcn(
+            @JsonProperty("tx_id") String txId,
+            @JsonProperty("win_price") long winPrice) {
+        this.txId = txId;
+        this.winPrice = winPrice;
     }
 
     @Override

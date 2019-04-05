@@ -15,7 +15,7 @@
         <aws.kinesisanalytics.version>1.0.1</aws.kinesisanalytics.version>
         <junit.version>4.12</junit.version>
         <com.fasterxml.jackson.version>2.9.8</com.fasterxml.jackson.version>
-        <flink.version>1.6.3</flink.version>
+        <flink.version>1.6.2</flink.version>
         <lombok.version>1.18.4</lombok.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -26,18 +26,6 @@
         <maven.compiler.plugin.version>3.8.0</maven.compiler.plugin.version>
         <maven.shade.plugin.version>3.2.1</maven.shade.plugin.version>
     </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-lambda-java-core</artifactId>
-        </dependency>
-    </dependencies>
 
     <repositories>
         <repository>
@@ -79,42 +67,12 @@
             </dependency>
 
             <dependency>
-                <groupId>org.apache.flink</groupId>
-                <artifactId>flink-streaming-java_2.11</artifactId>
-                <version>${flink.version}</version>
-                <scope>provided</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.flink</groupId>
-                <artifactId>flink-connector-kinesis_2.11</artifactId>
-                <version>${flink.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.flink</groupId>
-                <artifactId>flink-test-utils_2.11</artifactId>
-                <version>${flink.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
                 <version>${junit.version}</version>
                 <scope>test</scope>
             </dependency>
 
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${com.fasterxml.jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${com.fasterxml.jackson.version}</version>
-            </dependency>
             <dependency>
                 <groupId>com.provectus.fds</groupId>
                 <artifactId>fds-models</artifactId>
@@ -227,6 +185,14 @@
         </dependencies>
     </dependencyManagement>
 
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <build>
         <pluginManagement>
             <plugins>
@@ -260,6 +226,7 @@
         <module>fds-common-dynamodb</module>
         <module>fds-flink-streaming</module>
     </modules>
+
     <reporting>
         <plugins>
             <plugin>
