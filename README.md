@@ -98,7 +98,7 @@ The following data streams are available:
 ##### Bid
 Ingesting Bids:
 ```
-curl --request POST --header "Accept: application/json" --data '{"txid":"44db4cf3-c372-4f7c-8443-9d2a1e725473","domain":"www.google.com","appuid":"e582f2a0-3e2b-4066-a2a3-dc5867953d0d","campaign_item_id":1463517,"creative_id":"b72897cb-3f88-423b-84aa-9b7710d2416d","creative_category":"testCreativeCategory"}' '<UrlForAPI>/bid'
+curl --request POST --header "Content-type: application/json" --data '{"txid":"44db4cf3-c372-4f7c-8443-9d2a1e725473","domain":"www.google.com","appuid":"e582f2a0-3e2b-4066-a2a3-dc5867953d0d","campaign_item_id":1463517,"creative_id":"b72897cb-3f88-423b-84aa-9b7710d2416d","creative_category":"testCreativeCategory"}' '<UrlForAPI>/bid'
 ```
 Bid Schema
 ```
@@ -130,7 +130,7 @@ properties:
 ##### Click
 Ingesting Clicks:
 ```
-curl --request POST --header "Accept: application/json" --data '{"txid":"44db4cf3-c372-4f7c-8443-9d2a1e725473"}' '<UrlForAPI>/click'
+curl --request POST --header "Content-type: application/json" --data '{"txid":"44db4cf3-c372-4f7c-8443-9d2a1e725473"}' '<UrlForAPI>/click'
 ```
 Click Schema
 ```
@@ -148,7 +148,7 @@ properties:
 ##### Impression
 Ingesting Impressions:
 ```
-curl --request POST --header "Accept: application/json" --data '{"txid":"44db4cf3-c372-4f7c-8443-9d2a1e725473","win_price":1}' '<UrlForAPI>/impression'
+curl --request POST --header "Content-type: application/json" --data '{"txid":"44db4cf3-c372-4f7c-8443-9d2a1e725473","win_price":1}' '<UrlForAPI>/impression'
 ```
 
 Impression schema:
