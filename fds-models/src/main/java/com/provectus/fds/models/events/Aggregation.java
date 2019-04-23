@@ -2,15 +2,10 @@ package com.provectus.fds.models.events;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.*;
 
 import java.util.Optional;
+import java.util.StringJoiner;
 
-@Builder
-@Setter
-@NoArgsConstructor
-@EqualsAndHashCode
-@ToString
 public class Aggregation {
     @JsonProperty("campaign_item_id")
     private long campaignItemId;
@@ -18,6 +13,9 @@ public class Aggregation {
     private Long bids;
     private Long imps;
     private Long clicks;
+
+    public Aggregation() {
+    }
 
     @JsonCreator
     public Aggregation(
@@ -53,27 +51,63 @@ public class Aggregation {
         return Optional.ofNullable(bids).orElse(0L);
     }
 
-    public static Aggregation reduce(Aggregation left, Aggregation right) {
-        if (left == null || right == null) {
-            throw new IllegalStateException("Arguments should not be null");
-        }
+    public Aggregation setCampaignItemId(long campaignItemId) {
+        this.campaignItemId = campaignItemId;
+        return this;
+    }
 
-        if (left.campaignItemId != right.campaignItemId) {
-            throw new IllegalStateException(String.format("Can't reduce aggregations for different campaigns: %d and %d",
-                    left.campaignItemId, right.campaignItemId));
-        }
+    public Aggregation setPeriod(String period) {
+        this.period = period;
+        return this;
+    }
 
-        if (left.period != null && !left.period.equals(right.period)) {
-            throw new IllegalStateException(String.format("Can't reduce aggregations for different periods: %s and %s",
-                    left.period, right.period));
-        }
+    public Aggregation setClicks(Long clicks) {
+        this.clicks = clicks;
+        return this;
+    }
 
-        return new AggregationBuilder()
-                .campaignItemId(left.campaignItemId)
-                .period(left.period)
-                .bids(left.bids + right.bids)
-                .imps(left.imps + right.imps)
-                .clicks(left.clicks + right.clicks)
-                .build();
+    public Aggregation setImps(Long imps) {
+        this.imps = imps;
+        return this;
+    }
+
+    public Aggregation setBids(Long bids) {
+        this.bids = bids;
+        return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Aggregation)) return false;
+
+        Aggregation that = (Aggregation) o;
+
+        if (getCampaignItemId() != that.getCampaignItemId()) return false;
+        if (getPeriod() != null ? !getPeriod().equals(that.getPeriod()) : that.getPeriod() != null) return false;
+        if (getClicks() != null ? !getClicks().equals(that.getClicks()) : that.getClicks() != null) return false;
+        if (getImps() != null ? !getImps().equals(that.getImps()) : that.getImps() != null) return false;
+        return getBids() != null ? getBids().equals(that.getBids()) : that.getBids() == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (getCampaignItemId() ^ (getCampaignItemId() >>> 32));
+        result = 31 * result + (getPeriod() != null ? getPeriod().hashCode() : 0);
+        result = 31 * result + (getClicks() != null ? getClicks().hashCode() : 0);
+        result = 31 * result + (getImps() != null ? getImps().hashCode() : 0);
+        result = 31 * result + (getBids() != null ? getBids().hashCode() : 0);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", Aggregation.class.getSimpleName() + "[", "]")
+                .add("campaignItemId=" + campaignItemId)
+                .add("period='" + period + "'")
+                .add("clicks=" + clicks)
+                .add("imps=" + imps)
+                .add("bids=" + bids)
+                .toString();
     }
 }

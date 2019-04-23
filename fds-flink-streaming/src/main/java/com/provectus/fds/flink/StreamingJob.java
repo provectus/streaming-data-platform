@@ -1,7 +1,6 @@
 package com.provectus.fds.flink;
 
 import com.provectus.fds.flink.aggregators.AggregationWindowProcessor;
-import com.provectus.fds.flink.aggregators.Metrics;
 import com.provectus.fds.flink.aggregators.MetricsAggregator;
 import com.provectus.fds.flink.config.StreamingProperties;
 import com.provectus.fds.flink.selectors.EventSelector;
@@ -13,6 +12,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SplitStream;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.windowing.assigners.EventTimeSessionWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +21,10 @@ class StreamingJob {
     private static final String BID_BCN_STREAM = "BidBcn stream";
     private static final String IMPRESSION_BCN_STREAM = "ImpressionBcn stream";
     private static final String CLICKS_BCN_STREAM = "ClickBcn stream";
+
+    private static final String AGGREGATED_BIDS_STREAM = "Aggregated bids";
+    private static final String AGGREGATED_IMPRESSIONS_STREAM = "Aggregated impressions";
+    private static final String AGGREGATED_CLICKS_STREAM = "Aggregated clicks";
 
     private static final String JOINED_AGGREGATIONS_STREAM = "Joined aggregations";
 
@@ -55,9 +59,12 @@ class StreamingJob {
 
         // Aggregation streams
         Time period = properties.getAggregationPeriod();
+        DataStream<Aggregation> bidsAggregation = aggregateBidsBcn(bidBcnStream, period);
+        DataStream<Aggregation> clicksAggregation = aggregateClicks(clickStream, period);
+        DataStream<Aggregation> impressionsAggregation = aggregateImpressions(impressionStream, period);
 
-        // Join all aggregations and add sink
-        joinMetrics(bidBcnStream, impressionStream, clickStream, period)
+        // Union all aggregations and add sink
+        bidsAggregation.union(clicksAggregation, impressionsAggregation)
                 .addSink(sink)
                 .name(String.format("Kinesis stream: %s", properties.getSinkStreamName()));
     }
@@ -84,23 +91,30 @@ class StreamingJob {
                 .apply(Click::from);
     }
 
-    static DataStream<Aggregation> joinMetrics(
-            DataStream<BidBcn> bids,
-            DataStream<Impression> imps,
-            DataStream<Click> clicks,
-            Time aggregationPeriod) {
-
-        DataStream<Metrics> allMetrics = bids.map(Metrics::of).union(imps.map(Metrics::of), clicks.map(Metrics::of));
-        return aggregateMetrics(allMetrics, aggregationPeriod);
+    static DataStream<Aggregation> aggregateBidsBcn(DataStream<BidBcn> bidBcnStream, Time aggregationPeriod) {
+        return bidBcnStream
+                .keyBy(BidBcn::getCampaignItemId)
+                .window(TumblingEventTimeWindows.of(aggregationPeriod))
+                .aggregate(new MetricsAggregator<>(), new AggregationWindowProcessor(aggregationPeriod.toMilliseconds()))
+                .name(AGGREGATED_BIDS_STREAM);
     }
 
-    private static DataStream<Aggregation> aggregateMetrics(DataStream<Metrics> metrics, Time aggregationPeriod) {
-        return metrics
-                .keyBy(Metrics::getCampaignItemId)
-                .window(EventTimeSessionWindows.withGap(aggregationPeriod))
-                .aggregate(new MetricsAggregator(), new AggregationWindowProcessor())
-                .name(JOINED_AGGREGATIONS_STREAM);
+    static DataStream<Aggregation> aggregateImpressions(DataStream<Impression> impressionStream, Time aggregationPeriod) {
+        return impressionStream
+                .keyBy(imp -> imp.getBidBcn().getCampaignItemId())
+                .window(TumblingEventTimeWindows.of(aggregationPeriod))
+                .aggregate(new MetricsAggregator<>(), new AggregationWindowProcessor(aggregationPeriod.toMilliseconds()))
+                .name(AGGREGATED_IMPRESSIONS_STREAM);
     }
+
+    static DataStream<Aggregation> aggregateClicks(DataStream<Click> clickStream, Time aggregationPeriod) {
+        return clickStream
+                .keyBy(click -> click.getImpression().getBidBcn().getCampaignItemId())
+                .window(TumblingEventTimeWindows.of(aggregationPeriod))
+                .aggregate(new MetricsAggregator<>(), new AggregationWindowProcessor(aggregationPeriod.toMilliseconds()))
+                .name(AGGREGATED_CLICKS_STREAM);
+    }
+
 
     private void splitInput() {
         SplitStream<Bcn> splitStream = inputStream.split(new EventSelector());
@@ -122,5 +136,6 @@ class StreamingJob {
                 .map(ClickBcn::from)
                 .name(CLICKS_BCN_STREAM)
                 .keyBy(ClickBcn::getPartitionKey);
+
     }
 }
