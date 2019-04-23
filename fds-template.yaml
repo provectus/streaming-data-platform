@@ -16,7 +16,10 @@ Metadata:
           - BufSize
           - ShardCount
           - SourceStreamName
-          - SinkStreamName
+          - SinkAggregateStreamName
+          - SinkBidStreamName
+          - SinkImpressionStreamName
+          - SinkClickStreamName
           - AggregationPeriod
           - BidsSessionTimeout
           - ClicksSessionTimeout
@@ -35,8 +38,14 @@ Metadata:
           default: Number of Kinesis streams shards
       - SourceStreamName:
           default: A name of the input Kinesis stream
-      - SinkStreamName:
-          default: A name of the output Kinesis stream
+      - SinkAggregateStreamName:
+          default: A name of the aggregates Kinesis stream
+      - SinkBidStreamName:
+          default: A name of the bids Kinesis stream
+      - SinkImpressionStreamName:
+          default: A name of the impressions Kinesis stream
+      - SinkClickStreamName:
+          default: A name of the clicks Kinesis stream
       - AggregationPeriod:
           default: Period of triggering aggreation function
       - BidsSessionTimeout:
@@ -72,10 +81,25 @@ Parameters:
     ConstraintDescription: Should be a valid Kinesis topic name
     Default: bcns
     Type: String
-  SinkStreamName:
+  SinkAggregateStreamName:
     AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
     ConstraintDescription: Should be a valid Kinesis topic name
     Default: aggregates
+    Type: String
+  SinkBidStreamName:
+    AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
+    ConstraintDescription: Should be a valid Kinesis topic name
+    Default: bids
+    Type: String
+  SinkImpressionStreamName:
+    AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
+    ConstraintDescription: Should be a valid Kinesis topic name
+    Default: impressions
+    Type: String
+  SinkClickAggregateStreamName:
+    AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
+    ConstraintDescription: Should be a valid Kinesis topic name
+    Default: clicks
     Type: String
   AggregationPeriod:
     Default: 10
@@ -140,7 +164,7 @@ Resources:
                   - kinesis:ListStreams
                   - kinesis:PutRecords
                 Resource:
-                  - !GetAtt 'BcnsStream.Arn'
+                  - !GetAtt 'BcnStream.Arn'
               - Sid: dynamo
                 Effect: Allow
                 Action:
@@ -194,10 +218,11 @@ Resources:
                 Action:
                   - kinesis:*
                 Resource:
-                  - !GetAtt 'BcnsStream.Arn'
-                  - !GetAtt 'AggregatesStream.Arn'
+                  - !GetAtt 'BcnStream.Arn'
+                  - !GetAtt 'BidStream.Arn'
+                  - !GetAtt 'ImpressionStream.Arn'
                   - !GetAtt 'ClickStream.Arn'
-                  - !GetAtt 'ImpressionsStream.Arn'
+                  - !GetAtt 'AggregateStream.Arn'
               - Effect: Allow
                 Sid: S3BucketAccess
                 Action:
@@ -229,22 +254,27 @@ Resources:
         "Fn::GetAtt":
           - CloudWatchRole
           - Arn
-  BcnsStream:
+  BcnStream:
     Type: AWS::Kinesis::Stream
     Properties:
       Name: !Sub '${ServicePrefix}bcns'
+      ShardCount: !Ref 'ShardCount'
+  BidStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Sub '${ServicePrefix}bids'
       ShardCount: !Ref 'ShardCount'
   ClickStream:
     Type: AWS::Kinesis::Stream
     Properties:
       Name: !Sub '${ServicePrefix}clicks'
       ShardCount: !Ref 'ShardCount'
-  ImpressionsStream:
+  ImpressionStream:
     Type: AWS::Kinesis::Stream
     Properties:
       Name: !Sub '${ServicePrefix}impressions'
       ShardCount: !Ref 'ShardCount'
-  AggregatesStream:
+  AggregateStream:
     Type: AWS::Kinesis::Stream
     Properties:
       Name: !Sub '${ServicePrefix}aggregates'
@@ -340,7 +370,7 @@ Resources:
                     #set($allParams = $input.path('$'))
                     #set($discard=$allParams.put("type", "bid"))
                     {
-                        "StreamName": "${BcnsStream}",
+                        "StreamName": "${BcnStream}",
                         "Data": "$util.base64Encode($input.json('$'))",
                         "PartitionKey": $input.json('tx_id')
                     }
@@ -370,7 +400,7 @@ Resources:
                     #set($allParams = $input.path('$'))
                     #set($discard=$allParams.put("type", "click"))
                     {
-                        "StreamName": "${BcnsStream}",
+                        "StreamName": "${BcnStream}",
                         "Data": "$util.base64Encode($input.json('$'))",
                         "PartitionKey": $input.json('tx_id')
                     }
@@ -400,7 +430,7 @@ Resources:
                     #set($allParams = $input.path('$'))
                     #set($discard=$allParams.put("type", "imp"))
                     {
-                        "StreamName": "${BcnsStream}",
+                        "StreamName": "${BcnStream}",
                         "Data": "$util.base64Encode($input.json('$'))",
                         "PartitionKey": $input.json('tx_id')
                     }
@@ -421,8 +451,11 @@ Resources:
   KinesisAnalyticsApp:
     Type: AWS::KinesisAnalyticsV2::Application
     DependsOn:
-      - BcnsStream
-      - AggregatesStream
+      - BcnStream
+      - BidStream
+      - ImpressionStream
+      - ClickStream
+      - AggregateStream
     Properties:
       ApplicationName: !Sub '${ServicePrefix}Application'
       ApplicationDescription: Flink joining & aggregation app
@@ -441,11 +474,14 @@ Resources:
               PropertyMap:
                 source.aws.region: !Sub '${AWS::Region}'
                 source.stream.init.pos: 'TRIM_HORIZON'
-                source.stream.name: !Ref 'BcnsStream'
+                source.stream.name: !Ref 'BcnStream'
             - PropertyGroupId: SinkConfigProperties
               PropertyMap:
                 sink.aws.region: !Sub '${AWS::Region}'
-                sink.stream.name: !Ref 'AggregatesStream'
+                sink.aggregate.stream.name: !Ref 'AggregateStream'
+                sink.bid.stream.name: !Ref 'BidStream'
+                sink.impression.stream.name: !Ref 'ImpressionStream'
+                sink.click.stream.name: !Ref 'ClickStream'
             - PropertyGroupId: AggregationProperties
               PropertyMap:
                 aggregation.bids.session.timeout: !Sub '${BidsSessionTimeout}'
@@ -558,7 +594,7 @@ Resources:
       DeliveryStreamName: !Sub '${ServicePrefix}RawBcnsS3DelieveryStream'
       DeliveryStreamType: KinesisStreamAsSource
       KinesisStreamSourceConfiguration:
-        KinesisStreamARN: !GetAtt 'BcnsStream.Arn'
+        KinesisStreamARN: !GetAtt 'BcnStream.Arn'
         RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
       ExtendedS3DestinationConfiguration:
         BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
@@ -592,7 +628,7 @@ Resources:
       DeliveryStreamName: !Sub '${ServicePrefix}RawImpressionsS3DelieveryStream'
       DeliveryStreamType: KinesisStreamAsSource
       KinesisStreamSourceConfiguration:
-        KinesisStreamARN: !GetAtt 'ImpressionsStream.Arn'
+        KinesisStreamARN: !GetAtt 'ImpressionStream.Arn'
         RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
       ExtendedS3DestinationConfiguration:
         BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
@@ -646,7 +682,7 @@ Resources:
       DeliveryStreamName: !Sub '${ServicePrefix}RawAggrefatesS3DelieveryStream'
       DeliveryStreamType: KinesisStreamAsSource
       KinesisStreamSourceConfiguration:
-        KinesisStreamARN: !GetAtt 'AggregatesStream.Arn'
+        KinesisStreamARN: !GetAtt 'AggregateStream.Arn'
         RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
       ExtendedS3DestinationConfiguration:
         BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
@@ -1075,7 +1111,7 @@ Resources:
                   - dynamoDB:Scan
                   - dynamodb:BatchWriteItem
                 Resource:
-                  - !GetAtt 'AggregatesStream.Arn'
+                  - !GetAtt 'AggregateStream.Arn'
                   - !GetAtt 'AggregationDynamoTable.Arn'
   LogGroupKinesisToDynamoDbLambda:
     Type: AWS::Logs::LogGroup
@@ -1099,7 +1135,7 @@ Resources:
   KinesisToDynamoDbConsumer:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      EventSourceArn: !GetAtt 'AggregatesStream.Arn'
+      EventSourceArn: !GetAtt 'AggregateStream.Arn'
       FunctionName: !GetAtt 'KinesisToDynamoDbLambda.Arn'
       StartingPosition: TRIM_HORIZON
       Enabled: True

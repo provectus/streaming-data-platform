@@ -1,7 +1,6 @@
 package com.provectus.fds.flink.config;
 
 import com.amazonaws.services.kinesisanalytics.runtime.KinesisAnalyticsRuntime;
-import lombok.Getter;
 import org.apache.flink.streaming.api.windowing.time.Time;
 
 import java.io.IOException;
@@ -16,7 +15,10 @@ public class StreamingProperties {
     private static final String SOURCE_STREAM_INIT_POS = "source.stream.init.pos";
     private static final String SOURCE_AWS_REGION = "source.aws.region";
 
-    private static final String SINK_STREAM_NAME = "sink.stream.name";
+    private static final String SINK_AGGREGATE_STREAM_NAME = "sink.aggregate.stream.name";
+    private static final String SINK_BID_STREAM_NAME = "sink.bid.stream.name";
+    private static final String SINK_IMPRESSION_STREAM_NAME = "sink.impression.stream.name";
+    private static final String SINK_CLICK_STREAM_NAME = "sink.click.stream.name";
     private static final String SINK_AWS_REGION = "sink.aws.region";
 
     private static final String AGGREGATION_BIDS_SESSION_TIMEOUT = "aggregation.bids.session.timeout";
@@ -27,7 +29,10 @@ public class StreamingProperties {
     private String sourceStreamInitPos;
     private String sourceAwsRegion;
 
-    private String sinkStreamName;
+    private String sinkAggregateStreamName;
+    private String sinkBidStreamName;
+    private String sinkImpressionStreamName;
+    private String sinkClickStreamName;
     private String sinkAwsRegion;
 
     private Time bidsSessionTimeout;
@@ -39,7 +44,10 @@ public class StreamingProperties {
         sourceStreamInitPos = (String) sourceProperties.get(SOURCE_STREAM_INIT_POS);
         sourceAwsRegion = (String) sourceProperties.get(SOURCE_AWS_REGION);
 
-        sinkStreamName = (String) sinkProperties.get(SINK_STREAM_NAME);
+        sinkAggregateStreamName = (String) sinkProperties.get(SINK_AGGREGATE_STREAM_NAME);
+        sinkBidStreamName = (String) sinkProperties.get(SINK_BID_STREAM_NAME);
+        sinkImpressionStreamName = (String) sinkProperties.get(SINK_IMPRESSION_STREAM_NAME);
+        sinkClickStreamName = (String) sinkProperties.get(SINK_CLICK_STREAM_NAME);
         sinkAwsRegion = (String) sinkProperties.get(SINK_AWS_REGION);
 
         bidsSessionTimeout = Time.minutes(Long.parseLong(aggregationProperties.get(AGGREGATION_BIDS_SESSION_TIMEOUT).toString()));
@@ -90,8 +98,20 @@ public class StreamingProperties {
         return sourceAwsRegion;
     }
 
-    public String getSinkStreamName() {
-        return sinkStreamName;
+    public String getSinkAggregateStreamName() {
+        return sinkAggregateStreamName;
+    }
+
+    public String getSinkBidStreamName() {
+        return sinkBidStreamName;
+    }
+
+    public String getSinkImpressionStreamName() {
+        return sinkImpressionStreamName;
+    }
+
+    public String getSinkClickStreamName() {
+        return sinkClickStreamName;
     }
 
     public String getSinkAwsRegion() {

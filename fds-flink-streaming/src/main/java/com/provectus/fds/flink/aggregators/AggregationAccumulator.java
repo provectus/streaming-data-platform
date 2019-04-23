@@ -17,9 +17,9 @@ public class AggregationAccumulator<T> {
     }
 
     public AggregationAccumulator(AggregationAccumulator<T> acc) {
-        this.clicks = acc.clicks;
-        this.impressions = acc.impressions;
         this.bids = acc.bids;
+        this.impressions = acc.impressions;
+        this.clicks = acc.clicks;
     }
 
     public AggregationAccumulator<T> add(T value) {
@@ -27,10 +27,10 @@ public class AggregationAccumulator<T> {
 
         if (BidBcn.class.isAssignableFrom(tClass)) {
             bids++;
-        } else if (Click.class.isAssignableFrom(tClass)) {
-            clicks++;
         } else if (Impression.class.isAssignableFrom(tClass)) {
             impressions++;
+        } else if (Click.class.isAssignableFrom(tClass)) {
+            clicks++;
         } else {
             throw new IllegalStateException(String.format("Unsupported metric class: %s", tClass));
         }
@@ -40,9 +40,9 @@ public class AggregationAccumulator<T> {
 
     public AggregationAccumulator<T> merge(AggregationAccumulator<T> other) {
         AggregationAccumulator<T> newAcc = new AggregationAccumulator<>(this);
-        newAcc.clicks += other.clicks;
-        newAcc.impressions += other.impressions;
         newAcc.bids += other.bids;
+        newAcc.impressions += other.impressions;
+        newAcc.clicks += other.clicks;
 
         return newAcc;
     }
