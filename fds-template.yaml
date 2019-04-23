@@ -81,10 +81,10 @@ Parameters:
     Default: 10
     Type: Number
   BidsSessionTimeout:
-    Default: 5
+    Default: 1
     Type: Number
   ClicksSessionTimeout:
-    Default: 15
+    Default: 1
     Type: Number
 Rules:
   RegionSupport:
@@ -457,6 +457,11 @@ Resources:
             CheckpointingEnabled: true
             CheckpointInterval: 600000
             MinPauseBetweenCheckpoints: 60000
+          ParallelismConfiguration:
+            ConfigurationType: CUSTOM
+            AutoScalingEnabled: true
+            ParallelismPerKPU: 4
+            Parallelism: 4
           MonitoringConfiguration:
             ConfigurationType: CUSTOM
             MetricsLevel: PARALLELISM
@@ -819,6 +824,8 @@ Resources:
           Columns:
             - Name: campaign_item_id
               Type: bigint
+            - Name: period
+              Type: string
             - Name: bids
               Type: bigint
             - Name: imps

@@ -34,7 +34,8 @@ public class DateTimeUtils {
         return ZonedDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneOffset.UTC).format(AWS_DATE_TIME);
     }
 
-    public static long truncate(long epochMillis, long shiftBack) {
-        return shiftBack * (epochMillis / shiftBack);
+    public static long truncate(long epochMillis, long period) {
+        //return shiftBack * (epochMillis / shiftBack);
+        return epochMillis - (epochMillis % period);
     }
 }

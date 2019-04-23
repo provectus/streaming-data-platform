@@ -1,6 +1,5 @@
 package com.provectus.fds.flink;
 
-import com.provectus.fds.flink.aggregators.AggregationKey;
 import com.provectus.fds.flink.aggregators.AggregationWindowProcessor;
 import com.provectus.fds.flink.aggregators.MetricsAggregator;
 import com.provectus.fds.flink.config.StreamingProperties;
@@ -13,6 +12,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SplitStream;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.windowing.assigners.EventTimeSessionWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,8 +63,8 @@ class StreamingJob {
         DataStream<Aggregation> clicksAggregation = aggregateClicks(clickStream, period);
         DataStream<Aggregation> impressionsAggregation = aggregateImpressions(impressionStream, period);
 
-        // Join all aggregations and add sink
-        joinAggregations(bidsAggregation, impressionsAggregation, clicksAggregation, period)
+        // Union all aggregations and add sink
+        bidsAggregation.union(clicksAggregation, impressionsAggregation)
                 .addSink(sink)
                 .name(String.format("Kinesis stream: %s", properties.getSinkStreamName()));
     }
@@ -94,43 +94,27 @@ class StreamingJob {
     static DataStream<Aggregation> aggregateBidsBcn(DataStream<BidBcn> bidBcnStream, Time aggregationPeriod) {
         return bidBcnStream
                 .keyBy(BidBcn::getCampaignItemId)
-                .window(EventTimeSessionWindows.withGap(aggregationPeriod))
-                .aggregate(new MetricsAggregator<>(), new AggregationWindowProcessor())
+                .window(TumblingEventTimeWindows.of(aggregationPeriod))
+                .aggregate(new MetricsAggregator<>(), new AggregationWindowProcessor(aggregationPeriod.toMilliseconds()))
                 .name(AGGREGATED_BIDS_STREAM);
     }
 
     static DataStream<Aggregation> aggregateImpressions(DataStream<Impression> impressionStream, Time aggregationPeriod) {
         return impressionStream
                 .keyBy(imp -> imp.getBidBcn().getCampaignItemId())
-                .window(EventTimeSessionWindows.withGap(aggregationPeriod))
-                .aggregate(new MetricsAggregator<>(), new AggregationWindowProcessor())
+                .window(TumblingEventTimeWindows.of(aggregationPeriod))
+                .aggregate(new MetricsAggregator<>(), new AggregationWindowProcessor(aggregationPeriod.toMilliseconds()))
                 .name(AGGREGATED_IMPRESSIONS_STREAM);
     }
 
     static DataStream<Aggregation> aggregateClicks(DataStream<Click> clickStream, Time aggregationPeriod) {
         return clickStream
                 .keyBy(click -> click.getImpression().getBidBcn().getCampaignItemId())
-                .window(EventTimeSessionWindows.withGap(aggregationPeriod))
-                .aggregate(new MetricsAggregator<>(), new AggregationWindowProcessor())
+                .window(TumblingEventTimeWindows.of(aggregationPeriod))
+                .aggregate(new MetricsAggregator<>(), new AggregationWindowProcessor(aggregationPeriod.toMilliseconds()))
                 .name(AGGREGATED_CLICKS_STREAM);
     }
 
-    static DataStream<Aggregation> joinAggregations(
-            DataStream<Aggregation> bids,
-            DataStream<Aggregation> imps,
-            DataStream<Aggregation> clicks,
-            Time aggregationPeriod) {
-        DataStream<Aggregation> allAggregations = bids.union(imps, clicks);
-        return aggregateAggregations(allAggregations, aggregationPeriod);
-    }
-
-    private static DataStream<Aggregation> aggregateAggregations(DataStream<Aggregation> aggregations, Time aggregationPeriod) {
-        return aggregations
-                .keyBy(AggregationKey::of)
-                .window(EventTimeSessionWindows.withGap(aggregationPeriod))
-                .reduce(Aggregation::reduce)
-                .name(JOINED_AGGREGATIONS_STREAM);
-    }
 
     private void splitInput() {
         SplitStream<Bcn> splitStream = inputStream.split(new EventSelector());
