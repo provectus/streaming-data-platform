@@ -7,7 +7,6 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import java.io.IOException;
 import java.util.Properties;
 
-@Getter
 public class StreamingProperties {
     private static final String SOURCE_CONFIG_PROPERTIES = "SourceConfigProperties";
     private static final String SINK_CONFIG_PROPERTIES = "SinkConfigProperties";
@@ -77,5 +76,37 @@ public class StreamingProperties {
         }
 
         return properties;
+    }
+
+    public String getSourceStreamName() {
+        return sourceStreamName;
+    }
+
+    public String getSourceStreamInitPos() {
+        return sourceStreamInitPos;
+    }
+
+    public String getSourceAwsRegion() {
+        return sourceAwsRegion;
+    }
+
+    public String getSinkStreamName() {
+        return sinkStreamName;
+    }
+
+    public String getSinkAwsRegion() {
+        return sinkAwsRegion;
+    }
+
+    public Time getBidsSessionTimeout() {
+        return bidsSessionTimeout;
+    }
+
+    public Time getClicksSessionTimeout() {
+        return clicksSessionTimeout;
+    }
+
+    public Time getAggregationPeriod() {
+        return aggregationPeriod;
     }
 }

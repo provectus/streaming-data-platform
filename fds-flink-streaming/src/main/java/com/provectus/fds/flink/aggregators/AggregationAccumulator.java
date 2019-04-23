@@ -48,6 +48,6 @@ public class AggregationAccumulator<T> {
     }
 
     public Metrics build() {
-        return new Metrics(clicks, impressions, bids);
+        return new Metrics(bids, impressions, clicks);
     }
 }

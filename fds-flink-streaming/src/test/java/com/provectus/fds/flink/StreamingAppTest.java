@@ -16,15 +16,17 @@ import org.junit.Test;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.*;
 
 
 public class StreamingAppTest extends DataStreamTestBase {
-    private static final Time TEST_AGGREGATION_PERIOD = Time.seconds(20);
+    private static final Time TEST_AGGREGATION_PERIOD = Time.minutes(10);
 
-    private static final long WINDOW_START_1 = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+    private static final long WINDOW_START_1 = ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS).toInstant().toEpochMilli();
     private static final long WINDOW_START_2 = WINDOW_START_1 + TEST_AGGREGATION_PERIOD.toMilliseconds();
     private static final long WINDOW_START_3 = WINDOW_START_2 + TEST_AGGREGATION_PERIOD.toMilliseconds();
 
@@ -116,8 +118,11 @@ public class StreamingAppTest extends DataStreamTestBase {
 
         // Expected results
         SinkFunction<Click> testSink = createTestSink(allOf(
-                hasItems(Click.from(imp1, clickBcn1)),
-                iterableWithSize(1)));
+                hasItems(
+                        Click.from(imp1, clickBcn1),
+                        Click.from(imp2, clickBcn2)
+                ),
+                iterableWithSize(2)));
 
         // Configure chain
         StreamingJob
@@ -165,15 +170,17 @@ public class StreamingAppTest extends DataStreamTestBase {
 
         DataStream<Impression> impStream = createTestStream(EventTimeInputBuilder
                 .startWith(imp1, WINDOW_START_1)
-                .emitWithTimestamp(imp2, WINDOW_START_2)
-                .emitWithTimestamp(imp3, WINDOW_START_2 + 5_000));
+                .emitWithTimestamp(imp2, WINDOW_START_2 + Time.minutes(1).toMilliseconds())
+                .emitWithTimestamp(imp3, WINDOW_START_2 + Time.minutes(2).toMilliseconds()));
 
         // Expected results
         SinkFunction<Aggregation> testSink = createTestSink(allOf(
                 hasItems(
-                        getAggregation(1, 0, 0, 1, WINDOW_START_1),
-                        getAggregation(2, 0, 0, 2, WINDOW_START_2)),
-                iterableWithSize(2)));
+                        getAggregation(1, 0, 1, 0, WINDOW_START_1),
+                        getAggregation(2, 0, 2, 0, WINDOW_START_2)
+                ),
+                iterableWithSize(2))
+        );
 
         // Configure chain
         StreamingJob
@@ -197,14 +204,14 @@ public class StreamingAppTest extends DataStreamTestBase {
 
         DataStream<Click> clickStream = createTestStream(EventTimeInputBuilder
                 .startWith(Click.from(imp1, clickBcn1), WINDOW_START_1)
-                .emitWithTimestamp(Click.from(imp2, clickBcn2), WINDOW_START_2)
-                .emitWithTimestamp(Click.from(imp3, clickBcn3), WINDOW_START_2 + 5_000));
+                .emitWithTimestamp(Click.from(imp2, clickBcn2), WINDOW_START_2 + Time.minutes(2).toMilliseconds())
+                .emitWithTimestamp(Click.from(imp3, clickBcn3), WINDOW_START_2 + Time.minutes(8).toMilliseconds()));
 
         // Expected results
         SinkFunction<Aggregation> testSink = createTestSink(allOf(
                 hasItems(
-                        getAggregation(1, 0, 1, 0, WINDOW_START_1),
-                        getAggregation(2, 0, 2, 0, WINDOW_START_2)),
+                        getAggregation(1, 0, 0, 1, WINDOW_START_1),
+                        getAggregation(2, 0, 0, 2, WINDOW_START_2)),
                 iterableWithSize(2)));
 
         // Configure chain
@@ -213,47 +220,50 @@ public class StreamingAppTest extends DataStreamTestBase {
                 .addSink(testSink);
     }
 
-    @Test
-    public void testAggregationUnionWithOverlapping() {
-        // Prepare sources
-        Aggregation bids = getAggregation(1, 10, 0, 0, WINDOW_START_1);
-        Aggregation imps = getAggregation(1, 0, 10, 0, WINDOW_START_1);
-        Aggregation clicks = getAggregation(1, 0, 0, 10, WINDOW_START_1);
+//    @Test
+//    public void testAggregationUnionWithOverlapping() {
+//        // Prepare sources
+//        Aggregation bids = getAggregation(1, 10, 0, 0, WINDOW_START_1);
+//        Aggregation imps = getAggregation(1, 0, 10, 0, WINDOW_START_1);
+//        Aggregation clicks = getAggregation(1, 0, 0, 10, WINDOW_START_1);
+//
+//        Aggregation expected = getAggregation(1, 10, 10, 10, WINDOW_START_1);
+//
+//        DataStream<Aggregation> bidStream1 = createTestStream(EventTimeInputBuilder.startWith(bids, WINDOW_START_1));
+//        DataStream<Aggregation> impStream2 = createTestStream(EventTimeInputBuilder.startWith(imps, WINDOW_START_1));
+//        DataStream<Aggregation> clickStream3 = createTestStream(EventTimeInputBuilder.startWith(clicks, WINDOW_START_1));
+//
+//        // Expected results
+//        SinkFunction<Aggregation> testSink = createTestSink(allOf(hasItems(expected), iterableWithSize(1)));
+//
+//        // Configure chain
+////        StreamingJob.joinAggregations(bidStream1, impStream2, clickStream3, TEST_AGGREGATION_PERIOD)
+////                .addSink(testSink);
+//    }
 
-        Aggregation expected = getAggregation(1, 10, 10, 10, WINDOW_START_1);
+//    @Test
+//    public void testAggregationUnionWithoutOverlapping() {
+//        // Prepare sources
+//        Aggregation agg1 = getAggregation(1, 10, 10, 10, WINDOW_START_1);
+//        Aggregation agg2 = getAggregation(2, 10, 10, 10, WINDOW_START_2);
+//        Aggregation agg3 = getAggregation(3, 10, 10, 10, WINDOW_START_3);
+//
+//        DataStream<Aggregation> aggStream1 = createTestStream(EventTimeInputBuilder.startWith(agg1, WINDOW_START_1));
+//        DataStream<Aggregation> aggStream2 = createTestStream(EventTimeInputBuilder.startWith(agg2, WINDOW_START_2));
+//        DataStream<Aggregation> aggStream3 = createTestStream(EventTimeInputBuilder.startWith(agg3, WINDOW_START_3));
+//
+//        // Expected results
+//        SinkFunction<Aggregation> testSink = createTestSink(allOf(
+//                hasItems(agg1, agg2, agg3),
+//                iterableWithSize(3)));
+//
+//
+//
+//        // Configure chain
+////        StreamingJob.joinAggregations(aggStream1, aggStream2, aggStream3, TEST_AGGREGATION_PERIOD)
+////                .addSink(testSink);
+//    }
 
-        DataStream<Aggregation> bidStream1 = createTestStream(EventTimeInputBuilder.startWith(bids, WINDOW_START_1));
-        DataStream<Aggregation> impStream2 = createTestStream(EventTimeInputBuilder.startWith(imps, WINDOW_START_1));
-        DataStream<Aggregation> clickStream3 = createTestStream(EventTimeInputBuilder.startWith(clicks, WINDOW_START_1));
-
-        // Expected results
-        SinkFunction<Aggregation> testSink = createTestSink(allOf(hasItems(expected), iterableWithSize(1)));
-
-        // Configure chain
-//        StreamingJob.joinAggregations(bidStream1, impStream2, clickStream3, TEST_AGGREGATION_PERIOD)
-//                .addSink(testSink);
-    }
-
-    @Test
-    public void testAggregationUnionWithoutOverlapping() {
-        // Prepare sources
-        Aggregation agg1 = getAggregation(1, 10, 10, 10, WINDOW_START_1);
-        Aggregation agg2 = getAggregation(2, 10, 10, 10, WINDOW_START_2);
-        Aggregation agg3 = getAggregation(3, 10, 10, 10, WINDOW_START_3);
-
-        DataStream<Aggregation> aggStream1 = createTestStream(EventTimeInputBuilder.startWith(agg1, WINDOW_START_1));
-        DataStream<Aggregation> aggStream2 = createTestStream(EventTimeInputBuilder.startWith(agg2, WINDOW_START_2));
-        DataStream<Aggregation> aggStream3 = createTestStream(EventTimeInputBuilder.startWith(agg3, WINDOW_START_3));
-
-        // Expected results
-        SinkFunction<Aggregation> testSink = createTestSink(allOf(
-                hasItems(agg1, agg2, agg3),
-                iterableWithSize(3)));
-
-        // Configure chain
-//        StreamingJob.joinAggregations(aggStream1, aggStream2, aggStream3, TEST_AGGREGATION_PERIOD)
-//                .addSink(testSink);
-    }
 
     private Bcn getBcn(int id, BcnType type) {
         return getBcn(id, id, type);
@@ -274,14 +284,15 @@ public class StreamingAppTest extends DataStreamTestBase {
 
     private Aggregation getAggregation(int campaignItemId,
                                        long bids,
-                                       long clicks,
                                        long imps,
+                                       long clicks,
                                        long timestamp) {
         return new Aggregation(
                 campaignItemId,
-                DateTimeUtils.format(DateTimeUtils.truncate(timestamp, TEST_AGGREGATION_PERIOD.toMilliseconds())),
+                DateTimeUtils.format(timestamp),
+                //DateTimeUtils.format(DateTimeUtils.truncate(timestamp, TEST_AGGREGATION_PERIOD.toMilliseconds())),
                 bids,
-                clicks,
-                imps);
+                imps,
+                clicks);
     }
 }

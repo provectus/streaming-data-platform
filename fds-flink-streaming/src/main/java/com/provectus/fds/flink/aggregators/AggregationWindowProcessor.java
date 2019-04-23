@@ -31,8 +31,8 @@ public class AggregationWindowProcessor extends ProcessWindowFunction<Metrics, A
 
         out.collect(new Aggregation(key,
                 DateTimeUtils.format(DateTimeUtils.truncate(context.window().getStart(), aggregationPeriod)),
-                metrics.getClicks(),
+                metrics.getBids(),
                 metrics.getImpressions(),
-                metrics.getBids()));
+                metrics.getClicks()));
     }
 }
