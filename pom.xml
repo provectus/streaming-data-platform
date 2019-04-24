@@ -72,6 +72,13 @@
             </dependency>
 
             <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-athena</artifactId>
+                <version>${aws.java.sdk.version}</version>
+            </dependency>
+
+
+            <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
                 <version>${junit.version}</version>
@@ -194,6 +201,7 @@
         <module>fds-lambda-utils</module>
         <module>fds-lambda-dynamodb-persister</module>
         <module>fds-common-dynamodb</module>
+        <module>fds-lambda-ml-integration</module>
     </modules>
     <reporting>
         <plugins>
