@@ -13,7 +13,7 @@ public class StreamingApp {
 
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment environment = StreamExecutionEnvironment.getExecutionEnvironment();
-        environment.setStreamTimeCharacteristic(TimeCharacteristic.IngestionTime);
+        environment.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
         new StreamingJob(environment, properties);
 

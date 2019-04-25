@@ -2,6 +2,7 @@ package com.provectus.fds.flink;
 
 import com.provectus.fds.flink.aggregators.AggregationWindowProcessor;
 import com.provectus.fds.flink.aggregators.MetricsAggregator;
+import com.provectus.fds.flink.config.EventTimeExtractor;
 import com.provectus.fds.flink.config.StreamingProperties;
 import com.provectus.fds.flink.schemas.*;
 import com.provectus.fds.flink.selectors.EventSelector;
@@ -14,14 +15,15 @@ import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SplitStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.co.ProcessJoinFunction;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
-import org.apache.flink.streaming.api.windowing.assigners.EventTimeSessionWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer;
 import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisProducer;
 import org.apache.flink.streaming.connectors.kinesis.config.AWSConfigConstants;
 import org.apache.flink.streaming.connectors.kinesis.config.ConsumerConfigConstants;
+import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,9 +65,12 @@ class StreamingJob {
 
         // Create streams
         bcnStream = getInputStream(properties.getSourceStreamName(), new BcnSchema());
-        bidBcnStream = getInputStream(properties.getSinkBidStreamName(), new BidBcnSchema());
-        impressionBcnStream = getInputStream(properties.getSinkImpressionStreamName(), new ImpressionBcnSchema());
-        clickBcnStream = getInputStream(properties.getSinkClickStreamName(), new ClickBcnSchema());
+        bidBcnStream = getInputStream(properties.getSinkBidStreamName(), new BidBcnSchema())
+                .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
+        impressionBcnStream = getInputStream(properties.getSinkImpressionStreamName(), new ImpressionBcnSchema())
+                .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
+        clickBcnStream = getInputStream(properties.getSinkClickStreamName(), new ClickBcnSchema())
+                .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
 
         configure();
 
@@ -76,16 +81,24 @@ class StreamingJob {
         splitInput();
 
         // Joining logic
-        DataStream<Impression> impressionStream = createImpressionStream(bidBcnStream, impressionBcnStream,
-                properties.getBidsSessionTimeout());
-        DataStream<Click> clickStream = createClickStream(impressionStream, clickBcnStream,
-                properties.getClicksSessionTimeout());
+        DataStream<Impression> impressionStream =
+                createImpressionStream(bidBcnStream, impressionBcnStream, properties.getBidsSessionTimeout())
+                        .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
+
+        DataStream<Click> clickStream =
+                createClickStream(impressionStream, clickBcnStream, properties.getClicksSessionTimeout())
+                        .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
 
         // Aggregation streams
         Time period = properties.getAggregationPeriod();
-        DataStream<Aggregation> bidsAggregation = aggregateBidsBcn(bidBcnStream, period);
-        DataStream<Aggregation> clicksAggregation = aggregateClicks(clickStream, period);
-        DataStream<Aggregation> impressionsAggregation = aggregateImpressions(impressionStream, period);
+        DataStream<Aggregation> bidsAggregation = aggregateBidsBcn(bidBcnStream, period)
+                .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
+
+        DataStream<Aggregation> clicksAggregation = aggregateClicks(clickStream, period)
+                .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
+
+        DataStream<Aggregation> impressionsAggregation = aggregateImpressions(impressionStream, period)
+                .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
 
         // Union all aggregations and add sink
         bidsAggregation.union(clicksAggregation, impressionsAggregation)
@@ -97,22 +110,30 @@ class StreamingJob {
                                                          DataStream<ImpressionBcn> impressionBcnStream,
                                                          Time sessionTimeout) {
         return bidBcnStream
-                .join(impressionBcnStream)
-                .where(BidBcn::getPartitionKey)
-                .equalTo(ImpressionBcn::getPartitionKey)
-                .window(EventTimeSessionWindows.withGap(sessionTimeout))
-                .apply(Impression::from);
+                .keyBy(BidBcn::getPartitionKey)
+                .intervalJoin(impressionBcnStream.keyBy(ImpressionBcn::getPartitionKey))
+                .between(Time.milliseconds(-sessionTimeout.toMilliseconds()), Time.milliseconds(sessionTimeout.toMilliseconds()))
+                .process(new ProcessJoinFunction<BidBcn, ImpressionBcn, Impression>() {
+                    @Override
+                    public void processElement(BidBcn left, ImpressionBcn right, Context ctx, Collector<Impression> out) {
+                        out.collect(Impression.from(left, right));
+                    }
+                });
     }
 
     static DataStream<Click> createClickStream(DataStream<Impression> impressionStream,
                                                DataStream<ClickBcn> clickBcnStream,
                                                Time sessionTimeout) {
         return impressionStream
-                .join(clickBcnStream)
-                .where(Impression::getPartitionKey)
-                .equalTo(ClickBcn::getPartitionKey)
-                .window(EventTimeSessionWindows.withGap(sessionTimeout))
-                .apply(Click::from);
+                .keyBy(Impression::getPartitionKey)
+                .intervalJoin(clickBcnStream.keyBy(ClickBcn::getPartitionKey))
+                .between(Time.milliseconds(-sessionTimeout.toMilliseconds()), Time.milliseconds(sessionTimeout.toMilliseconds()))
+                .process(new ProcessJoinFunction<Impression, ClickBcn, Click>() {
+                    @Override
+                    public void processElement(Impression left, ClickBcn right, Context ctx, Collector<Click> out) {
+                        out.collect(Click.from(left, right));
+                    }
+                });
     }
 
     static DataStream<Aggregation> aggregateBidsBcn(DataStream<BidBcn> bidBcnStream, Time aggregationPeriod) {

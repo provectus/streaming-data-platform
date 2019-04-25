@@ -105,10 +105,10 @@ Parameters:
     Default: 10
     Type: Number
   BidsSessionTimeout:
-    Default: 1
+    Default: 5
     Type: Number
   ClicksSessionTimeout:
-    Default: 1
+    Default: 5
     Type: Number
 Rules:
   RegionSupport:

@@ -13,6 +13,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -44,19 +45,17 @@ public class AwsFdsTestIT {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-//        cloudFormation = new CloudFormation(REGION
-//                , String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-","")).substring(0,30)
-//                , new File("fds.yaml")
-//        );
-//        reportUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
-//        apiUrl = cloudFormation.getOutput(URL_FOR_API).getOutputValue();
-        apiUrl = "https://0saqdjwntb.execute-api.us-west-2.amazonaws.com/it-test";
-        reportUrl = "https://rt0406rudb.execute-api.us-west-2.amazonaws.com/it-test";
+        cloudFormation = new CloudFormation(REGION
+                , String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-", "")).substring(0, 30)
+                , new File("fds.yaml")
+        );
+        reportUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
+        apiUrl = cloudFormation.getOutput(URL_FOR_API).getOutputValue();
     }
 
     @AfterClass
     public static void afterClass() throws Exception {
-//        if (cloudFormation != null) cloudFormation.close();
+        if (cloudFormation != null) cloudFormation.close();
     }
 
     @Test
@@ -155,5 +154,4 @@ public class AwsFdsTestIT {
             throw new RuntimeException("Exception during request", e);
         }
     }
-
 }
