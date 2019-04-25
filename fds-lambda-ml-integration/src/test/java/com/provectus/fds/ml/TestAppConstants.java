@@ -1,8 +1,8 @@
 package com.provectus.fds.ml;
 
-class SampleAppConstants {
+class TestAppConstants {
 
-    private SampleAppConstants() {}
+    private TestAppConstants() {}
 
     static final String ATHENA_QUERY = "select\n" +
             "  case i.txid when null then 0 else 1 end positive,\n" +

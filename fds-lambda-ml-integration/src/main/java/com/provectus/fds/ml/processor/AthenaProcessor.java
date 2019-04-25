@@ -1,19 +1,28 @@
-package com.provectus.fds.ml;
+package com.provectus.fds.ml.processor;
 
 import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.athena.model.*;
 
 import java.util.List;
 
-class AthenaUtils {
+public class AthenaProcessor {
 
-    private AthenaUtils() {
+    public void process(AthenaConfig config) throws Exception {
+        String queryExecutionId
+                = submitAthenaQuery(config.getClient(),
+                config.getDbName(),
+                config.getOutputLocation(),
+                config.getQuery()
+        );
+
+        waitForQueryToComplete(config.getClient(), queryExecutionId, config.getSleepTime());
+        processResultRows(config.getClient(), queryExecutionId, config.getRecordProcessor());
     }
 
     /**
      * Submits a query to Athena and returns the execution ID of the query.
      */
-    static String submitAthenaQuery(AmazonAthena client, String defaultDatabase,
+    protected String submitAthenaQuery(AmazonAthena client, String defaultDatabase,
                                            String outputLocation, String athenaQuery) {
 
         QueryExecutionContext queryExecutionContext
@@ -31,28 +40,33 @@ class AthenaUtils {
         return startQueryExecutionResult.getQueryExecutionId();
     }
 
+    public static class AthenaProcessorException extends RuntimeException {
+        AthenaProcessorException(String message) {
+            super(message);
+        }
+    }
+
     /**
      * Wait for an Athena query to complete, fail or to be cancelled. This is done by polling Athena over an
      * interval of time. If a query fails or is cancelled, then it will throw an exception.
      */
-    static void waitForQueryToComplete(AmazonAthena client, String queryExecutionId, long sleepTime) throws InterruptedException {
+    protected void waitForQueryToComplete(AmazonAthena client, String queryExecutionId, long sleepTime) throws InterruptedException {
         GetQueryExecutionRequest getQueryExecutionRequest = new GetQueryExecutionRequest()
                 .withQueryExecutionId(queryExecutionId);
 
-        GetQueryExecutionResult getQueryExecutionResult = null;
+        GetQueryExecutionResult getQueryExecutionResult;
         boolean isQueryStillRunning = true;
         while (isQueryStillRunning) {
             getQueryExecutionResult = client.getQueryExecution(getQueryExecutionRequest);
             String queryState = getQueryExecutionResult.getQueryExecution().getStatus().getState();
             if (queryState.equals(QueryExecutionState.FAILED.toString())) {
-                throw new RuntimeException("Query Failed to run with Error Message: " + getQueryExecutionResult.getQueryExecution().getStatus().getStateChangeReason());
+                throw new AthenaProcessorException("Query Failed to run with Error Message: " + getQueryExecutionResult.getQueryExecution().getStatus().getStateChangeReason());
             } else if (queryState.equals(QueryExecutionState.CANCELLED.toString())) {
-                throw new RuntimeException("Query was cancelled.");
+                throw new AthenaProcessorException("Query was cancelled.");
             } else if (queryState.equals(QueryExecutionState.SUCCEEDED.toString())) {
                 isQueryStillRunning = false;
             } else {
                 // Sleep an amount of time before retrying again.
-                // TODO: Is it correct to do this in Lambda?
                 Thread.sleep(sleepTime);
             }
         }
@@ -63,7 +77,7 @@ class AthenaUtils {
      * The query must be in a completed state before the results can be retrieved and
      * paginated.
      */
-    public static void processResultRows(AmazonAthena client, String queryExecutionId, RecordProcessor recordProcessor) throws Exception {
+    protected void processResultRows(AmazonAthena client, String queryExecutionId, RecordProcessor recordProcessor) throws Exception {
         recordProcessor.initialize();
 
         GetQueryResultsRequest getQueryResultsRequest = new GetQueryResultsRequest()
@@ -71,13 +85,16 @@ class AthenaUtils {
 
         GetQueryResultsResult getQueryResultsResult = client.getQueryResults(getQueryResultsRequest);
 
+        boolean firstPage = true;
         while (true) {
             List<Row> results = getQueryResultsResult.getResultSet().getRows();
 
             for (int i = 0; i < results.size(); i++) {
                 // Process the row. The first row of the first page holds the column names.
                 // so skip it.
-                if (i > 0) {
+                if (i == 0 && firstPage) {
+                    firstPage = false;
+                } else {
                     recordProcessor.process(results.get(i));
                 }
             }
