@@ -448,6 +448,23 @@ Resources:
     Properties:
       LogGroupName: !Sub '${LogGroupKinesisAnalyticsApp}'
       LogStreamName: 'LogStreamKinesisAnalyticsApp'
+  AppStarterLambda:
+    Type: AWS::Serverless::Function
+    DependsOn: LambdaExecutionRole
+    Properties:
+      CodeUri: ./fds-lambda-utils/target/fds-lambda-utils-1.0-SNAPSHOT.jar
+      FunctionName: !Sub '${ServicePrefix}AppStarter'
+      Handler: com.provectus.fds.utils.ApplicationStartLambda
+      MemorySize: 256
+      Timeout: 180
+      Role: !GetAtt 'LambdaExecutionRole.Arn'
+      Runtime: java8
+  AppStarter:
+    Type: Custom::AppStarter
+    DependsOn: KinesisAnalyticsApp
+    Properties:
+      ServiceToken: !GetAtt 'AppStarterLambda.Arn'
+      ApplicationName: !Sub '${ServicePrefix}Application'
   KinesisAnalyticsApp:
     Type: AWS::KinesisAnalyticsV2::Application
     DependsOn:
