@@ -52,7 +52,7 @@ Parameters:
   BufSize:
     Default: 50
     Type: Number
-  ShardCount:    
+  ShardCount:
     Default: 2
     Type: Number
   AggregationPeriod:
@@ -350,7 +350,7 @@ Resources:
                 uri: !Sub 'arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord'
   LogGroupKinesisAnalyticsApp:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: !Sub '/aws/kinesisanalytics/${ServicePrefix}KinesisAnalyticsApp'
   KinesisAnalyticsApp:
     Type: AWS::KinesisAnalytics::Application
@@ -535,7 +535,7 @@ Resources:
           RoleARN: !GetAtt 'KinesisAnalyticsRole.Arn'
   LogGroupJsonNewLineAdderLambda:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: !Sub '/aws/lambda/${ServicePrefix}JsonNewLineAdder'
   JsonNewLineAdderLambda:
     Type: AWS::Serverless::Function
@@ -755,6 +755,8 @@ Resources:
           Columns:
             - Name: txid
               Type: string
+            - Name: type
+              Type: string
             - Name: campaign_item_id
               Type: bigint
             - Name: domain
@@ -911,6 +913,8 @@ Resources:
           Columns:
             - Name: txid
               Type: string
+            - Name: type
+              Type: string
             - Name: campaign_item_id
               Type: bigint
             - Name: domain
@@ -1050,7 +1054,7 @@ Resources:
       CatalogId: !Ref 'AWS::AccountId'
   LogGroupJsonToParquetLambda:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: !Sub '/aws/lambda/${ServicePrefix}JsonToParquetConverter'
   JsonToParquetLambda:
     DependsOn:
@@ -1131,7 +1135,7 @@ Resources:
                   - !GetAtt 'AggregationDynamoTable.Arn'
   LogGroupKinesisToDynamoDbLambda:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: !Sub '/aws/lambda/${ServicePrefix}KinesisToDynamoDbPersister'
   KinesisToDynamoDbLambda:
     DependsOn:
@@ -1157,7 +1161,7 @@ Resources:
       Enabled: True
   LogGroupAppStarterLambda:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       LogGroupName: !Sub '/aws/lambda/${ServicePrefix}AppStarter'
   AppStarterLambda:
     Type: AWS::Serverless::Function
@@ -1184,7 +1188,7 @@ Resources:
     Properties:
       RestApiId: !Ref 'Api'
       StageName: !Sub '${ServicePrefix}'
-# Reporting API
+  # Reporting API
   ReportingApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
