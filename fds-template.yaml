@@ -760,6 +760,8 @@ Resources:
           Columns:
             - Name: txid
               Type: string
+            - Name: type
+              Type: string
             - Name: campaign_item_id
               Type: bigint
             - Name: domain
@@ -917,6 +919,8 @@ Resources:
           StoredAsSubDirectories: false
           Columns:
             - Name: txid
+              Type: string
+            - Name: type
               Type: string
             - Name: campaign_item_id
               Type: bigint
