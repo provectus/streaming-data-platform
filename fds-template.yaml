@@ -194,6 +194,12 @@ Resources:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
+                Sid: InvokeLambda
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt 'ReportingLambda.Arn'
+              - Effect: Allow
                 Sid: LogGroupsAccess
                 Action:
                   - logs:DescribeLogGroups
