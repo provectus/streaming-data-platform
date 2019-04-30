@@ -31,3 +31,8 @@ target/
 fds.yaml
 packaged-template.yaml
 gatling/results
+
+.classpath
+.project
+.settings
+

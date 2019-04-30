@@ -9,17 +9,15 @@ import com.provectus.fds.ml.processor.AthenaProcessor;
 import com.provectus.fds.ml.processor.CsvRecordProcessor;
 import com.provectus.fds.ml.utils.IntegrationModuleHelper;
 
-import java.util.Map;
-
 import static com.provectus.fds.ml.PrepareDataForTrainingJobLambda.*;
 
 public class JobDataGenerator {
 
-    public Map<String, String> generateTrainingData(IntegrationModuleHelper h) throws Exception {
+    public CsvRecordProcessor generateTrainingData(IntegrationModuleHelper h) throws Exception {
         return generateTrainingData(h, false);
     }
 
-    public Map<String, String> generateTrainingData(IntegrationModuleHelper h, boolean enableLocalCredentials) throws Exception {
+    public CsvRecordProcessor generateTrainingData(IntegrationModuleHelper h, boolean enableLocalCredentials) throws Exception {
 
         ClientConfiguration configuration = new ClientConfiguration()
                 .withClientExecutionTimeout(Integer.parseInt(h.getConfig(CLIENT_EXECUTION_TIMEOUT, CLIENT_EXECUTION_TIMEOUT_DEF)));
@@ -38,23 +36,24 @@ public class JobDataGenerator {
         int verificationFactor = Integer.parseInt(h.getConfig(VERIFICATION_FACTOR, VERIFICATION_FACTOR_DEF));
 
         int gcd = h.gcd(trainingFactor, verificationFactor);
-        CsvRecordProcessor recordProcessor
+        try (CsvRecordProcessor recordProcessor
                 = new CsvRecordProcessor(
                 h.getConfig(S3_BUCKET, S3_BUCKET_DEF),
                 h.getConfig(S3_KEY, S3_KEY_DEF),
-                trainingFactor / gcd, verificationFactor / gcd);
+                trainingFactor / gcd, verificationFactor / gcd)) {
 
-        AthenaConfig athenaConfig = new AthenaConfig();
-        athenaConfig.setClient(client);
-        athenaConfig.setDbName(h.getConfig(ATHENA_DATABASE, ATHENA_DATABASE_DEF));
-        athenaConfig.setOutputLocation(h.getConfig(ATHENA_OUTPUT_LOCATION, ATHENA_OUTPUT_LOCATION_DEF));
-        athenaConfig.setQuery(h.getResourceFileAsString("categorized_bids.sql"));
-        athenaConfig.setSleepTime(Long.parseLong(h.getConfig(SLEEP_AMOUNT_IN_MS, SLEEP_AMOUNT_IN_MS_DEF)));
-        athenaConfig.setRecordProcessor(recordProcessor);
+            AthenaConfig athenaConfig = new AthenaConfig();
+            athenaConfig.setClient(client);
+            athenaConfig.setDbName(h.getConfig(ATHENA_DATABASE, ATHENA_DATABASE_DEF));
+            athenaConfig.setOutputLocation(h.getConfig(ATHENA_OUTPUT_LOCATION, ATHENA_OUTPUT_LOCATION_DEF));
+            athenaConfig.setQuery(h.getResourceFileAsString("categorized_bids.sql"));
+            athenaConfig.setSleepTime(Long.parseLong(h.getConfig(SLEEP_AMOUNT_IN_MS, SLEEP_AMOUNT_IN_MS_DEF)));
+            athenaConfig.setRecordProcessor(recordProcessor);
 
-        AthenaProcessor athenaProcessor = new AthenaProcessor();
-        athenaProcessor.process(athenaConfig);
+            AthenaProcessor athenaProcessor = new AthenaProcessor();
+            athenaProcessor.process(athenaConfig);
 
-        return recordProcessor.getStatistic();
+            return recordProcessor;
+        }
     }
 }

@@ -70,7 +70,8 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<S3Event, 
                 IntegrationModuleHelper h = new IntegrationModuleHelper();
 
                 context.getLogger().log("Starting data preparation for the training job");
-                Map<String, String> statistic = new JobDataGenerator().generateTrainingData(h);
+                Map<String, String> statistic = new JobDataGenerator()
+                        .generateTrainingData(h).getStatistic();
 
                 context.getLogger().log("Data was prepared. Training part has "
                         + statistic.get(TOTAL_TRAIN_RECORDS_PROCESSED)

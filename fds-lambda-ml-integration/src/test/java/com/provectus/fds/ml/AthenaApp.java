@@ -13,7 +13,7 @@ public class AthenaApp {
     public static void main(String[] args) throws Exception {
         Map<String, String> statistic = new JobDataGenerator().generateTrainingData(
                 new IntegrationModuleHelper(), true
-        );
+        ).getStatistic();
 
         dumpStatistic(statistic);
     }

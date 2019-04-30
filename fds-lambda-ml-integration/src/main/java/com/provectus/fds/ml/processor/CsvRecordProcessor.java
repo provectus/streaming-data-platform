@@ -102,7 +102,7 @@ public class CsvRecordProcessor implements RecordProcessor {
     }
 
     @Override
-    public void complete() throws Exception {
+    public void close() throws Exception {
         // close streams before copy to s3
         trainStream.close();
         verifyStream.close();

@@ -106,6 +106,5 @@ public class AthenaProcessor {
             getQueryResultsResult = client.getQueryResults(
                     getQueryResultsRequest.withNextToken(getQueryResultsResult.getNextToken()));
         }
-        recordProcessor.complete();
     }
 }

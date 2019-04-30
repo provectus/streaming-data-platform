@@ -7,7 +7,7 @@ import java.util.Map;
 /**
  * Base interface for record processing
  */
-public interface RecordProcessor {
+public interface RecordProcessor extends AutoCloseable {
 
     /**
      * Initialize all internal structure if needed
@@ -22,13 +22,6 @@ public interface RecordProcessor {
      * @throws Exception
      */
     void process(Row row) throws Exception;
-
-    /**
-     * Complete called after all records have already been processed
-     *
-     * @throws Exception
-     */
-    void complete() throws Exception;
 
     /**
      * Returns statistics about processed records. Same implementations
