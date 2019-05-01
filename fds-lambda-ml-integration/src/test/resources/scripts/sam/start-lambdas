@@ -1,0 +1,8 @@
+SALT=asaushkin
+
+sam local start-lambda \
+	--template ../../fds-template.yaml \
+	--debug-port 5005 \
+	--parameter-overrides \
+	"ParameterKey=ServicePrefix,ParameterValue=$SALT ParameterKey=AnalyticalDBName,ParameterValue=$SALT ParameterKey=S3BucketName,ParameterValue=fds$SALT"
+

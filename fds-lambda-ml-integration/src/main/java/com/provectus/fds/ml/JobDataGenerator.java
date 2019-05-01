@@ -11,13 +11,13 @@ import com.provectus.fds.ml.utils.IntegrationModuleHelper;
 
 import static com.provectus.fds.ml.PrepareDataForTrainingJobLambda.*;
 
-public class JobDataGenerator {
+class JobDataGenerator {
 
-    public CsvRecordProcessor generateTrainingData(IntegrationModuleHelper h) throws Exception {
+    CsvRecordProcessor generateTrainingData(IntegrationModuleHelper h) throws Exception {
         return generateTrainingData(h, false);
     }
 
-    public CsvRecordProcessor generateTrainingData(IntegrationModuleHelper h, boolean enableLocalCredentials) throws Exception {
+    CsvRecordProcessor generateTrainingData(IntegrationModuleHelper h, boolean enableLocalCredentials) throws Exception {
 
         ClientConfiguration configuration = new ClientConfiguration()
                 .withClientExecutionTimeout(Integer.parseInt(h.getConfig(CLIENT_EXECUTION_TIMEOUT, CLIENT_EXECUTION_TIMEOUT_DEF)));

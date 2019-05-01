@@ -6,8 +6,7 @@ select
   bitwise_and(from_big_endian_64(xxhash64(to_utf8(b.creative_id))), 9223372036854775807) / 9223372036854775807.0 as creative_id,
   bitwise_and(from_big_endian_64(xxhash64(to_utf8(b.creative_category))), 9223372036854775807) / 9223372036854775807.0 as creative_category,
   bitwise_and(from_big_endian_64(xxhash64(to_utf8(cast(b.win_price as varchar)))), 9223372036854775807) / 9223372036854775807.0 as win_price
-from bcns b TABLESAMPLE BERNOULLI(100)
-  left join impressions i on i.txid = b.txid
-  where type = 'bid' and
-    b.day >= round((to_unixtime(current_timestamp) - 86400) / 86400) and
-    i.day >= round((to_unixtime(current_timestamp) - 86400) / 86400)
+from parquet_bcns b TABLESAMPLE BERNOULLI(100)
+  left join parquet_impressions i on i.txid = b.txid
+  where b.type = 'bid' and
+    b.day >= round((to_unixtime(current_timestamp) - 86400) / 86400)
