@@ -20,9 +20,6 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<S3Event, 
     static final String ATHENA_DATABASE = "ATHENA_DATABASE";
     static final String ATHENA_DATABASE_DEF = "default";
 
-    static final String ATHENA_OUTPUT_LOCATION = "ATHENA_OUTPUT_LOCATION";
-    static final String ATHENA_OUTPUT_LOCATION_DEF = "s3://newfdsb/athena/";
-
     static final String SLEEP_AMOUNT_IN_MS = "SLEEP_AMOUNT_IN_MS";
     static final String SLEEP_AMOUNT_IN_MS_DEF = "1000";
 
@@ -32,8 +29,8 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<S3Event, 
     static final String S3_BUCKET = "S3_BUCKET";
     static final String S3_BUCKET_DEF = "newfdsb";
 
-    static final String S3_KEY = "S3_KEY";
-    static final String S3_KEY_DEF = "athena/";
+    static final String ATHENA_S3_KEY = "ATHENA_S3_KEY";
+    static final String ATHENA_S3_KEY_DEF = "athena/";
 
     static final String TRAINING_FACTOR = "TRAINING_FACTOR";
     static final String TRAINING_FACTOR_DEF = "90";

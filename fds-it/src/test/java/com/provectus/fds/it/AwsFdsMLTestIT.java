@@ -16,8 +16,7 @@ import java.util.concurrent.TimeUnit;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertNotNull;
 
-public class AwsFdsTestIT extends AbstarctFdsTestIt {
-
+public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
     @BeforeClass
     public static void beforeClass() throws Exception {
         cloudFormation = new CloudFormation(REGION

@@ -36,9 +36,9 @@ public class JobRunner {
         AmazonSageMakerAsyncClientBuilder sageMakerBuilder
                 = AmazonSageMakerAsyncClient.asyncBuilder();
 
-        if (!enableLocalCredentials) {
-            sageMakerBuilder.setCredentials(InstanceProfileCredentialsProvider.getInstance());
-        }
+//        if (!enableLocalCredentials) {
+//            sageMakerBuilder.setCredentials(InstanceProfileCredentialsProvider.getInstance());
+//        }
 
         AmazonSageMakerAsync sage = sageMakerBuilder.build();
         CreateTrainingJobRequest req = new CreateTrainingJobRequest();

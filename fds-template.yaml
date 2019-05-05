@@ -80,6 +80,119 @@ Resources:
         LambdaConfigurations:
           - Event: s3:ObjectCreated:*
             Function: !GetAtt 'JsonToParquetLambda.Arn'
+
+  MLExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}MlIntegrationPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: loggroups
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !GetAtt 'LogGroupMlIntegrationLambda.Arn'
+              - Action:
+                  - athena:*
+                Resource:
+                  - '*'
+                Effect: Allow
+                Sid: athena
+              - Action:
+                  - glue:*
+                Resource:
+                  - '*'
+                Effect: Allow
+                Sid: glue
+              - Action:
+                  - s3:*
+                Resource:
+                  - '*'
+                Effect: Allow
+                Sid: s3
+              - Action:
+                  - sagemaker:*
+                Resource:
+                  - '*'
+                Effect: Allow
+                Sid: sagemaker
+  SageMakerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sagemaker.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName:
+            !Sub '${ServicePrefix}SageMakerPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: AllowAccessToS3Bucket
+                Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                  - s3:PutObject
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3BucketName}'
+                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+  LogGroupMlIntegrationLambda:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        !Sub '/aws/lambda/${ServicePrefix}MlIntegration'
+  MlIntegrationLambda:
+    Type: AWS::Serverless::Function
+    DependsOn: LambdaExecutionRole
+    Properties:
+      CodeUri: ./fds-lambda-ml-integration/target/fds-lambda-ml-integration-1.0-SNAPSHOT.jar
+      FunctionName:
+        !Sub '${ServicePrefix}MlIntegration'
+      Environment:
+        Variables:
+          S3_BUCKET: !Sub '${S3BucketName}'
+          ATHENA_S3_KEY: 'athena/'
+          ATHENA_REGION_ID: !Ref 'AWS::Region'
+          ATHENA_DATABASE: !Ref 'AnalyticalDBName'
+          MODEL_OUTPUT_PATH: !Sub 's3://${S3BucketName}/ml/model'
+          SAGEMAKER_ROLE_ARN: !GetAtt 'SageMakerRole.Arn'
+      Handler: com.provectus.fds.ml.PrepareDataForTrainingJobLambda
+      MemorySize: 256
+      Timeout: 600
+      Role:
+        !GetAtt 'MLExecutionRole.Arn'
+      Runtime: java8
+  MlIntegrationLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:invokeFunction
+      FunctionName:
+        !GetAtt 'MlIntegrationLambda.Arn'
+      Principal: s3.amazonaws.com
+      SourceArn:
+        !Sub 'arn:aws:s3:::${S3BucketName}'
+
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:

@@ -4,6 +4,9 @@ import com.amazonaws.services.cloudformation.AmazonCloudFormation;
 import com.amazonaws.services.cloudformation.AmazonCloudFormationClientBuilder;
 import com.amazonaws.services.cloudformation.model.*;
 import com.amazonaws.services.cloudformation.model.Stack;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
 import java.io.*;
 import java.util.*;
@@ -14,11 +17,13 @@ public class CloudFormation implements AutoCloseable {
     private final AmazonCloudFormation stackBuilder;
     private final Stack stack;
     private final Map<String,Output> outputs;
+    private final String templateBucket;
 
 
-    public CloudFormation(String region, String stackName, File templateFile) throws IOException, InterruptedException {
+    public CloudFormation(String region, String stackName, File templateFile, String templateBucket) throws IOException, InterruptedException {
         this.stackName = stackName;
         this.templateFile = templateFile;
+        this.templateBucket = templateBucket;
         this.stackBuilder = AmazonCloudFormationClientBuilder.standard()
                 .withRegion(region)
                 .build();
@@ -34,7 +39,7 @@ public class CloudFormation implements AutoCloseable {
 
         CreateStackRequest createRequest = new CreateStackRequest();
         createRequest.setStackName(this.stackName);
-        createRequest.setTemplateBody(readTemplate());
+        createRequest.setTemplateURL(uploadTemplateToS3());
         List<String> capabilities = Arrays.asList(Capability.CAPABILITY_IAM.name(), Capability.CAPABILITY_AUTO_EXPAND.name());
         createRequest.setCapabilities(capabilities);
         List<Parameter> parameters = Arrays.asList(
@@ -114,6 +119,14 @@ public class CloudFormation implements AutoCloseable {
         return outputs;
     }
 
+
+    private String uploadTemplateToS3() {
+        String templateName = String.format("%s.yaml", stackName);
+
+        AmazonS3Client amazonS3 = (AmazonS3Client) AmazonS3ClientBuilder.defaultClient();
+        amazonS3.putObject(templateBucket, templateName, templateFile);
+        return String.valueOf(amazonS3.getUrl(templateBucket, templateName));
+    }
 
     private String readTemplate() throws IOException {
 

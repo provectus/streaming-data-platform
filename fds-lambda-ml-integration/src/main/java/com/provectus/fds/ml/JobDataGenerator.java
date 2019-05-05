@@ -26,9 +26,9 @@ class JobDataGenerator {
                 .withRegion(h.getConfig(ATHENA_REGION_ID, ATHENA_REGION_ID_DEF))
                 .withClientConfiguration(configuration);
 
-        if (!enableLocalCredentials) {
-            athenaClientBuilder.withCredentials(InstanceProfileCredentialsProvider.getInstance());
-        }
+//        if (!enableLocalCredentials) {
+//            athenaClientBuilder.withCredentials(InstanceProfileCredentialsProvider.getInstance());
+//        }
 
         AmazonAthena client = athenaClientBuilder.build();
 
@@ -39,13 +39,13 @@ class JobDataGenerator {
         try (CsvRecordProcessor recordProcessor
                 = new CsvRecordProcessor(
                 h.getConfig(S3_BUCKET, S3_BUCKET_DEF),
-                h.getConfig(S3_KEY, S3_KEY_DEF),
+                h.getConfig(ATHENA_S3_KEY, ATHENA_S3_KEY_DEF),
                 trainingFactor / gcd, verificationFactor / gcd)) {
 
             AthenaConfig athenaConfig = new AthenaConfig();
             athenaConfig.setClient(client);
             athenaConfig.setDbName(h.getConfig(ATHENA_DATABASE, ATHENA_DATABASE_DEF));
-            athenaConfig.setOutputLocation(h.getConfig(ATHENA_OUTPUT_LOCATION, ATHENA_OUTPUT_LOCATION_DEF));
+            athenaConfig.setOutputLocation(getOutputLocation(h));
             athenaConfig.setQuery(h.getResourceFileAsString("categorized_bids.sql"));
             athenaConfig.setSleepTime(Long.parseLong(h.getConfig(SLEEP_AMOUNT_IN_MS, SLEEP_AMOUNT_IN_MS_DEF)));
             athenaConfig.setRecordProcessor(recordProcessor);
@@ -55,5 +55,11 @@ class JobDataGenerator {
 
             return recordProcessor;
         }
+    }
+
+    private String getOutputLocation(IntegrationModuleHelper h) {
+        return String.format("s3://%s/%s",
+                h.getConfig(S3_BUCKET, S3_BUCKET_DEF),
+                h.getConfig(ATHENA_S3_KEY, ATHENA_S3_KEY_DEF));
     }
 }
