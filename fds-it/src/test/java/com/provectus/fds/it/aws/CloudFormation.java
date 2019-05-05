@@ -19,8 +19,12 @@ public class CloudFormation implements AutoCloseable {
     private final Map<String,Output> outputs;
     private final String templateBucket;
 
+    private final String region;
+    private String s3bucket;
+
 
     public CloudFormation(String region, String stackName, File templateFile, String templateBucket) throws IOException, InterruptedException {
+        this.region = region;
         this.stackName = stackName;
         this.templateFile = templateFile;
         this.templateBucket = templateBucket;
@@ -42,6 +46,7 @@ public class CloudFormation implements AutoCloseable {
         createRequest.setTemplateURL(uploadTemplateToS3());
         List<String> capabilities = Arrays.asList(Capability.CAPABILITY_IAM.name(), Capability.CAPABILITY_AUTO_EXPAND.name());
         createRequest.setCapabilities(capabilities);
+        s3bucket = String.format("fds%s", stackName);
         List<Parameter> parameters = Arrays.asList(
                 new Parameter()
                         .withParameterKey("ServicePrefix")
@@ -51,7 +56,7 @@ public class CloudFormation implements AutoCloseable {
                         .withParameterValue(stackName),
                 new Parameter()
                         .withParameterKey("S3BucketName")
-                        .withParameterValue(String.format("fds%s", stackName)),
+                        .withParameterValue(s3bucket),
                 new Parameter()
                         .withParameterKey("AggregationPeriod")
                         .withParameterValue("2")
@@ -119,7 +124,6 @@ public class CloudFormation implements AutoCloseable {
         return outputs;
     }
 
-
     private String uploadTemplateToS3() {
         String templateName = String.format("%s.yaml", stackName);
 
@@ -128,26 +132,15 @@ public class CloudFormation implements AutoCloseable {
         return String.valueOf(amazonS3.getUrl(templateBucket, templateName));
     }
 
-    private String readTemplate() throws IOException {
-
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(
-                        new FileInputStream(this.templateFile)
-                )
-        )) {
-
-            StringBuilder sb = new StringBuilder();
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(String.format("%s\n", line));
-            }
-
-            return sb.toString();
-        }
-    }
-
     public void close() throws Exception {
+
+        /**
+         * Firstly, we must remove the bucket because the bucket is not
+         * empty now and the stack will not be deleted successfully.
+         */
+        new BucketRemover().removeBucket(region, s3bucket);
+        System.out.println(String.format("S3 bucket %s was removed successfully", s3bucket));
+
         DeleteStackRequest deleteStackRequest = new DeleteStackRequest();
         deleteStackRequest.setStackName(this.stack.getStackId());
         this.stackBuilder.deleteStack(deleteStackRequest);
@@ -156,7 +149,6 @@ public class CloudFormation implements AutoCloseable {
                 stackName,
                 waitForStack(this.stack.getStackId()).get().getStackStatus())
         );
-
     }
 
 }

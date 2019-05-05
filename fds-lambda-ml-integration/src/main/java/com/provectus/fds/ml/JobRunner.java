@@ -1,6 +1,5 @@
 package com.provectus.fds.ml;
 
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.services.sagemaker.AmazonSageMakerAsync;
 import com.amazonaws.services.sagemaker.AmazonSageMakerAsyncClient;
 import com.amazonaws.services.sagemaker.AmazonSageMakerAsyncClientBuilder;
@@ -31,31 +30,21 @@ public class JobRunner {
     private static final int RESOURCE_VOLUME_SIZE_IN_GB = 30;
 
 
-    CreateTrainingJobResult createJob(IntegrationModuleHelper h, boolean enableLocalCredentials,
+    CreateTrainingJobResult createJob(IntegrationModuleHelper h,
                                       String trainSource, String validationSource) throws IOException {
         AmazonSageMakerAsyncClientBuilder sageMakerBuilder
                 = AmazonSageMakerAsyncClient.asyncBuilder();
 
-//        if (!enableLocalCredentials) {
-//            sageMakerBuilder.setCredentials(InstanceProfileCredentialsProvider.getInstance());
-//        }
-
         AmazonSageMakerAsync sage = sageMakerBuilder.build();
         CreateTrainingJobRequest req = new CreateTrainingJobRequest();
         req.setTrainingJobName(JOB_PREFIX + Instant.now().getEpochSecond());
+        req.setRoleArn(h.getConfig(SAGEMAKER_ROLE_ARN, SAGEMAKER_ROLE_ARN_DEF));
 
         setHyperParameters(req);
         setAlgorithm(h, req);
         setDataConfig(h, trainSource, validationSource, req);
         setStoppingConditions(req);
         setResources(req);
-
-        if (enableLocalCredentials) {
-            req.setRoleArn(
-                h.getConfig("SAGEMAKER_ARN",
-                        h.getFileAsString(h.getHomePath().resolve(".aws/role_sagemaker")))
-            );
-        }
 
         return sage.createTrainingJob(req);
     }
@@ -94,7 +83,7 @@ public class JobRunner {
 
         specification.setTrainingImage(
                 registry.getImageUri(h.getConfig(ATHENA_REGION_ID, ATHENA_REGION_ID_DEF),
-                    TRAINING_ALGORITHM) + "/" + TRAINING_ALGORITHM + ":latest");
+                        TRAINING_ALGORITHM) + "/" + TRAINING_ALGORITHM + ":latest");
         specification.setTrainingInputMode(TRAINING_INPUT_MODE);
 
         jobRequest.setAlgorithmSpecification(specification);

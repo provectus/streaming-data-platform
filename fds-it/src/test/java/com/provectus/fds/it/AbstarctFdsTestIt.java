@@ -9,18 +9,13 @@ import com.provectus.fds.models.bcns.ImpressionBcn;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Response;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
-import java.io.File;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 import static org.asynchttpclient.Dsl.config;
-import static org.junit.Assert.assertNotNull;
 
 abstract class AbstarctFdsTestIt implements ItConfig {
 

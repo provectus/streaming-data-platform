@@ -19,17 +19,29 @@ import static org.junit.Assert.assertNotNull;
 public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
     @BeforeClass
     public static void beforeClass() throws Exception {
-        cloudFormation = new CloudFormation(REGION
-                , String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-", "")).substring(0, 30)
+        String stackName = String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-", "")).substring(0, 30);
+        String bucketName = String.format("fds%s", stackName);
+
+        cloudFormation = new CloudFormation(REGION, stackName
                 , new File("fds.yaml"), TEMPLATE_BUCKET
         );
         reportUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
         apiUrl = cloudFormation.getOutput(URL_FOR_API).getOutputValue();
+
+        String s3EventCommandLine =
+                String.format("sam local generate-event s3 put --bucket %s --key parquet/ --region %s | xclip -selection clipboard", bucketName, REGION);
+        System.out.println("You can generate an event for this stack with comand:");
+        System.out.println(s3EventCommandLine);
     }
 
     @AfterClass
     public static void afterClass() throws Exception {
-        if (cloudFormation != null) cloudFormation.close();
+        // "note" - is asaushkin's notebook hostname
+        // We don't drop the cloudformation stack in this case
+        if (!System.getenv().getOrDefault("HOSTNAME", "").equals("note")) {
+            if (cloudFormation != null)
+                cloudFormation.close();
+        }
     }
 
     @Test
@@ -42,7 +54,7 @@ public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
     public void testDynamoTotalReport() throws IOException, ExecutionException, InterruptedException {
         SampleDataResult sampleData = generateSampleData();
 
-        await().atMost(15, TimeUnit.MINUTES)
+        await().atMost(20, TimeUnit.MINUTES)
                 .pollInterval(10, TimeUnit.SECONDS)
                 .until(() -> {
                     Aggregation report = getReport(sampleData.getCampaignItemId());

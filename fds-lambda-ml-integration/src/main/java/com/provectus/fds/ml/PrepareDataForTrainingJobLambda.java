@@ -41,6 +41,8 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<S3Event, 
     static final String MODEL_OUTPUT_PATH = "MODEL_OUTPUT_PATH";
     static final String MODEL_OUTPUT_PATH_DEF = "s3://newfdsb/ml/model";
 
+    static final String SAGEMAKER_ROLE_ARN = "SAGEMAKER_ROLE_ARN";
+    static final String SAGEMAKER_ROLE_ARN_DEF = null;
 
     public static class PrepareDataForTrainingJobLambdaException extends RuntimeException {
         PrepareDataForTrainingJobLambdaException(Throwable e) {
@@ -77,8 +79,7 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<S3Event, 
                         + " records");
                 context.getLogger().log("Starting training job");
                 CreateTrainingJobResult jobResult = new JobRunner()
-                        .createJob(
-                                h, false,
+                        .createJob(h,
                                 statistic.get("train"),
                                 statistic.get("validation"));
                 context.getLogger().log("Training job started. ARN is: " + jobResult.getTrainingJobArn());
