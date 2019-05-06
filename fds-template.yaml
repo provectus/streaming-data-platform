@@ -271,11 +271,47 @@ Resources:
       Principal: s3.amazonaws.com
       SourceArn:
         !Sub 'arn:aws:s3:::${S3BucketName}'
+
+  LogGroupMlEndpointReplacerLambda:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        !Sub '/aws/lambda/${ServicePrefix}MlEndpointReplacer'
+  MlEndpointReplacerLambda:
+    Type: AWS::Serverless::Function
+    DependsOn: LambdaExecutionRole
+    Properties:
+      CodeUri: ./fds-lambda-ml-integration/target/fds-lambda-ml-integration-1.0-SNAPSHOT.jar
+      FunctionName:
+        !Sub '${ServicePrefix}MlEndpointReplacer'
+      Environment:
+        Variables:
+          REGION_ID: !Ref 'AWS::Region'
+          MODEL_OUTPUT_PATH: !Sub 's3://${S3BucketName}/ml/model'
+          SAGEMAKER_ROLE_ARN: !GetAtt 'SageMakerRole.Arn'
+      Handler: com.provectus.fds.ml.ReplaceEndpointConfigLambda
+      MemorySize: 256
+      Timeout: 900
+      Role:
+        !GetAtt 'MLExecutionRole.Arn'
+      Runtime: java8
+  MlEndpointReplacerLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:invokeFunction
+      FunctionName:
+        !GetAtt 'MlEndpointReplacerLambda.Arn'
+      Principal: s3.amazonaws.com
+      SourceArn:
+        !Sub 'arn:aws:s3:::${S3BucketName}'
+
   Endpoint:
     Type: "AWS::SageMaker::Endpoint"
     Properties:
       EndpointConfigName:
         !GetAtt EndpointConfig.EndpointConfigName
+      # TODO: Fix me...
+      EndpointName: "test-endpoint"
   EndpointConfig:
     Type: "AWS::SageMaker::EndpointConfig"
     Properties:
@@ -293,31 +329,6 @@ Resources:
         ModelDataUrl: "s3://newfdsb/ml/model/linear-learner-2019-04-17-12-30-01-280/output/model.tar.gz"
         Image: !FindInMap [RegionMap, !Ref "AWS::Region", "NullTransformer"]
       ModelName: !Sub "${ServicePrefix}Model"
-
-#  ExecutionRole:
-#    Type: "AWS::IAM::Role"
-#    Properties:
-#      AssumeRolePolicyDocument:
-#        Version: "2012-10-17"
-#        Statement:
-#          -
-#            Effect: "Allow"
-#            Principal:
-#              Service:
-#                - "sagemaker.amazonaws.com"
-#            Action:
-#              - "sts:AssumeRole"
-#      Path: "/"
-#      Policies:
-#        -
-#          PolicyName: "root"
-#          PolicyDocument:
-#            Version: "2012-10-17"
-#            Statement:
-#              -
-#                Effect: "Allow"
-#                Action: "*"
-#                Resource: "*"
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role

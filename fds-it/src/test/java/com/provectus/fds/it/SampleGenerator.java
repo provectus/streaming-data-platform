@@ -2,21 +2,15 @@ package com.provectus.fds.it;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.provectus.fds.models.bcns.Bid;
+import com.provectus.fds.models.bcns.BidBcn;
 import com.provectus.fds.models.bcns.ClickBcn;
 import com.provectus.fds.models.bcns.ImpressionBcn;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Response;
 
-import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
-
-import static org.asynchttpclient.Dsl.asyncHttpClient;
-import static org.asynchttpclient.Dsl.config;
 
 import static com.provectus.fds.it.ItConfig.*;
 
@@ -83,10 +77,9 @@ public class SampleGenerator {
             String appuid = UUID.randomUUID().toString();
             long winPrice = random.nextInt(1_000, 2_000);
 
-            Bid bid = new Bid(txid, campaignItemId, domain, creativeId, creativeCategory, appuid);
-            ImpressionBcn impressionBcn = new ImpressionBcn(txid, Instant.now().toEpochMilli(), winPrice);
-            ClickBcn clickBcn = new ClickBcn(txid, Instant.now().toEpochMilli());
-
+            BidBcn bid = new BidBcn(txid, campaignItemId, domain, creativeId, creativeCategory, appuid);
+            ImpressionBcn impressionBcn = new ImpressionBcn(txid, winPrice);
+            ClickBcn clickBcn = new ClickBcn(txid);
 
             futuresByType.computeIfAbsent(BID_TYPE, (k) -> new ArrayList<>())
                     .add(sendRequest(BID_TYPE, bid));
