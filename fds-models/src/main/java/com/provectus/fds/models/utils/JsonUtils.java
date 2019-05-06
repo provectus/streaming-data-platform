@@ -11,7 +11,7 @@ public class JsonUtils {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public static JsonNode readTree(Reader reader) throws IOException {
-       return objectMapper.readTree(reader);
+        return objectMapper.readTree(reader);
     }
 
     public static <T> byte[] write(T value) throws JsonProcessingException {
@@ -22,5 +22,7 @@ public class JsonUtils {
         return objectMapper.readerFor(clazz).readValue(reader);
     }
 
-
+    public static <T> T read(byte[] bytes, Class<T> clazz) throws IOException {
+        return objectMapper.readerFor(clazz).readValue(bytes);
+    }
 }

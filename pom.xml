@@ -12,27 +12,36 @@
         <aws.lambda.version>1.2.0</aws.lambda.version>
         <aws.lambda.events.version>2.2.4</aws.lambda.events.version>
         <aws.java.sdk.version>1.11.253</aws.java.sdk.version>
+        <aws.kinesisanalytics.version>1.0.1</aws.kinesisanalytics.version>
         <junit.version>4.12</junit.version>
         <com.fasterxml.jackson.version>2.9.8</com.fasterxml.jackson.version>
+        <flink.version>1.6.3</flink.version>
+        <lombok.version>1.18.4</lombok.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <org.apache.parquet.version>1.10.0</org.apache.parquet.version>
         <hadoop.version>2.7.3</hadoop.version>
+
+        <!-- Plugins -->
+        <maven.compiler.plugin.version>3.8.0</maven.compiler.plugin.version>
+        <maven.shade.plugin.version>3.2.1</maven.shade.plugin.version>
     </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-lambda-java-core</artifactId>
-        </dependency>
-    </dependencies>
-
     <repositories>
+        <repository>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>release</id>
+            <name>libs-release</name>
+            <url>http://3.122.127.16/artifactory/libs-release</url>
+        </repository>
+        <repository>
+            <snapshots />
+            <id>snapshot</id>
+            <name>libs-snapshot</name>
+            <url>http://3.122.127.16/artifactory/libs-snapshot</url>
+        </repository>
         <repository>
             <id>palantir</id>
             <name>palantir</name>
@@ -55,12 +64,6 @@
 
             <dependency>
                 <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk</artifactId>
-                <version>${aws.java.sdk.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk-kinesis</artifactId>
                 <version>${aws.java.sdk.version}</version>
             </dependency>
@@ -69,6 +72,12 @@
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk-glue</artifactId>
                 <version>${aws.java.sdk.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-kinesisanalytics-runtime</artifactId>
+                <version>${aws.kinesisanalytics.version}</version>
             </dependency>
 
             <dependency>
@@ -90,16 +99,7 @@
                 <version>${junit.version}</version>
                 <scope>test</scope>
             </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${com.fasterxml.jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${com.fasterxml.jackson.version}</version>
-            </dependency>
+
             <dependency>
                 <groupId>com.provectus.fds</groupId>
                 <artifactId>fds-models</artifactId>
@@ -132,7 +132,6 @@
                 <artifactId>fds-lambda-reports</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
 
             <dependency>
                 <groupId>com.amazonaws</groupId>
@@ -189,15 +188,60 @@
                 <artifactId>async-http-client</artifactId>
                 <version>2.6.0</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
             <dependency>
                 <groupId>org.awaitility</groupId>
                 <artifactId>awaitility</artifactId>
                 <version>3.1.5</version>
                 <scope>test</scope>
             </dependency>
-        </dependencies>
 
+            <dependency>
+                <groupId>org.hamcrest</groupId>
+                <artifactId>hamcrest</artifactId>
+                <version>2.1</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
     </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven.compiler.plugin.version}</version>
+                    <configuration>
+                        <source>${maven.compiler.source}</source>
+                        <target>${maven.compiler.target}</target>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>${maven.shade.plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
     <modules>
         <module>fds-it</module>
         <module>fds-lambda-api</module>
@@ -207,8 +251,10 @@
         <module>fds-lambda-utils</module>
         <module>fds-lambda-dynamodb-persister</module>
         <module>fds-common-dynamodb</module>
+        <module>fds-flink-streaming</module>
         <module>fds-lambda-ml-integration</module>
     </modules>
+
     <reporting>
         <plugins>
             <plugin>

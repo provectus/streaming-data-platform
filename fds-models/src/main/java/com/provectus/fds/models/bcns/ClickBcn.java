@@ -1,44 +1,52 @@
 package com.provectus.fds.models.bcns;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.provectus.fds.models.utils.JsonUtils;
+import lombok.*;
 
 import java.io.IOException;
 
-public class ClickBcn implements Bcn {
-    private final String txid;
-    private final long timestamp;
-    private final String type = "click";
+@Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@ToString
+public class ClickBcn implements Partitioned {
+    @JsonProperty("tx_id")
+    private String txId;
 
-    @JsonCreator
-    public ClickBcn(
-              @JsonProperty("txid") String txid
-            , @JsonProperty("timestamp") long timestamp
-    ) {
-        this.txid = txid;
-        this.timestamp = timestamp;
-    }
-
-    public String getTxid() {
-        return txid;
-    }
-
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    public String getType() {
-        return type;
+    public ClickBcn(@JsonProperty("tx_id") String txId) {
+        this.txId = txId;
     }
 
     @Override
     public String getPartitionKey() {
-        return txid;
+        return txId;
     }
 
     @Override
     public byte[] getBytes() throws IOException {
         return JsonUtils.write(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ClickBcn)) return false;
+
+        ClickBcn clickBcn = (ClickBcn) o;
+
+        return getTxId().equals(clickBcn.getTxId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getTxId().hashCode();
+    }
+
+    public static ClickBcn from(Bcn bcn) {
+        return ClickBcn.builder()
+                .txId(bcn.getTxId())
+                .build();
     }
 }

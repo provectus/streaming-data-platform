@@ -19,41 +19,43 @@
             <artifactId>async-http-client</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
+
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-cloudformation</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-lambda-api</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-lambda-compaction</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-lambda-dynamodb-persister</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-lambda-reports</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.provectus.fds</groupId>
             <artifactId>fds-models</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
@@ -122,6 +124,19 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>Copy streaming job to S3 bucket</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>aws</executable>
+                            <commandlineArgs>s3 cp ../fds-flink-streaming/target/fds-flink-streaming-1.0-SNAPSHOT.jar
+                                s3://itstack-artifacts/fds-flink-streaming.jar
+                            </commandlineArgs>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>Upload to S3</id>
                         <phase>pre-integration-test</phase>
                         <goals>
@@ -129,7 +144,9 @@
                         </goals>
                         <configuration>
                             <executable>aws</executable>
-                            <commandlineArgs>cloudformation package --template-file ../fds-template.yaml --output-template-file fds.yaml --s3-bucket itstack-artifacts</commandlineArgs>
+                            <commandlineArgs>cloudformation package --template-file ../fds-template.yaml
+                                --output-template-file fds.yaml --s3-bucket itstack-artifacts
+                            </commandlineArgs>
                         </configuration>
                     </execution>
                     <execution>

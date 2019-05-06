@@ -3,6 +3,7 @@ package com.provectus.fds.dynamodb.models;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.provectus.fds.dynamodb.ZoneDateTimeUtils;
 
@@ -14,6 +15,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Aggregation {
     private long campaignItemId = 0L;
     private long period = 0L;

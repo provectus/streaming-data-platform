@@ -23,8 +23,8 @@
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
-            <artifactId>kinesisanalytics</artifactId>
-            <version>2.2.0</version>
+            <artifactId>kinesisanalyticsv2</artifactId>
+            <version>2.5.32</version>
         </dependency>
     </dependencies>
 
@@ -33,7 +33,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.3</version>
                 <configuration>
                     <createDependencyReducedPom>false</createDependencyReducedPom>
                 </configuration>
