@@ -4,11 +4,11 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import org.json.JSONObject;
-import software.amazon.awssdk.services.kinesisanalytics.KinesisAnalyticsClient;
-import software.amazon.awssdk.services.kinesisanalytics.model.InputConfiguration;
-import software.amazon.awssdk.services.kinesisanalytics.model.InputStartingPosition;
-import software.amazon.awssdk.services.kinesisanalytics.model.InputStartingPositionConfiguration;
-import software.amazon.awssdk.services.kinesisanalytics.model.StartApplicationRequest;
+import software.amazon.awssdk.services.kinesisanalyticsv2.KinesisAnalyticsV2Client;
+import software.amazon.awssdk.services.kinesisanalyticsv2.model.ApplicationRestoreConfiguration;
+import software.amazon.awssdk.services.kinesisanalyticsv2.model.ApplicationRestoreType;
+import software.amazon.awssdk.services.kinesisanalyticsv2.model.RunConfiguration;
+import software.amazon.awssdk.services.kinesisanalyticsv2.model.StartApplicationRequest;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -18,8 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ApplicationStartLambda implements RequestHandler<Map<String, Object>, Object> {
-
-    public static final String INPUT_CONFIGURATION_ID = "1.1";
 
     @Override
     public Object handleRequest(Map<String, Object> input, Context context) {
@@ -32,16 +30,18 @@ public class ApplicationStartLambda implements RequestHandler<Map<String, Object
 
 
         if (requestType.equalsIgnoreCase("Create") || requestType.equalsIgnoreCase("Update")) {
-            KinesisAnalyticsClient kac = KinesisAnalyticsClient.create();
-            InputStartingPosition isp = InputStartingPosition.LAST_STOPPED_POINT;
-            InputStartingPositionConfiguration ispc = InputStartingPositionConfiguration.builder()
-                    .inputStartingPosition(isp).build();
-            InputConfiguration ic = InputConfiguration.builder()
-                    .id(String.format(INPUT_CONFIGURATION_ID))
-                    .inputStartingPositionConfiguration(ispc).build();
+            KinesisAnalyticsV2Client kac = KinesisAnalyticsV2Client.create();
             kac.startApplication(StartApplicationRequest.builder()
-                    .applicationName(appName).inputConfigurations(ic).build());
-            logger.log(String.format("%s was started", appName));
+                    .applicationName(appName)
+                    .runConfiguration(RunConfiguration.builder()
+                            .applicationRestoreConfiguration(
+                                    ApplicationRestoreConfiguration.builder()
+                                            .applicationRestoreType(
+                                                    ApplicationRestoreType.RESTORE_FROM_LATEST_SNAPSHOT)
+                                            .build())
+                            .build())
+                    .build());
+            logger.log(String.format("The %s was started", appName));
             sendResponse(input, context, "SUCCESS", responseData);
         } else if (requestType.equalsIgnoreCase("DELETE")) {
             logger.log("Resource delete action");

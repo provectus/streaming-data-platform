@@ -98,14 +98,14 @@ The following data streams are available:
 ##### Bid
 Ingesting Bids:
 ```
-curl --request POST --header "Content-type: application/json" --data '{"txid":"44db4cf3-c372-4f7c-8443-9d2a1e725473","domain":"www.google.com","appuid":"e582f2a0-3e2b-4066-a2a3-dc5867953d0d","campaign_item_id":1463517,"creative_id":"b72897cb-3f88-423b-84aa-9b7710d2416d","creative_category":"testCreativeCategory"}' '<UrlForAPI>/bid'
+curl --request POST --header "Content-type: application/json" --data '{"tx_id":"44db4cf3-c372-4f7c-8443-9d2a1e725473","domain":"www.google.com","app_uid":"e582f2a0-3e2b-4066-a2a3-dc5867953d0d","campaign_item_id":1463517,"creative_id":"b72897cb-3f88-423b-84aa-9b7710d2416d","creative_category":"testCreativeCategory"}' '<UrlForAPI>/bid'
 ```
 Bid Schema
 ```
 title: Bid
 type: object
 properties:
-  appuid:
+  app_uid:
     required: true
     type: string
   campaign_item_id:
@@ -115,7 +115,7 @@ properties:
     type: string
   creative_id:
     type: string
-  txid:
+  tx_id:
     required: true
     type: string
   domain:
@@ -130,14 +130,14 @@ properties:
 ##### Click
 Ingesting Clicks:
 ```
-curl --request POST --header "Content-type: application/json" --data '{"txid":"44db4cf3-c372-4f7c-8443-9d2a1e725473"}' '<UrlForAPI>/click'
+curl --request POST --header "Content-type: application/json" --data '{"tx_id":"44db4cf3-c372-4f7c-8443-9d2a1e725473"}' '<UrlForAPI>/click'
 ```
 Click Schema
 ```
 title: Click
 type: object
 properties:
-  txid:
+  tx_id:
     required: true
     type: string
   type:
@@ -148,7 +148,7 @@ properties:
 ##### Impression
 Ingesting Impressions:
 ```
-curl --request POST --header "Content-type: application/json" --data '{"txid":"44db4cf3-c372-4f7c-8443-9d2a1e725473","win_price":1}' '<UrlForAPI>/impression'
+curl --request POST --header "Content-type: application/json" --data '{"tx_id":"44db4cf3-c372-4f7c-8443-9d2a1e725473","win_price":1}' '<UrlForAPI>/impression'
 ```
 
 Impression schema:
@@ -156,7 +156,7 @@ Impression schema:
 title: Impression
 type: object
 properties:
-  txid:
+  tx_id:
     required: true
     type: string
   win_price:
@@ -182,7 +182,7 @@ properties:
     type: integer
   clicks:
     type: integer
-  imps:
+  impressions:
     type: integer
   bids:
     type: integer

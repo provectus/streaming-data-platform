@@ -1,62 +1,55 @@
 package com.provectus.fds.models.events;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.*;
 
 import java.util.Optional;
 
+@Builder
+@Setter
+@NoArgsConstructor
+@EqualsAndHashCode
+@ToString
 public class Aggregation {
     @JsonProperty("campaign_item_id")
     private long campaignItemId;
     private String period;
-    private Long clicks;
-    private Long imps;
     private Long bids;
+    private Long imps;
+    private Long clicks;
 
-    public Aggregation(long campaignItemId, String period, Long clicks, Long imps, Long bids) {
+    @JsonCreator
+    public Aggregation(
+            @JsonProperty("campaign_item_id") long campaignItemId,
+            @JsonProperty("period") String period,
+            @JsonProperty("bids") Long bids,
+            @JsonProperty("imps") Long imps,
+            @JsonProperty("clicks") Long clicks) {
         this.campaignItemId = campaignItemId;
         this.period = period;
-        this.clicks = clicks;
-        this.imps = imps;
         this.bids = bids;
+        this.imps = imps;
+        this.clicks = clicks;
     }
 
-    public long getCampaignItemId() {
+    public Long getCampaignItemId() {
         return campaignItemId;
-    }
-
-    public void setCampaignItemId(long campaignItemId) {
-        this.campaignItemId = campaignItemId;
-    }
-
-    public long getClicks() {
-        return Optional.ofNullable(clicks).orElse(0L);
-    }
-
-    public void setClicks(long clicks) {
-        this.clicks = clicks;
-    }
-
-    public long getImps() {
-        return Optional.ofNullable(imps).orElse(0L);
-    }
-
-    public void setImps(long imps) {
-        this.imps = imps;
-    }
-
-    public long getBids() {
-        return Optional.ofNullable(bids).orElse(0L);
-    }
-
-    public void setBids(long bids) {
-        this.bids = bids;
     }
 
     public String getPeriod() {
         return period;
     }
 
-    public void setPeriod(String period) {
-        this.period = period;
+    public Long getBids() {
+        return Optional.ofNullable(bids).orElse(0L);
+    }
+
+    public Long getImps() {
+        return Optional.ofNullable(imps).orElse(0L);
+    }
+
+    public Long getClicks() {
+        return Optional.ofNullable(clicks).orElse(0L);
     }
 }

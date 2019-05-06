@@ -1,20 +1,20 @@
 package com.provectus.fds.it;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provectus.fds.dynamodb.models.Aggregation;
 import com.provectus.fds.it.aws.CloudFormation;
-import com.provectus.fds.models.bcns.Bid;
+import com.provectus.fds.models.bcns.BidBcn;
 import com.provectus.fds.models.bcns.ClickBcn;
 import com.provectus.fds.models.bcns.ImpressionBcn;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Response;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 import static org.asynchttpclient.Dsl.config;
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class AwsFdsTestIT {
@@ -47,7 +46,7 @@ public class AwsFdsTestIT {
     @BeforeClass
     public static void beforeClass() throws Exception {
         cloudFormation = new CloudFormation(REGION
-                , String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-","")).substring(0,30)
+                , String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-", "")).substring(0, 30)
                 , new File("fds.yaml")
         );
         reportUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
@@ -66,7 +65,7 @@ public class AwsFdsTestIT {
     }
 
     @Test
-    public void testDynamoTotalReport() throws IOException, ExecutionException, InterruptedException {
+    public void testDynamoTotalReport() throws IOException {
         ThreadLocalRandom random = ThreadLocalRandom.current();
 
         int numberOfBids = random.nextInt(100, 200);
@@ -86,13 +85,13 @@ public class AwsFdsTestIT {
             String appuid = UUID.randomUUID().toString();
             long winPrice = random.nextInt(1_000, 2_000);
 
-            Bid bid = new Bid(txid, campaignItemId, domain, creativeId, creativeCategory, appuid);
-            ImpressionBcn impressionBcn = new ImpressionBcn(txid, Instant.now().toEpochMilli(), winPrice);
-            ClickBcn clickBcn = new ClickBcn(txid, Instant.now().toEpochMilli());
+            BidBcn bidBcn = new BidBcn(txid, campaignItemId, domain, creativeId, creativeCategory, appuid);
+            ImpressionBcn impressionBcn = new ImpressionBcn(txid, winPrice);
+            ClickBcn clickBcn = new ClickBcn(txid);
 
 
             futuresByType.computeIfAbsent(BID_TYPE, (k) -> new ArrayList<>())
-                    .add(sendRequest(BID_TYPE, bid));
+                    .add(sendRequest(BID_TYPE, bidBcn));
 
             if (numberOfImps > 0) {
                 futuresByType.computeIfAbsent(IMP_TYPE, (k) -> new ArrayList<>())
@@ -144,12 +143,15 @@ public class AwsFdsTestIT {
         return objectMapper.readValue(response.getResponseBodyAsBytes(), Aggregation.class);
     }
 
-    private <T> ListenableFuture<Response> sendRequest(String type, T model) throws JsonProcessingException {
-        return httpClient.preparePost(String.format("%s/%s", apiUrl, type))
-                .addHeader("Content-Type", "application/json")
-                .addHeader("User-Agent", USER_AGENT)
-                .setBody(objectMapper.writeValueAsBytes(model))
-                .execute();
+    private <T> ListenableFuture<Response> sendRequest(String type, T model) {
+        try {
+            return httpClient.preparePost(String.format("%s/%s", apiUrl, type))
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("User-Agent", USER_AGENT)
+                    .setBody(objectMapper.writeValueAsBytes(model))
+                    .execute();
+        } catch (Exception e) {
+            throw new RuntimeException("Exception during request", e);
+        }
     }
-
 }
