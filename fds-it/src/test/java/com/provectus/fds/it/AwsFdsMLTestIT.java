@@ -9,12 +9,15 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertNotNull;
+
+import static com.provectus.fds.it.ItConfig.*;
 
 public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
     @BeforeClass
@@ -38,7 +41,7 @@ public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
     public static void afterClass() throws Exception {
         // "note" - is asaushkin's notebook hostname
         // We don't drop the cloudformation stack in this case
-        if (!System.getenv().getOrDefault("HOSTNAME", "").equals("note")) {
+        if (!InetAddress.getLocalHost().getHostName().equals("note")) {
             if (cloudFormation != null)
                 cloudFormation.close();
         }
@@ -52,7 +55,7 @@ public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
 
     @Test
     public void testDynamoTotalReport() throws IOException, ExecutionException, InterruptedException {
-        SampleDataResult sampleData = generateSampleData();
+        SampleDataResult sampleData = generateSampleData(10_000, 12_000);
 
         await().atMost(20, TimeUnit.MINUTES)
                 .pollInterval(10, TimeUnit.SECONDS)

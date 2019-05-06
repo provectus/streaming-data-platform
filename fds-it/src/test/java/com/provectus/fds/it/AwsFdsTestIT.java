@@ -16,6 +16,8 @@ import java.util.concurrent.TimeUnit;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertNotNull;
 
+import static com.provectus.fds.it.ItConfig.*;
+
 public class AwsFdsTestIT extends AbstarctFdsTestIt {
 
     @BeforeClass
@@ -41,7 +43,7 @@ public class AwsFdsTestIT extends AbstarctFdsTestIt {
 
     @Test
     public void testDynamoTotalReport() throws IOException, ExecutionException, InterruptedException {
-        SampleDataResult sampleData = generateSampleData();
+        SampleDataResult sampleData = generateSampleData(100, 200);
 
         await().atMost(15, TimeUnit.MINUTES)
                 .pollInterval(10, TimeUnit.SECONDS)

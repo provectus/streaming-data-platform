@@ -1,6 +1,24 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Description: Data streaming solution for Fast Data
+Mappings:
+  RegionMap:
+    "us-west-2":
+      "NullTransformer": "174872318107.dkr.ecr.us-west-2.amazonaws.com/linear-learner:latest"
+    "us-east-2":
+      "NullTransformer": "174872318107.dkr.ecr.us-east-2.amazonaws.com/linear-learner:latest"
+    "us-east-1":
+      "NullTransformer": "174872318107.dkr.ecr.us-east-1.amazonaws.com/linear-learner:latest"
+    "eu-west-1":
+      "NullTransformer": "174872318107.dkr.ecr.eu-west-1.amazonaws.com/linear-learner:latest"
+    "ap-northeast-1":
+      "NullTransformer": "174872318107.dkr.ecr.ap-northeast-1.amazonaws.com/linear-learner:latest"
+    "ap-northeast-2":
+      "NullTransformer": "174872318107.dkr.ecr.ap-northeast-2.amazonaws.com/linear-learner:latest"
+    "ap-southeast-2":
+      "NullTransformer": "174872318107.dkr.ecr.ap-southeast-2.amazonaws.com/linear-learner:latest"
+    "eu-central-1":
+      "NullTransformer": "174872318107.dkr.ecr.eu-central-1.amazonaws.com/linear-learner:latest"
 Metadata:
   Authors:
     Description: German Osin (gosin@provectus.com)
@@ -129,6 +147,12 @@ Resources:
                   - '*'
                 Effect: Allow
                 Sid: sagemaker
+              - Action:
+                  - iam:PassRole
+                Resource:
+                  - !GetAtt 'SageMakerRole.Arn'
+                Effect: Allow
+                Sid: iam
   SageMakerRole:
     Type: AWS::IAM::Role
     Properties:
@@ -157,6 +181,9 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:s3:::${S3BucketName}'
                   - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+                  # TODO: Fix to the real bucket name
+                  - 'arn:aws:s3:::newfdsb'
+                  - 'arn:aws:s3:::newfdsb/*'
   LogGroupMlIntegrationLambda:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -192,6 +219,53 @@ Resources:
       Principal: s3.amazonaws.com
       SourceArn:
         !Sub 'arn:aws:s3:::${S3BucketName}'
+  Endpoint:
+    Type: "AWS::SageMaker::Endpoint"
+    Properties:
+      EndpointConfigName:
+        !GetAtt EndpointConfig.EndpointConfigName
+  EndpointConfig:
+    Type: "AWS::SageMaker::EndpointConfig"
+    Properties:
+      ProductionVariants:
+        - InitialInstanceCount: 1
+          InitialVariantWeight: 1.0
+          InstanceType: ml.t2.large
+          ModelName: !GetAtt Model.ModelName
+          VariantName: !GetAtt Model.ModelName
+  Model:
+    Type: "AWS::SageMaker::Model"
+    Properties:
+      ExecutionRoleArn: !GetAtt 'SageMakerRole.Arn'
+      PrimaryContainer:
+        ModelDataUrl: "s3://newfdsb/ml/model/linear-learner-2019-04-17-12-30-01-280/output/model.tar.gz"
+        Image: !FindInMap [RegionMap, !Ref "AWS::Region", "NullTransformer"]
+      ModelName: !Sub "${ServicePrefix}Model"
+
+#  ExecutionRole:
+#    Type: "AWS::IAM::Role"
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          -
+#            Effect: "Allow"
+#            Principal:
+#              Service:
+#                - "sagemaker.amazonaws.com"
+#            Action:
+#              - "sts:AssumeRole"
+#      Path: "/"
+#      Policies:
+#        -
+#          PolicyName: "root"
+#          PolicyDocument:
+#            Version: "2012-10-17"
+#            Statement:
+#              -
+#                Effect: "Allow"
+#                Action: "*"
+#                Resource: "*"
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role

@@ -5,7 +5,7 @@ select
   bitwise_and(from_big_endian_64(xxhash64(to_utf8(b.domain))), 9223372036854775807) / 9223372036854775807.0 as domain,
   bitwise_and(from_big_endian_64(xxhash64(to_utf8(b.creative_id))), 9223372036854775807) / 9223372036854775807.0 as creative_id,
   bitwise_and(from_big_endian_64(xxhash64(to_utf8(b.creative_category))), 9223372036854775807) / 9223372036854775807.0 as creative_category,
-  bitwise_and(from_big_endian_64(xxhash64(to_utf8(cast(b.win_price as varchar)))), 9223372036854775807) / 9223372036854775807.0 as win_price
+  coalesce(bitwise_and(from_big_endian_64(xxhash64(to_utf8(cast(i.win_price as varchar)))), 9223372036854775807) / 9223372036854775807.0, 0) as win_price
 from parquet_bcns b TABLESAMPLE BERNOULLI(100)
   left join parquet_impressions i on i.txid = b.txid
   where b.type = 'bid' and
