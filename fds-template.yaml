@@ -175,36 +175,78 @@ Resources:
                   - logs:PutLogEvents
                 Resource:
                   - !GetAtt 'LogGroupMlIntegrationLambda.Arn'
-              - Action:
-                  - athena:*
+
+              - Sid: athenaAll
+                Action:
+                  - athena:ListWorkGroups
+                  - athena:GetExecutionEngine
+                  - athena:GetExecutionEngines
+                  - athena:GetNamespace
+                  - athena:GetCatalogs
+                  - athena:GetNamespaces
+                  - athena:GetTables
+                  - athena:GetTable
                 Resource:
                   - '*'
                 Effect: Allow
-                Sid: athena
-              - Action:
-                  - glue:*
+
+              - Sid: athenaWorkgroup
+                Action:
+                  - athena:StartQueryExecution
+                  - athena:GetQueryResults
+                  - athena:DeleteNamedQuery
+                  - athena:GetNamedQuery
+                  - athena:ListQueryExecutions
+                  - athena:StopQueryExecution
+                  - athena:GetQueryResultsStream
+                  - athena:ListNamedQueries
+                  - athena:CreateNamedQuery
+                  - athena:GetQueryExecution
+                  - athena:BatchGetNamedQuery
+                  - athena:BatchGetQueryExecution
+                  - athena:GetWorkGroup
+                Resource:
+                  - !Sub 'arn:aws:athena:${AWS::Region}:${AWS::AccountId}:workgroup/primary'
+                Effect: Allow
+
+              - Sid: glue
+                Action:
+                  - glue:GetTable
+                  - glue:GetPartitions
+                  - glue:GetDatabase
+                  - glue:GetDatabases
+                  - glue:GetTables
+                  - glue:GetPartition
+                  - glue:BatchGetPartition
                 Resource:
                   - '*'
                 Effect: Allow
-                Sid: glue
-              - Action:
-                  - s3:*
+
+              - Sid: s3
+                Action:
+                  - s3:CreateBucket
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:GetObject
+                  - s3:GetBucketLocation
                 Resource:
-                  - '*'
+                  - !Sub 'arn:aws:s3:::${S3BucketName}'
+                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
                 Effect: Allow
-                Sid: s3
-              - Action:
-                  - sagemaker:*
+
+              - Sid: sagemaker
+                Action:
+                  - sagemaker:CreateTrainingJob
                 Resource:
-                  - '*'
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:training-job/fds-training-job-*"
                 Effect: Allow
-                Sid: sagemaker
-              - Action:
+
+              - Sid: iam
+                Action:
                   - iam:PassRole
                 Resource:
                   - !GetAtt 'SageMakerRole.Arn'
                 Effect: Allow
-                Sid: iam
   SageMakerRole:
     Type: AWS::IAM::Role
     Properties:
@@ -287,7 +329,7 @@ Resources:
       Environment:
         Variables:
           REGION_ID: !Ref 'AWS::Region'
-          MODEL_OUTPUT_PATH: !Sub 's3://${S3BucketName}/ml/model'
+          SERVICE_PREFIX: !Sub '${ServicePrefix}'
           SAGEMAKER_ROLE_ARN: !GetAtt 'SageMakerRole.Arn'
       Handler: com.provectus.fds.ml.ReplaceEndpointConfigLambda
       MemorySize: 256
@@ -305,30 +347,31 @@ Resources:
       SourceArn:
         !Sub 'arn:aws:s3:::${S3BucketName}'
 
-  Endpoint:
-    Type: "AWS::SageMaker::Endpoint"
-    Properties:
-      EndpointConfigName:
-        !GetAtt EndpointConfig.EndpointConfigName
-      # TODO: Fix me...
-      EndpointName: "test-endpoint"
-  EndpointConfig:
-    Type: "AWS::SageMaker::EndpointConfig"
-    Properties:
-      ProductionVariants:
-        - InitialInstanceCount: 1
-          InitialVariantWeight: 1.0
-          InstanceType: ml.t2.large
-          ModelName: !GetAtt Model.ModelName
-          VariantName: !GetAtt Model.ModelName
-  Model:
-    Type: "AWS::SageMaker::Model"
-    Properties:
-      ExecutionRoleArn: !GetAtt 'SageMakerRole.Arn'
-      PrimaryContainer:
-        ModelDataUrl: "s3://newfdsb/ml/model/linear-learner-2019-04-17-12-30-01-280/output/model.tar.gz"
-        Image: !FindInMap [RegionMap, !Ref "AWS::Region", "NullTransformer"]
-      ModelName: !Sub "${ServicePrefix}Model"
+## Temporarily commented in because long time creation.
+#  Endpoint:
+#    Type: "AWS::SageMaker::Endpoint"
+#    Properties:
+#      EndpointConfigName:
+#        !GetAtt EndpointConfig.EndpointConfigName
+#      # TODO: Fix me...
+#      EndpointName: "test-endpoint"
+#  EndpointConfig:
+#    Type: "AWS::SageMaker::EndpointConfig"
+#    Properties:
+#      ProductionVariants:
+#        - InitialInstanceCount: 1
+#          InitialVariantWeight: 1.0
+#          InstanceType: ml.t2.large
+#          ModelName: !GetAtt Model.ModelName
+#          VariantName: !GetAtt Model.ModelName
+#  Model:
+#    Type: "AWS::SageMaker::Model"
+#    Properties:
+#      ExecutionRoleArn: !GetAtt 'SageMakerRole.Arn'
+#      PrimaryContainer:
+#        ModelDataUrl: "s3://newfdsb/ml/model/linear-learner-2019-04-17-12-30-01-280/output/model.tar.gz"
+#        Image: !FindInMap [RegionMap, !Ref "AWS::Region", "NullTransformer"]
+#      ModelName: !Sub "${ServicePrefix}Model"
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -446,6 +489,7 @@ Resources:
                   - s3:GetObjectVersion
                 Resource:
                   - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+                  - !Sub 'arn:aws:s3:::fds-lambda-java/fds-flink-streaming.jar'
   CloudWatchRole:
     Type: AWS::IAM::Role
     Properties:
@@ -696,7 +740,8 @@ Resources:
           CodeContentType: ZIPFILE
           CodeContent:
             S3ContentLocation:
-              BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
+              #BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
+              BucketARN: 'arn:aws:s3:::fds-lambda-java'
               FileKey: fds-flink-streaming.jar
         EnvironmentProperties:
           PropertyGroups:
@@ -819,6 +864,7 @@ Resources:
   RawBcnsS3DeliveryStream:
     DependsOn:
       - S3DeliveryAccessRole
+      - S3Bucket
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
       DeliveryStreamName: !Sub '${ServicePrefix}RawBcnsS3DelieveryStream'
@@ -853,6 +899,7 @@ Resources:
   RawImpressionsS3DeliveryStream:
     DependsOn:
       - S3DeliveryAccessRole
+      - S3Bucket
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
       DeliveryStreamName: !Sub '${ServicePrefix}RawImpressionsS3DelieveryStream'
@@ -880,6 +927,7 @@ Resources:
   RawClicksS3DeliveryStream:
     DependsOn:
       - S3DeliveryAccessRole
+      - S3Bucket
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
       DeliveryStreamName: !Sub '${ServicePrefix}RawClicksS3DelieveryStream'
@@ -907,6 +955,7 @@ Resources:
   RawAggregatesS3DeliveryStream:
     DependsOn:
       - S3DeliveryAccessRole
+      - S3Bucket
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
       DeliveryStreamName: !Sub '${ServicePrefix}RawAggrefatesS3DelieveryStream'
@@ -965,7 +1014,7 @@ Resources:
             SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
           StoredAsSubDirectories: true
           Columns:
-            - Name: txid
+            - Name: tx_id
               Type: string
             - Name: type
               Type: string
@@ -975,7 +1024,7 @@ Resources:
               Type: string
             - Name: creative_id
               Type: string
-            - Name: appuid
+            - Name: app_uid
               Type: string
             - Name: creative_category
               Type: string
@@ -1008,7 +1057,7 @@ Resources:
             SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
           StoredAsSubDirectories: true
           Columns:
-            - Name: txid
+            - Name: tx_id
               Type: string
             - Name: campaign_item_id
               Type: bigint
@@ -1016,7 +1065,7 @@ Resources:
               Type: string
             - Name: creative_id
               Type: string
-            - Name: appuid
+            - Name: app_uid
               Type: string
             - Name: creative_category
               Type: string
@@ -1049,7 +1098,7 @@ Resources:
             SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
           StoredAsSubDirectories: true
           Columns:
-            - Name: txid
+            - Name: tx_id
               Type: string
             - Name: campaign_item_id
               Type: bigint
@@ -1057,7 +1106,7 @@ Resources:
               Type: string
             - Name: creative_id
               Type: string
-            - Name: appuid
+            - Name: app_uid
               Type: string
             - Name: creative_category
               Type: string
@@ -1125,7 +1174,7 @@ Resources:
               serialization.format: 1
           StoredAsSubDirectories: false
           Columns:
-            - Name: txid
+            - Name: tx_id
               Type: string
             - Name: type
               Type: string
@@ -1135,7 +1184,7 @@ Resources:
               Type: string
             - Name: creative_id
               Type: string
-            - Name: appuid
+            - Name: app_uid
               Type: string
             - Name: creative_category
               Type: string
@@ -1169,7 +1218,7 @@ Resources:
               serialization.format: 1
           StoredAsSubDirectories: false
           Columns:
-            - Name: txid
+            - Name: tx_id
               Type: string
             - Name: campaign_item_id
               Type: bigint
@@ -1177,7 +1226,7 @@ Resources:
               Type: string
             - Name: creative_id
               Type: string
-            - Name: appuid
+            - Name: app_uid
               Type: string
             - Name: creative_category
               Type: string
@@ -1211,7 +1260,7 @@ Resources:
               serialization.format: 1
           StoredAsSubDirectories: false
           Columns:
-            - Name: txid
+            - Name: tx_id
               Type: string
             - Name: campaign_item_id
               Type: bigint
@@ -1219,7 +1268,7 @@ Resources:
               Type: string
             - Name: creative_id
               Type: string
-            - Name: appuid
+            - Name: app_uid
               Type: string
             - Name: creative_category
               Type: string

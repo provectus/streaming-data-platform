@@ -4,7 +4,6 @@ import com.amazonaws.services.cloudformation.AmazonCloudFormation;
 import com.amazonaws.services.cloudformation.AmazonCloudFormationClientBuilder;
 import com.amazonaws.services.cloudformation.model.*;
 import com.amazonaws.services.cloudformation.model.Stack;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
@@ -39,7 +38,7 @@ public class CloudFormation implements AutoCloseable {
         return this.outputs.get(key.toLowerCase());
     }
 
-    private Stack createStack() throws IOException, InterruptedException {
+    private Stack createStack() throws InterruptedException {
 
         CreateStackRequest createRequest = new CreateStackRequest();
         createRequest.setStackName(this.stackName);

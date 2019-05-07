@@ -5,6 +5,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.provectus.fds.ml.PrepareDataForTrainingJobLambda.ATHENA_REGION_ID;
+import static com.provectus.fds.ml.PrepareDataForTrainingJobLambda.ATHENA_REGION_ID_DEF;
+
 class SagemakerAlgorithmsRegistry {
 
     // This map intended only for these algorithms
@@ -57,6 +60,10 @@ class SagemakerAlgorithmsRegistry {
                 throw new RegistryException("Algorithm " + algorithm + " is not supported by this class.\n" +
                         "Probably, you must extend this class by yourself!");
         }
+    }
+
+    public String getFullImageUri(String regionName, String algorithm) {
+        return getImageUri(regionName, algorithm) + "/" + algorithm + ":latest";
     }
 
     private String getEcrImageUriPrefix(String account, String region) {

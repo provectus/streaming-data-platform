@@ -82,8 +82,8 @@ public class JobRunner {
         SagemakerAlgorithmsRegistry registry = new SagemakerAlgorithmsRegistry();
 
         specification.setTrainingImage(
-                registry.getImageUri(h.getConfig(ATHENA_REGION_ID, ATHENA_REGION_ID_DEF),
-                        TRAINING_ALGORITHM) + "/" + TRAINING_ALGORITHM + ":latest");
+                registry.getFullImageUri(h.getConfig(ATHENA_REGION_ID, ATHENA_REGION_ID_DEF),
+                        TRAINING_ALGORITHM));
         specification.setTrainingInputMode(TRAINING_INPUT_MODE);
 
         jobRequest.setAlgorithmSpecification(specification);

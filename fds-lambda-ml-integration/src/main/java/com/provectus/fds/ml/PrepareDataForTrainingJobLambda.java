@@ -75,7 +75,7 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<S3Event, 
                 context.getLogger().log("Data was prepared. Training part has "
                         + statistic.get(TOTAL_TRAIN_RECORDS_PROCESSED)
                         + ", validation part has "
-                        + TOTAL_VERIFY_RECORDS_PROCESSED
+                        + statistic.get(TOTAL_VERIFY_RECORDS_PROCESSED)
                         + " records");
                 context.getLogger().log("Starting training job");
                 CreateTrainingJobResult jobResult = new JobRunner()

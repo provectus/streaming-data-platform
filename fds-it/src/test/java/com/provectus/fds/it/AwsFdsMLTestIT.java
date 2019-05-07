@@ -55,7 +55,7 @@ public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
 
     @Test
     public void testDynamoTotalReport() throws IOException, ExecutionException, InterruptedException {
-        SampleDataResult sampleData = generateSampleData(10_000, 12_000);
+        SampleDataResult sampleData = generateSampleData(300, 400);
 
         await().atMost(20, TimeUnit.MINUTES)
                 .pollInterval(10, TimeUnit.SECONDS)
