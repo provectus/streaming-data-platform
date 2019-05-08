@@ -24,7 +24,7 @@ public class AwsFdsTestIT extends AbstarctFdsTestIt {
     public static void beforeClass() throws Exception {
         cloudFormation = new CloudFormation(REGION
                 , String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-", "")).substring(0, 30)
-                , new File("fds.yaml"), TEMPLATE_BUCKET
+                , new File("../fds.yaml"), TEMPLATE_BUCKET
         );
         reportUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
         apiUrl = cloudFormation.getOutput(URL_FOR_API).getOutputValue();

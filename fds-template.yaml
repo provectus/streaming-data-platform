@@ -30,6 +30,7 @@ Metadata:
           - ServicePrefix
           - AnalyticalDBName
           - S3BucketName
+          - S3ResourceBucket
           - BufInterval
           - BufSize
           - ShardCount
@@ -48,6 +49,8 @@ Metadata:
           default: Name for all databases
       - S3BucketName:
           default: Name of S3 bucket
+      - S3ResourceBucket:
+          default: Name of an auxiliary S3 bucket
       - BufInterval:
           default: Buffering interval
       - BufSize:
@@ -84,6 +87,11 @@ Parameters:
     AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
     ConstraintDescription: Bucket name must not contain uppercase characters or underscores
     Default: fdsbucket
+    Type: String
+  S3ResourceBucket:
+    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
+    ConstraintDescription: Bucket name must not contain uppercase characters or underscores
+    Default: @S3ResourceBucket@
     Type: String
   BufInterval:
     Default: 60
@@ -275,9 +283,8 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:s3:::${S3BucketName}'
                   - !Sub 'arn:aws:s3:::${S3BucketName}/*'
-                  # TODO: Fix to the real bucket name
-                  - 'arn:aws:s3:::newfdsb'
-                  - 'arn:aws:s3:::newfdsb/*'
+                  - !Sub 'arn:aws:s3:::${S3ResourceBucket}'
+                  - !Sub 'arn:aws:s3:::${S3ResourceBucket}/*'
   LogGroupMlIntegrationLambda:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -489,7 +496,7 @@ Resources:
                   - s3:GetObjectVersion
                 Resource:
                   - !Sub 'arn:aws:s3:::${S3BucketName}/*'
-                  - !Sub 'arn:aws:s3:::fds-lambda-java/fds-flink-streaming.jar'
+                  - !Sub 'arn:aws:s3:::${S3ResourceBucket}/fds-flink-streaming.jar'
   CloudWatchRole:
     Type: AWS::IAM::Role
     Properties:
@@ -740,8 +747,7 @@ Resources:
           CodeContentType: ZIPFILE
           CodeContent:
             S3ContentLocation:
-              #BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
-              BucketARN: 'arn:aws:s3:::fds-lambda-java'
+              BucketARN: !Sub 'arn:aws:s3:::${S3ResourceBucket}'
               FileKey: fds-flink-streaming.jar
         EnvironmentProperties:
           PropertyGroups:

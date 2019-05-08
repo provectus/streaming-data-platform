@@ -26,7 +26,7 @@ public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
         String bucketName = String.format("fds%s", stackName);
 
         cloudFormation = new CloudFormation(REGION, stackName
-                , new File("fds.yaml"), TEMPLATE_BUCKET
+                , new File("../fds.yaml"), TEMPLATE_BUCKET
         );
         reportUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
         apiUrl = cloudFormation.getOutput(URL_FOR_API).getOutputValue();
