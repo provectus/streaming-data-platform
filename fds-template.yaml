@@ -91,7 +91,7 @@ Parameters:
   S3ResourceBucket:
     AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
     ConstraintDescription: Bucket name must not contain uppercase characters or underscores
-    Default: @S3ResourceBucket@
+    Default: fds-lambda-java
     Type: String
   BufInterval:
     Default: 60
@@ -245,6 +245,10 @@ Resources:
               - Sid: sagemaker
                 Action:
                   - sagemaker:CreateTrainingJob
+                  - sagemaker:CreateModel
+                  - sagemaker:CreateEndpointConfig
+                  - sagemaker:UpdateEndpoint
+
                 Resource:
                   - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:training-job/fds-training-job-*"
                 Effect: Allow
@@ -338,6 +342,7 @@ Resources:
           REGION_ID: !Ref 'AWS::Region'
           SERVICE_PREFIX: !Sub '${ServicePrefix}'
           SAGEMAKER_ROLE_ARN: !GetAtt 'SageMakerRole.Arn'
+          ENDPOINT_NAME: !Sub '${ServicePrefix}Endpoint'
       Handler: com.provectus.fds.ml.ReplaceEndpointConfigLambda
       MemorySize: 256
       Timeout: 900
@@ -354,31 +359,29 @@ Resources:
       SourceArn:
         !Sub 'arn:aws:s3:::${S3BucketName}'
 
-## Temporarily commented in because long time creation.
-#  Endpoint:
-#    Type: "AWS::SageMaker::Endpoint"
-#    Properties:
-#      EndpointConfigName:
-#        !GetAtt EndpointConfig.EndpointConfigName
-#      # TODO: Fix me...
-#      EndpointName: "test-endpoint"
-#  EndpointConfig:
-#    Type: "AWS::SageMaker::EndpointConfig"
-#    Properties:
-#      ProductionVariants:
-#        - InitialInstanceCount: 1
-#          InitialVariantWeight: 1.0
-#          InstanceType: ml.t2.large
-#          ModelName: !GetAtt Model.ModelName
-#          VariantName: !GetAtt Model.ModelName
-#  Model:
-#    Type: "AWS::SageMaker::Model"
-#    Properties:
-#      ExecutionRoleArn: !GetAtt 'SageMakerRole.Arn'
-#      PrimaryContainer:
-#        ModelDataUrl: "s3://newfdsb/ml/model/linear-learner-2019-04-17-12-30-01-280/output/model.tar.gz"
-#        Image: !FindInMap [RegionMap, !Ref "AWS::Region", "NullTransformer"]
-#      ModelName: !Sub "${ServicePrefix}Model"
+  Endpoint:
+    Type: "AWS::SageMaker::Endpoint"
+    Properties:
+      EndpointConfigName:
+        !GetAtt EndpointConfig.EndpointConfigName
+      EndpointName: !Sub '${ServicePrefix}Endpoint'
+  EndpointConfig:
+    Type: "AWS::SageMaker::EndpointConfig"
+    Properties:
+      ProductionVariants:
+        - InitialInstanceCount: 1
+          InitialVariantWeight: 1.0
+          InstanceType: ml.t2.large
+          ModelName: !GetAtt Model.ModelName
+          VariantName: !GetAtt Model.ModelName
+  Model:
+    Type: "AWS::SageMaker::Model"
+    Properties:
+      ExecutionRoleArn: !GetAtt 'SageMakerRole.Arn'
+      PrimaryContainer:
+        ModelDataUrl: !Sub 's3://${S3ResourceBucket}/model.tar.gz'
+        Image: !FindInMap [RegionMap, !Ref "AWS::Region", "NullTransformer"]
+      ModelName: !Sub "${ServicePrefix}Model"
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role

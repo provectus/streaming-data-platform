@@ -15,6 +15,7 @@ public class ReplaceEndpointConfigLambda implements RequestHandler<S3Event, S3Ev
             if (s3Key.endsWith("model.tar.gz")) {
                 EndpointUpdater.EndpointUpdaterBuilder updaterBuilder = new EndpointUpdater.EndpointUpdaterBuilder();
                 updaterBuilder
+                        .withEndpointName(getEndpointName())
                         .withServicePrefix(getServicePrefx())
                         .withRegionId(getRegionId())
                         .withSageMakerRole(getSageMakerRoleArn())
@@ -36,5 +37,9 @@ public class ReplaceEndpointConfigLambda implements RequestHandler<S3Event, S3Ev
 
     private String getServicePrefx() {
         return System.getenv("SERVICE_PREFIX");
+    }
+
+    private String getEndpointName() {
+        return System.getenv("ENDPOINT_NAME");
     }
 }

@@ -1,5 +1,9 @@
 package com.provectus.fds.it;
 
+import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntime;
+import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntimeClientBuilder;
+import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointRequest;
+import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointResult;
 import com.provectus.fds.dynamodb.models.Aggregation;
 import com.provectus.fds.it.aws.CloudFormation;
 import org.asynchttpclient.Response;
@@ -9,7 +13,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -18,11 +22,13 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertNotNull;
 
 import static com.provectus.fds.it.ItConfig.*;
+import static org.junit.Assert.assertTrue;
 
 public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
+    final static String stackName = String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-", "")).substring(0, 30);
+
     @BeforeClass
     public static void beforeClass() throws Exception {
-        String stackName = String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-", "")).substring(0, 30);
         String bucketName = String.format("fds%s", stackName);
 
         cloudFormation = new CloudFormation(REGION, stackName
@@ -39,12 +45,10 @@ public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
 
     @AfterClass
     public static void afterClass() throws Exception {
-        // "note" - is asaushkin's notebook hostname
-        // We don't drop the cloudformation stack in this case
-        if (!InetAddress.getLocalHost().getHostName().equals("note")) {
-            if (cloudFormation != null)
-                cloudFormation.close();
-        }
+        String leaveStack = System.getProperty("leaveStack");
+
+        if (leaveStack == null && cloudFormation != null)
+            cloudFormation.close();
     }
 
     @Test
@@ -67,6 +71,27 @@ public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
                 });
     }
 
+    @Test
+    public void testEndpoint() {
+        AmazonSageMakerRuntime runtime
+                = AmazonSageMakerRuntimeClientBuilder.defaultClient();
+
+        String body = "0.2586735022925024,0.7643975138206263,0.7996895421292215,0.0013723629560577523,900";
+
+        ByteBuffer bodyBuffer = ByteBuffer.wrap(body.getBytes());
+
+        InvokeEndpointRequest request = new InvokeEndpointRequest()
+                .withEndpointName(String.format("%sEndpoint", stackName))
+                .withContentType("text/csv")
+                .withBody(bodyBuffer);
+
+        InvokeEndpointResult invokeEndpointResult = runtime.invokeEndpoint(request);
+
+        String bodyResponse = new String(invokeEndpointResult.getBody().array());
+
+        // TODO: Make it more sophisticated
+        assertTrue(bodyResponse.contains("predictions"));
+    }
 
     private Aggregation getReport(long campaignItemId) throws IOException, ExecutionException, InterruptedException {
         Response response = httpClient.prepareGet(reportUrl + "/reports/campaigns/" + campaignItemId)

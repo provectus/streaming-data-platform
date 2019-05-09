@@ -153,11 +153,11 @@ public class EndpointUpdater {
             endpointUpdater.sageMakerRole = this.sageMakerRole;
             endpointUpdater.dataUrl = this.dataUrl;
 
-            endpointUpdater.endpointConfigName = this.endpointConfigName;
+            endpointUpdater.endpointName = this.endpointName;
             endpointUpdater.algorithm = this.algorithm;
             endpointUpdater.instanceType = this.instanceType;
 
-            endpointUpdater.endpointName = generateName(this.endpointName);
+            endpointUpdater.endpointConfigName = generateName(this.endpointConfigName);
             endpointUpdater.modelName = generateName(this.modelName);
 
             return endpointUpdater;
@@ -173,8 +173,8 @@ public class EndpointUpdater {
                 throw new EndpointUpdaterBuilderException("You must setup servicePrefix to non-null value");
             }
 
-            return String.format("%s-%s-%s", servicePrefix, resourceName,
-                    helper.getRandomHexString());
+            return String.format("%s-%s-%s", servicePrefix,
+                    resourceName, helper.getRandomHexString()).substring(0, 63);
         }
     }
 }

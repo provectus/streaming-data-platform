@@ -18,7 +18,7 @@ node("JenkinsOnDemand") {
 	withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'CFNBot', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
             sh """
             export PATH=$PATH:$HOME/.local/bin
-            /tmp/apache-maven-3.6.0/bin/mvn -fn verify
+            /tmp/apache-maven-3.6.0/bin/mvn -fn verify -DresourceBucket=jenkins-itstack-artifacts
             """
         }
 	junit allowEmptyResults: true, testResults: 'fds-it/target/surefire-reports/*.xml'

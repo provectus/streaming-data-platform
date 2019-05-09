@@ -17,6 +17,6 @@ public class EndpointUpdaterTest {
                 = builder.generateName("EndpointConfiguration");
 
         assertTrue(generatedName.contains("EndpointConfiguration"));
-        assertEquals(65, generatedName.length());
+        assertEquals(63, generatedName.length());
     }
 }

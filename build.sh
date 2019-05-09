@@ -1,4 +1,5 @@
-#! /bin/bash
+#!/bin/bash
+
 SALT=$2
 GOAL=$1
 

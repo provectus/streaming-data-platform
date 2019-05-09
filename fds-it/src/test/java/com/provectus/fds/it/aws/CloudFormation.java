@@ -46,6 +46,17 @@ public class CloudFormation implements AutoCloseable {
         List<String> capabilities = Arrays.asList(Capability.CAPABILITY_IAM.name(), Capability.CAPABILITY_AUTO_EXPAND.name());
         createRequest.setCapabilities(capabilities);
         s3bucket = String.format("fds%s", stackName);
+
+        String resourceBucket = System.getProperty("resourceBucket");
+        if (resourceBucket == null) {
+            throw new RuntimeException(
+                    "System property 'resourceBucket' is null. If you run this code from maven\n" +
+                    "then don't forget add key -DresourceBucket=<yourTemporaryBucket>\n" +
+                    "If you run this code from IDE, then don't forget setup this property\n" +
+                    "in Debug/Run configuration (add -DresourceBucket=<yourTemporaryBucket> in the VM options)"
+            );
+        }
+
         List<Parameter> parameters = Arrays.asList(
                 new Parameter()
                         .withParameterKey("ServicePrefix")
@@ -58,7 +69,10 @@ public class CloudFormation implements AutoCloseable {
                         .withParameterValue(s3bucket),
                 new Parameter()
                         .withParameterKey("AggregationPeriod")
-                        .withParameterValue("2")
+                        .withParameterValue("2"),
+                new Parameter()
+                        .withParameterKey("S3ResourceBucket")
+                        .withParameterValue(resourceBucket)
         );
         createRequest.setParameters(parameters);
         CreateStackResult createResult = this.stackBuilder.createStack(createRequest);
