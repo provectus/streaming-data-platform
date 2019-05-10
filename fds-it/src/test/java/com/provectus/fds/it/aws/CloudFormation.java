@@ -16,17 +16,15 @@ public class CloudFormation implements AutoCloseable {
     private final AmazonCloudFormation stackBuilder;
     private final Stack stack;
     private final Map<String,Output> outputs;
-    private final String templateBucket;
 
     private final String region;
     private String s3bucket;
 
 
-    public CloudFormation(String region, String stackName, File templateFile, String templateBucket) throws IOException, InterruptedException {
+    public CloudFormation(String region, String stackName, File templateFile) throws InterruptedException {
         this.region = region;
         this.stackName = stackName;
         this.templateFile = templateFile;
-        this.templateBucket = templateBucket;
         this.stackBuilder = AmazonCloudFormationClientBuilder.standard()
                 .withRegion(region)
                 .build();
@@ -40,22 +38,23 @@ public class CloudFormation implements AutoCloseable {
 
     private Stack createStack() throws InterruptedException {
 
-        CreateStackRequest createRequest = new CreateStackRequest();
-        createRequest.setStackName(this.stackName);
-        createRequest.setTemplateURL(uploadTemplateToS3());
-        List<String> capabilities = Arrays.asList(Capability.CAPABILITY_IAM.name(), Capability.CAPABILITY_AUTO_EXPAND.name());
-        createRequest.setCapabilities(capabilities);
-        s3bucket = String.format("fds%s", stackName);
-
         String resourceBucket = System.getProperty("resourceBucket");
         if (resourceBucket == null) {
             throw new RuntimeException(
                     "System property 'resourceBucket' is null. If you run this code from maven\n" +
-                    "then don't forget add key -DresourceBucket=<yourTemporaryBucket>\n" +
-                    "If you run this code from IDE, then don't forget setup this property\n" +
-                    "in Debug/Run configuration (add -DresourceBucket=<yourTemporaryBucket> in the VM options)"
+                            "then don't forget add key -DresourceBucket=<yourTemporaryBucket>\n" +
+                            "If you run this code from IDE, then don't forget setup this property\n" +
+                            "in Debug/Run configuration (add -DresourceBucket=<yourTemporaryBucket> in the VM options)"
             );
         }
+
+        CreateStackRequest createRequest = new CreateStackRequest();
+        createRequest.setStackName(this.stackName);
+        createRequest.setTemplateURL(uploadTemplateToS3(resourceBucket));
+
+        List<String> capabilities = Arrays.asList(Capability.CAPABILITY_IAM.name(), Capability.CAPABILITY_AUTO_EXPAND.name());
+        createRequest.setCapabilities(capabilities);
+        s3bucket = String.format("fds%s", stackName);
 
         List<Parameter> parameters = Arrays.asList(
                 new Parameter()
@@ -137,12 +136,23 @@ public class CloudFormation implements AutoCloseable {
         return outputs;
     }
 
-    private String uploadTemplateToS3() {
+
+    /**
+     * Copy the template to a resource folder because the template has
+     * limitation no more than 51200 bytes.
+     *
+     * @see <a href="https://docs.aws.amazon.com/en_us/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html">
+     *     AWS CloudFormation Limits</a>
+     */
+    private String uploadTemplateToS3(String s3resourceBucket) {
         String templateName = String.format("%s.yaml", stackName);
 
-        AmazonS3Client amazonS3 = (AmazonS3Client) AmazonS3ClientBuilder.defaultClient();
-        amazonS3.putObject(templateBucket, templateName, templateFile);
-        return String.valueOf(amazonS3.getUrl(templateBucket, templateName));
+        AmazonS3Client amazonS3 = (AmazonS3Client) AmazonS3Client.builder()
+                .withRegion(region)
+                .build();
+
+        amazonS3.putObject(s3resourceBucket, templateName, templateFile);
+        return String.valueOf(amazonS3.getUrl(s3resourceBucket, templateName));
     }
 
     public void close() throws Exception {

@@ -32,7 +32,7 @@ public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
         String bucketName = String.format("fds%s", stackName);
 
         cloudFormation = new CloudFormation(REGION, stackName
-                , new File("../fds.yaml"), TEMPLATE_BUCKET
+                , new File("../fds.yaml")
         );
         reportUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
         apiUrl = cloudFormation.getOutput(URL_FOR_API).getOutputValue();
@@ -74,7 +74,10 @@ public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
     @Test
     public void testEndpoint() {
         AmazonSageMakerRuntime runtime
-                = AmazonSageMakerRuntimeClientBuilder.defaultClient();
+                = AmazonSageMakerRuntimeClientBuilder
+                    .standard()
+                    .withRegion(REGION)
+                    .build();
 
         String body = "0.2586735022925024,0.7643975138206263,0.7996895421292215,0.0013723629560577523,900";
 
@@ -89,7 +92,6 @@ public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
 
         String bodyResponse = new String(invokeEndpointResult.getBody().array());
 
-        // TODO: Make it more sophisticated
         assertTrue(bodyResponse.contains("predictions"));
     }
 

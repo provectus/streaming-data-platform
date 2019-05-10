@@ -1,12 +1,6 @@
 # Helpers scripts for the testing purpose #
 
-## it
- 
-Templates for integration testing. These scripts 
-is under construction and have a better replacement with class
-AwsFdsTestIt.
-     
-## sam 
+## sam
 
 Helper scripts for lambdas local debugging with IDE.
 
