@@ -2,6 +2,7 @@ package com.provectus.fds.compaction;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.lambda.runtime.events.KinesisEvent;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -10,6 +11,8 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provectus.fds.compaction.utils.ParquetUtils;
 import com.provectus.fds.compaction.utils.PathFormatter;
 import com.provectus.fds.compaction.utils.S3Utils;
@@ -20,11 +23,13 @@ import org.apache.parquet.hadoop.metadata.FileMetaData;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 
-public class JsonToParquetConverterLambda implements RequestHandler<S3Event, S3Event> {
+public class JsonToParquetConverterLambda implements RequestHandler<KinesisEvent, List<S3Event>> {
     private final static String GLUE_CATALOG_ID_KEY = "GLUE_CATALOG_ID";
     public static final String GLUE_CATALOG_ID_KEY_DEFAULT = "";
 
@@ -45,6 +50,26 @@ public class JsonToParquetConverterLambda implements RequestHandler<S3Event, S3E
     }
 
     @Override
+    public List<S3Event> handleRequest(KinesisEvent input, Context context) {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        context.getLogger().log(String.format("Processing Kinesis input: %s", input));
+
+        List<S3Event> results = new ArrayList<>();
+
+        for (KinesisEvent.KinesisEventRecord r : input.getRecords()) {
+            try {
+                S3Event s3Event = mapper.readerFor(S3Event.class)
+                        .readValue(r.getKinesis().getData().array());
+                results.add(handleRequest(s3Event, context));
+            } catch (IOException e) {
+                context.getLogger().log(e.getMessage());
+            }
+        }
+        return results;
+    }
+
+
     public S3Event handleRequest(S3Event s3Event,Context context) {
         context.getLogger().log("Received: "+s3Event.toString());
         AmazonS3 s3clinet = AmazonS3ClientBuilder.defaultClient();

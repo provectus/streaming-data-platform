@@ -157,7 +157,70 @@ Resources:
       NotificationConfiguration:
         LambdaConfigurations:
           - Event: s3:ObjectCreated:*
-            Function: !GetAtt 'JsonToParquetLambda.Arn'
+            Function: !GetAtt 'S3EventProxy.Arn'
+
+  # Kinesis delivery stream for all events in the S3 bucket
+  S3EventsDeliveryStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Sub '${ServicePrefix}S3EventsDeliveryStream'
+      ShardCount: !Ref ShardCount
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt S3EventProxy.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub 'arn:aws:s3:::${S3BucketName}'
+
+  # Send all s3 events to the delivery stream
+  S3EventProxy:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ServicePrefix}S3EventProxy'
+      Handler: me.asaushkin.LambdaS3EventProxy
+      CodeUri: ./fds-lambda-ml-integration/target/fds-lambda-ml-integration-1.0-SNAPSHOT.jar
+      Runtime: java8
+      Role: !GetAtt S3ProxyExecutionRole.Arn
+      MemorySize: 256
+      Timeout: 30
+      Environment:
+        Variables:
+          STREAM_NAME: !Ref S3EventsDeliveryStream
+
+  S3ProxyExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: KinesisAccessPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: KinesisAccessPolicy
+                Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:DescribeStreamSummary
+                  - kinesis:GetRecords
+                  - kinesis:GetShardIterator
+                  - kinesis:ListShards
+                  - kinesis:ListStreams
+                  - kinesis:SubscribeToShard
+                  - kinesis:PutRecords
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
 
   MLExecutionRole:
     Type: AWS::IAM::Role
@@ -315,15 +378,16 @@ Resources:
       Role:
         !GetAtt 'MLExecutionRole.Arn'
       Runtime: java8
-  MlIntegrationLambdaPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:invokeFunction
-      FunctionName:
-        !GetAtt 'MlIntegrationLambda.Arn'
-      Principal: s3.amazonaws.com
-      SourceArn:
-        !Sub 'arn:aws:s3:::${S3BucketName}'
+
+#  MlIntegrationLambdaPermission:
+#    Type: AWS::Lambda::Permission
+#    Properties:
+#      Action: lambda:invokeFunction
+#      FunctionName:
+#        !GetAtt 'MlIntegrationLambda.Arn'
+#      Principal: s3.amazonaws.com
+#      SourceArn:
+#        !Sub 'arn:aws:s3:::${S3BucketName}'
 
   LogGroupMlEndpointReplacerLambda:
     Type: AWS::Logs::LogGroup
@@ -349,15 +413,16 @@ Resources:
       Role:
         !GetAtt 'MLExecutionRole.Arn'
       Runtime: java8
-  MlEndpointReplacerLambdaPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:invokeFunction
-      FunctionName:
-        !GetAtt 'MlEndpointReplacerLambda.Arn'
-      Principal: s3.amazonaws.com
-      SourceArn:
-        !Sub 'arn:aws:s3:::${S3BucketName}'
+
+#  MlEndpointReplacerLambdaPermission:
+#    Type: AWS::Lambda::Permission
+#    Properties:
+#      Action: lambda:invokeFunction
+#      FunctionName:
+#        !GetAtt 'MlEndpointReplacerLambda.Arn'
+#      Principal: s3.amazonaws.com
+#      SourceArn:
+#        !Sub 'arn:aws:s3:::${S3BucketName}'
 
   Endpoint:
     Type: "AWS::SageMaker::Endpoint"
@@ -870,6 +935,22 @@ Resources:
                   - glue:GetTable
                 Resource:
                   - '*'
+              - Sid: kinesis
+                Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:DescribeStreamSummary
+                  - kinesis:GetRecords
+                  - kinesis:GetShardIterator
+                  - kinesis:ListShards
+                  - kinesis:ListStreams
+                  - kinesis:SubscribeToShard
+                  - kinesis:PutRecords
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+
   RawBcnsS3DeliveryStream:
     DependsOn:
       - S3DeliveryAccessRole
@@ -1344,13 +1425,24 @@ Resources:
       Timeout: 180
       Role: !GetAtt 'S3DeliveryAccessRole.Arn'
       Runtime: java8
-  JsonToParquetLambdaPermission:
-    Type: AWS::Lambda::Permission
+
+  S3EventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
     Properties:
-      Action: lambda:invokeFunction
-      FunctionName: !GetAtt 'JsonToParquetLambda.Arn'
-      Principal: s3.amazonaws.com
-      SourceArn: !Sub 'arn:aws:s3:::${S3BucketName}'
+      EventSourceArn: !GetAtt S3EventsDeliveryStream.Arn
+      FunctionName: !GetAtt JsonToParquetLambda.Arn
+      # process s3 events in series https://stackoverflow.com/a/42693053/2743959
+      StartingPosition: TRIM_HORIZON
+      BatchSize: 1
+
+#  JsonToParquetLambdaPermission:
+#    Type: AWS::Lambda::Permission
+#    Properties:
+#      Action: lambda:invokeFunction
+#      FunctionName: !GetAtt 'JsonToParquetLambda.Arn'
+#      Principal: s3.amazonaws.com
+#      SourceArn: !Sub 'arn:aws:s3:::${S3BucketName}'
+
   AggregationDynamoTable:
     Type: AWS::DynamoDB::Table
     Properties:
