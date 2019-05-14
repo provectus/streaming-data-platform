@@ -35,6 +35,10 @@
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-sagemakerruntime</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+        </dependency>
 
     </dependencies>
 

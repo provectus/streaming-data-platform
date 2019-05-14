@@ -132,19 +132,8 @@
                         </goals>
                         <configuration>
                             <executable>../create-stack.sh</executable>
-                            <commandlineArgs>-p -d -c -r ${resourceBucket}
+                            <commandlineArgs>-p -d -c -b ${resourceBucket} -r us-west-2
                             </commandlineArgs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>CleanUp S3</id>
-                        <phase>post-integration-test</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>aws</executable>
-                            <commandlineArgs>s3 rb s3://${resourceBucket} --force</commandlineArgs>
                         </configuration>
                     </execution>
                 </executions>
