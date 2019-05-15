@@ -180,7 +180,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub '${ServicePrefix}S3EventProxy'
-      Handler: me.asaushkin.LambdaS3EventProxy
+      Handler: com.provectus.fds.LambdaS3EventProxy
       CodeUri: ./fds-lambda-ml-integration/target/fds-lambda-ml-integration-1.0-SNAPSHOT.jar
       Runtime: java8
       Role: !GetAtt S3ProxyExecutionRole.Arn
