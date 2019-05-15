@@ -203,7 +203,7 @@ Resources:
             Action:
               - sts:AssumeRole
       Policies:
-        - PolicyName: KinesisAccessPolicy
+        - PolicyName: !Sub '${ServicePrefix}ProxyKinesisAccessPolicy'
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -331,6 +331,27 @@ Resources:
                 Resource:
                   - !GetAtt 'SageMakerRole.Arn'
                 Effect: Allow
+
+        - PolicyName: !Sub '${ServicePrefix}ConsumerKinesisAccessPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: KinesisAccessPolicy
+                Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:DescribeStreamSummary
+                  - kinesis:GetRecords
+                  - kinesis:GetShardIterator
+                  - kinesis:ListShards
+                  - kinesis:ListStreams
+                  - kinesis:SubscribeToShard
+                  - kinesis:PutRecords
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+
   SageMakerRole:
     Type: AWS::IAM::Role
     Properties:
@@ -446,15 +467,14 @@ Resources:
         !GetAtt 'MLExecutionRole.Arn'
       Runtime: java8
 
-#  MlIntegrationLambdaPermission:
-#    Type: AWS::Lambda::Permission
-#    Properties:
-#      Action: lambda:invokeFunction
-#      FunctionName:
-#        !GetAtt 'MlIntegrationLambda.Arn'
-#      Principal: s3.amazonaws.com
-#      SourceArn:
-#        !Sub 'arn:aws:s3:::${S3BucketName}'
+  MlIntegrationEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt S3EventsDeliveryStream.Arn
+      FunctionName: !GetAtt MlIntegrationLambda.Arn
+      # process s3 events in series https://stackoverflow.com/a/42693053/2743959
+      StartingPosition: TRIM_HORIZON
+      BatchSize: 1
 
   LogGroupMlEndpointReplacerLambda:
     Type: AWS::Logs::LogGroup
@@ -481,15 +501,14 @@ Resources:
         !GetAtt 'MLExecutionRole.Arn'
       Runtime: java8
 
-#  MlEndpointReplacerLambdaPermission:
-#    Type: AWS::Lambda::Permission
-#    Properties:
-#      Action: lambda:invokeFunction
-#      FunctionName:
-#        !GetAtt 'MlEndpointReplacerLambda.Arn'
-#      Principal: s3.amazonaws.com
-#      SourceArn:
-#        !Sub 'arn:aws:s3:::${S3BucketName}'
+  EndpointReplacerEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt S3EventsDeliveryStream.Arn
+      FunctionName: !GetAtt MlEndpointReplacerLambda.Arn
+      # process s3 events in series https://stackoverflow.com/a/42693053/2743959
+      StartingPosition: TRIM_HORIZON
+      BatchSize: 1
 
   Endpoint:
     Type: "AWS::SageMaker::Endpoint"
@@ -1506,14 +1525,6 @@ Resources:
       # process s3 events in series https://stackoverflow.com/a/42693053/2743959
       StartingPosition: TRIM_HORIZON
       BatchSize: 1
-
-#  JsonToParquetLambdaPermission:
-#    Type: AWS::Lambda::Permission
-#    Properties:
-#      Action: lambda:invokeFunction
-#      FunctionName: !GetAtt 'JsonToParquetLambda.Arn'
-#      Principal: s3.amazonaws.com
-#      SourceArn: !Sub 'arn:aws:s3:::${S3BucketName}'
 
   AggregationDynamoTable:
     Type: AWS::DynamoDB::Table

@@ -2,17 +2,23 @@ package com.provectus.fds.ml;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.lambda.runtime.events.KinesisEvent;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.s3.event.S3EventNotification;
 import com.amazonaws.services.sagemaker.model.CreateTrainingJobResult;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provectus.fds.ml.utils.IntegrationModuleHelper;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static com.provectus.fds.ml.processor.CsvRecordProcessor.TOTAL_TRAIN_RECORDS_PROCESSED;
 import static com.provectus.fds.ml.processor.CsvRecordProcessor.TOTAL_VERIFY_RECORDS_PROCESSED;
 
-public class PrepareDataForTrainingJobLambda implements RequestHandler<S3Event, S3Event> {
+public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEvent, List<S3Event>> {
 
     static final String ATHENA_REGION_ID = "ATHENA_REGION_ID";
     static final String ATHENA_REGION_ID_DEF = "us-west-2";
@@ -51,7 +57,26 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<S3Event, 
     }
 
     @Override
-    public S3Event handleRequest(S3Event s3Event, Context context) {
+    public List<S3Event> handleRequest(KinesisEvent input, Context context) {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        context.getLogger().log(String.format("Processing Kinesis input: %s", input));
+
+        List<S3Event> results = new ArrayList<>();
+
+        for (KinesisEvent.KinesisEventRecord r : input.getRecords()) {
+            try {
+                S3Event s3Event = mapper.readerFor(S3Event.class)
+                        .readValue(r.getKinesis().getData().array());
+                results.add(handleRequest(s3Event, context));
+            } catch (IOException e) {
+                context.getLogger().log(e.getMessage());
+            }
+        }
+        return results;
+    }
+
+    private S3Event handleRequest(S3Event s3Event, Context context) {
         context.getLogger().log(String.format("Received: %s", s3Event.toString()));
 
         boolean isParquetUpdated = false;
