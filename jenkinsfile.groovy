@@ -20,7 +20,7 @@ node("JenkinsOnDemand") {
             export PATH=\$PATH:\$HOME/.local/bin
             BUCKET=jenkins-`cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 32 | head -n 1`
             /tmp/apache-maven-3.6.0/bin/mvn -fn clean package verify -DresourceBucket=\${BUCKET}
-            aws s3 rb s3://\${BUCKET} --force
+            (aws s3 rb s3://\${BUCKET} --force || exit 0)
             """
         }
 	junit allowEmptyResults: true, testResults: 'fds-it/target/surefire-reports/*.xml'
