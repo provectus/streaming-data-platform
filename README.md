@@ -68,7 +68,7 @@ Deploy cloudformation stack:
 aws cloudformation deploy
     --template-file fds.yaml
     --capabilities CAPABILITY_IAM
-    [ --parameter-overrides ServicePrefixName=<some-value> AnalyticalDBName=<some-value> S3Bucket=<some-value> AggregationPeriod=10 ]
+    [ --parameter-overrides ServicePrefixName=<some-value> AnalyticalDBName=<some-value> S3Bucket=<some-value> AggregationPeriod=10 S3ResourceBucket=<some-value>]
     --stack-name <stack-name>
 ```
 Stack outputs:
@@ -78,8 +78,12 @@ Stack outputs:
 #### Integration
 The integration test would be launched in `us-west-2` region by default.
 ```
-mvn -fn verify
+mvn -fn verify -DresourceBucket=<temporaryBucket>
 ```
+
+Where `temporaryBucket` is a bucket for resources which needed to create the stack.
+You may remove it after stack creation will finish.
+
 Test report is stored in `./fds-it/target/surefire-reports/`
 #### Performance
 [Gatling](https://gatling.io) is used for performance testing

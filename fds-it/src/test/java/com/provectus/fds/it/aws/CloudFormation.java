@@ -4,6 +4,8 @@ import com.amazonaws.services.cloudformation.AmazonCloudFormation;
 import com.amazonaws.services.cloudformation.AmazonCloudFormationClientBuilder;
 import com.amazonaws.services.cloudformation.model.*;
 import com.amazonaws.services.cloudformation.model.Stack;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
 import java.io.*;
 import java.util.*;
@@ -15,8 +17,12 @@ public class CloudFormation implements AutoCloseable {
     private final Stack stack;
     private final Map<String,Output> outputs;
 
+    private final String region;
+    private String s3bucket;
 
-    public CloudFormation(String region, String stackName, File templateFile) throws IOException, InterruptedException {
+
+    public CloudFormation(String region, String stackName, File templateFile) throws InterruptedException {
+        this.region = region;
         this.stackName = stackName;
         this.templateFile = templateFile;
         this.stackBuilder = AmazonCloudFormationClientBuilder.standard()
@@ -30,13 +36,26 @@ public class CloudFormation implements AutoCloseable {
         return this.outputs.get(key.toLowerCase());
     }
 
-    private Stack createStack() throws IOException, InterruptedException {
+    private Stack createStack() throws InterruptedException {
+
+        String resourceBucket = System.getProperty("resourceBucket");
+        if (resourceBucket == null) {
+            throw new RuntimeException(
+                    "System property 'resourceBucket' is null. If you run this code from maven\n" +
+                            "then don't forget add key -DresourceBucket=<yourTemporaryBucket>\n" +
+                            "If you run this code from IDE, then don't forget setup this property\n" +
+                            "in Debug/Run configuration (add -DresourceBucket=<yourTemporaryBucket> in the VM options)"
+            );
+        }
 
         CreateStackRequest createRequest = new CreateStackRequest();
         createRequest.setStackName(this.stackName);
-        createRequest.setTemplateBody(readTemplate());
+        createRequest.setTemplateURL(uploadTemplateToS3(resourceBucket));
+
         List<String> capabilities = Arrays.asList(Capability.CAPABILITY_IAM.name(), Capability.CAPABILITY_AUTO_EXPAND.name());
         createRequest.setCapabilities(capabilities);
+        s3bucket = String.format("fds%s", stackName);
+
         List<Parameter> parameters = Arrays.asList(
                 new Parameter()
                         .withParameterKey("ServicePrefix")
@@ -46,10 +65,13 @@ public class CloudFormation implements AutoCloseable {
                         .withParameterValue(stackName),
                 new Parameter()
                         .withParameterKey("S3BucketName")
-                        .withParameterValue("itstack-artifacts"),
+                        .withParameterValue(s3bucket),
                 new Parameter()
                         .withParameterKey("AggregationPeriod")
-                        .withParameterValue("2")
+                        .withParameterValue("2"),
+                new Parameter()
+                        .withParameterKey("S3ResourceBucket")
+                        .withParameterValue(resourceBucket)
         );
         createRequest.setParameters(parameters);
         CreateStackResult createResult = this.stackBuilder.createStack(createRequest);
@@ -115,26 +137,33 @@ public class CloudFormation implements AutoCloseable {
     }
 
 
-    private String readTemplate() throws IOException {
+    /**
+     * Copy the template to a resource folder because the template has
+     * limitation no more than 51200 bytes.
+     *
+     * @see <a href="https://docs.aws.amazon.com/en_us/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html">
+     *     AWS CloudFormation Limits</a>
+     */
+    private String uploadTemplateToS3(String s3resourceBucket) {
+        String templateName = String.format("%s.yaml", stackName);
 
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(
-                        new FileInputStream(this.templateFile)
-                )
-        )) {
+        AmazonS3Client amazonS3 = (AmazonS3Client) AmazonS3Client.builder()
+                .withRegion(region)
+                .build();
 
-            StringBuilder sb = new StringBuilder();
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(String.format("%s\n", line));
-            }
-
-            return sb.toString();
-        }
+        amazonS3.putObject(s3resourceBucket, templateName, templateFile);
+        return String.valueOf(amazonS3.getUrl(s3resourceBucket, templateName));
     }
 
     public void close() throws Exception {
+
+        /**
+         * Firstly, we must remove the bucket because the bucket is not
+         * empty now and the stack will not be deleted successfully.
+         */
+        new BucketRemover().removeBucket(region, s3bucket);
+        System.out.println(String.format("S3 bucket %s was removed successfully", s3bucket));
+
         DeleteStackRequest deleteStackRequest = new DeleteStackRequest();
         deleteStackRequest.setStackName(this.stack.getStackId());
         this.stackBuilder.deleteStack(deleteStackRequest);
@@ -143,7 +172,6 @@ public class CloudFormation implements AutoCloseable {
                 stackName,
                 waitForStack(this.stack.getStackId()).get().getStackStatus())
         );
-
     }
 
 }

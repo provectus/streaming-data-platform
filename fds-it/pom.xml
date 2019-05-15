@@ -10,6 +10,9 @@
     <modelVersion>4.0.0</modelVersion>
     <packaging>jar</packaging>
 
+    <properties>
+        <resourceBucket>itstack-artifacts</resourceBucket>
+    </properties>
 
     <artifactId>fds-it</artifactId>
 
@@ -24,6 +27,10 @@
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-cloudformation</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-sagemakerruntime</artifactId>
         </dependency>
 
         <dependency>
@@ -82,7 +89,12 @@
                         <configuration>
                             <skip>false</skip>
                             <includes>
-                                <include>**/*IT.java</include>
+                                <!--
+                                At this moment AwsFdsMLTestIT.java cover all of the cases
+                                of the integration testing. Other tests were blocked while
+                                wasting a lot of time.
+                                -->
+                                <include>**/AwsFdsMLTestIT.java</include>
                             </includes>
                             <excludes>
                                 <exclude>**/Test.java</exclude>
@@ -113,39 +125,14 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <executions>
                     <execution>
-                        <id>Create S3 bucket</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>aws</executable>
-                            <commandlineArgs>s3 mb s3://itstack-artifacts --region us-west-2</commandlineArgs>
-                        </configuration>
-                    </execution>
-                    <execution>
                         <id>Copy streaming job to S3 bucket</id>
                         <phase>pre-integration-test</phase>
                         <goals>
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>aws</executable>
-                            <commandlineArgs>s3 cp ../fds-flink-streaming/target/fds-flink-streaming-1.0-SNAPSHOT.jar
-                                s3://itstack-artifacts/fds-flink-streaming.jar
-                            </commandlineArgs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>Upload to S3</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>aws</executable>
-                            <commandlineArgs>cloudformation package --template-file ../fds-template.yaml
-                                --output-template-file fds.yaml --s3-bucket itstack-artifacts
+                            <executable>../create-stack.sh</executable>
+                            <commandlineArgs>-p -d -c -b ${resourceBucket} -r us-west-2
                             </commandlineArgs>
                         </configuration>
                     </execution>
@@ -157,7 +144,7 @@
                         </goals>
                         <configuration>
                             <executable>aws</executable>
-                            <commandlineArgs>s3 rb s3://itstack-artifacts --force</commandlineArgs>
+                            <commandlineArgs>s3 rb s3://${resourceBucket} --force</commandlineArgs>
                         </configuration>
                     </execution>
                 </executions>

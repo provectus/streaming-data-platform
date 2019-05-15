@@ -81,6 +81,23 @@
             </dependency>
 
             <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-athena</artifactId>
+                <version>${aws.java.sdk.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-sagemaker</artifactId>
+                <version>${aws.java.sdk.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-sagemakerruntime</artifactId>
+                <version>${aws.java.sdk.version}</version>
+            </dependency>
+
+
+            <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
                 <version>${junit.version}</version>
@@ -175,6 +192,27 @@
                 <artifactId>async-http-client</artifactId>
                 <version>2.6.0</version>
             </dependency>
+            <dependency>
+                <groupId>org.lz4</groupId>
+                <artifactId>lz4-java</artifactId>
+                <version>1.5.1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-lambda-java-log4j2</artifactId>
+                <version>1.1.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>2.11.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>2.11.2</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.projectlombok</groupId>
@@ -239,6 +277,7 @@
         <module>fds-lambda-dynamodb-persister</module>
         <module>fds-common-dynamodb</module>
         <module>fds-flink-streaming</module>
+        <module>fds-lambda-ml-integration</module>
     </modules>
 
     <reporting>
