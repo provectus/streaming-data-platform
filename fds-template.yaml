@@ -316,6 +316,9 @@ Resources:
                   - sagemaker:UpdateEndpoint
                 Resource:
                   - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:training-job/fds-training-job-*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:model/*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint-config/*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/*"
                 Effect: Allow
 
               - Sid: invokeEndpoint
