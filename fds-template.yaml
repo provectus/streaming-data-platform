@@ -136,6 +136,7 @@ Parameters:
   ClicksSessionTimeout:
     Default: 5
     Type: Number
+
 Rules:
   RegionSupport:
     Assertions:
@@ -242,10 +243,12 @@ Resources:
               - Sid: loggroups
                 Effect: Allow
                 Action:
+                  - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource:
                   - !GetAtt 'LogGroupMlIntegrationLambda.Arn'
+                  - !GetAtt 'LogGroupInvokeEndpointLambda.Arn'
 
               - Sid: athenaAll
                 Action:
@@ -311,10 +314,16 @@ Resources:
                   - sagemaker:CreateModel
                   - sagemaker:CreateEndpointConfig
                   - sagemaker:UpdateEndpoint
-
                 Resource:
                   - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:training-job/fds-training-job-*"
                 Effect: Allow
+
+              - Sid: invokeEndpoint
+                Action:
+                  - sagemaker:InvokeEndpoint
+                Effect: Allow
+                Resource:
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/${ServicePrefix}endpoint"
 
               - Sid: iam
                 Action:
@@ -352,6 +361,64 @@ Resources:
                   - !Sub 'arn:aws:s3:::${S3BucketName}/*'
                   - !Sub 'arn:aws:s3:::${S3ResourceBucket}'
                   - !Sub 'arn:aws:s3:::${S3ResourceBucket}/*'
+
+  ApiGateway:
+    Type: "AWS::ApiGateway::RestApi"
+    Properties:
+      Name: !Sub '${ServicePrefix}PredictAPI'
+      Description: "Predict Bid Win API"
+
+  ApiGatewayRootMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: "NONE"
+      HttpMethod: "POST"
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: "AWS_PROXY"
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations"
+          - LambdaArn: !GetAtt "InvokeEndpointLambda.Arn"
+      ResourceId: !GetAtt "ApiGateway.RootResourceId"
+      RestApiId: !Ref "ApiGateway"
+
+  ApiGatewayDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    DependsOn:
+      - "ApiGatewayRootMethod"
+    Properties:
+      RestApiId: !Ref "ApiGateway"
+      StageName: !Ref "ServicePrefix"
+
+  InvokeEndpointLambda:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      FunctionName: !Sub "${ServicePrefix}InvokeEndpointLambda"
+      Handler: com.provectus.fds.ml.InvokeEndpointLambda
+      CodeUri: ./fds-lambda-ml-integration/target/fds-lambda-ml-integration-1.0-SNAPSHOT.jar
+      Runtime: java8
+      MemorySize: 256
+      Timeout: 30
+      Role: !GetAtt "MLExecutionRole.Arn"
+      Environment:
+        Variables:
+          REGION: !Ref 'AWS::Region'
+          ENDPOINT: !Sub '${ServicePrefix}Endpoint'
+
+  LogGroupInvokeEndpointLambda:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        !Sub '/aws/lambda/${ServicePrefix}InvokeEndpointLambda'
+
+  LambdaApiGatewayInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !GetAtt "InvokeEndpointLambda.Arn"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/POST/"
+
   LogGroupMlIntegrationLambda:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -1658,3 +1725,6 @@ Outputs:
   UrlForReports:
     Description: Root URL of the reports gateway
     Value: !Sub 'https://${ReportingApi}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}'
+  UrlForPredictions:
+    Description: Prediction URL of the API gateway
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}"

@@ -12,10 +12,12 @@ abstract class AbstarctFdsTestIt {
 
     static final String URL_FOR_API = "UrlForAPI";
     static final String URL_FOR_REPORTS = "UrlForReports";
+    static final String URL_FOR_PREDICTIONS = "UrlForPredictions";
 
     static CloudFormation cloudFormation;
     static String reportUrl;
     static String apiUrl;
+    static String predictionsUrl;
 
     final AsyncHttpClient httpClient = asyncHttpClient(config());
     final ObjectMapper objectMapper = new ObjectMapper();

@@ -132,7 +132,7 @@
                         </goals>
                         <configuration>
                             <executable>../create-stack.sh</executable>
-                            <commandlineArgs>-p -d -c -r ${resourceBucket}
+                            <commandlineArgs>-p -d -c -b ${resourceBucket} -r us-west-2
                             </commandlineArgs>
                         </configuration>
                     </execution>

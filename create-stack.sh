@@ -2,7 +2,7 @@
 
 usage() { 
     cat <<EOM
-    Usage: $0 [-m] [-p] [-c] [-d] [-s stackname] -r resourceBucket
+    Usage: $0 [-m] [-p] [-c] [-d] [-s stackname] -b resourceBucket
 
     -m             Run 'maven clean package' before packaging
     -p             Only package, do not deploy
@@ -11,8 +11,9 @@ usage() {
     -s stackname   Required when deployed app (without -p). Stack
                    name. Used also for generate many different resources
                    in the stack
-    -r resourceBucket Mandatoty parameter. Points to S3 bucket where resources
+    -b resourceBucket Mandatoty parameter. Points to S3 bucket where resources
                    will be deploying while the stack creating process
+    -r region      Region name
 EOM
     exit 1;
 }
@@ -25,14 +26,17 @@ if [[ $? != 0 ]]; then
     exit 1
 fi
 
-while getopts "mr:s:pchd" o; do
+while getopts "mb:s:pchdr:" o; do
     case "${o}" in
         m)
             maven=1
             ;;
-        r)
+        b)
             resourceBucket=${OPTARG}
             ;;
+	r)
+            regionName=${OPTARG}
+	    ;;
         s)
             stackname=${OPTARG}
             ;;
@@ -53,7 +57,7 @@ done
 shift $((OPTIND-1))
 
 if [[ -z "${resourceBucket}" ]]; then
-    echo "ERROR: -r is required parameter"
+    echo "ERROR: -b is required parameter"
     usage
 fi
 
@@ -69,7 +73,7 @@ if [[ -n "${dropCreateResourceBucket}" ]]; then
     ${AWS_CLI} s3 rb s3://${resourceBucket} --force
 
     echo "Creating bucket ${resourceBucket} "
-    ${AWS_CLI} s3 mb s3://${resourceBucket} --region us-west-2
+    ${AWS_CLI} s3 mb s3://${resourceBucket} --region ${regionName}
 fi
 
 echo Packaging fds-template.yaml to fds.yaml with bucket ${resourceBucket}
@@ -100,7 +104,7 @@ if [[ -z "${onlyPackage}" ]]; then
         exit 1
     fi
 
-    ${AWS_CLI} cloudformation deploy \
+    ${AWS_CLI} --region ${regionName} cloudformation deploy \
         --s3-bucket ${resourceBucket} \
         --template-file ${PROJECT_DIR}/fds.yaml \
         --capabilities CAPABILITY_IAM \
@@ -111,6 +115,6 @@ if [[ -z "${onlyPackage}" ]]; then
         S3ResourceBucket=${resourceBucket} \
         --stack-name ${stackname}
 
-    ${AWS_CLI} cloudformation \
+    ${AWS_CLI} --region ${regionName} cloudformation \
         describe-stacks --stack-name ${stackname}
 fi
