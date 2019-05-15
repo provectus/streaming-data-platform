@@ -655,26 +655,31 @@ Resources:
           - Arn
   BcnStream:
     Type: AWS::Kinesis::Stream
+    DependsOn: 'S3EventsDeliveryStream'
     Properties:
       Name: !Sub '${ServicePrefix}bcns'
       ShardCount: !Ref 'ShardCount'
   BidStream:
     Type: AWS::Kinesis::Stream
+    DependsOn: 'S3EventsDeliveryStream'
     Properties:
       Name: !Sub '${ServicePrefix}bids'
       ShardCount: !Ref 'ShardCount'
   ClickStream:
     Type: AWS::Kinesis::Stream
+    DependsOn: 'S3EventsDeliveryStream'
     Properties:
       Name: !Sub '${ServicePrefix}clicks'
       ShardCount: !Ref 'ShardCount'
   ImpressionStream:
     Type: AWS::Kinesis::Stream
+    DependsOn: 'S3EventsDeliveryStream'
     Properties:
       Name: !Sub '${ServicePrefix}impressions'
       ShardCount: !Ref 'ShardCount'
   AggregateStream:
     Type: AWS::Kinesis::Stream
+    DependsOn: 'S3EventsDeliveryStream'
     Properties:
       Name: !Sub '${ServicePrefix}aggregates'
       ShardCount: !Ref 'ShardCount'
