@@ -9,6 +9,8 @@ import com.amazonaws.services.sagemaker.model.CreateTrainingJobResult;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provectus.fds.ml.utils.IntegrationModuleHelper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,20 +22,11 @@ import static com.provectus.fds.ml.processor.CsvRecordProcessor.TOTAL_VERIFY_REC
 
 public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEvent, List<S3Event>> {
 
-    static final String ATHENA_REGION_ID = "ATHENA_REGION_ID";
-    static final String ATHENA_REGION_ID_DEF = "us-west-2";
-
-    static final String ATHENA_DATABASE = "ATHENA_DATABASE";
-    static final String ATHENA_DATABASE_DEF = "default";
-
     static final String SLEEP_AMOUNT_IN_MS = "SLEEP_AMOUNT_IN_MS";
     static final String SLEEP_AMOUNT_IN_MS_DEF = "1000";
 
     static final String CLIENT_EXECUTION_TIMEOUT = "CLIENT_EXECUTION_TIMEOUT";
     static final String CLIENT_EXECUTION_TIMEOUT_DEF = "0";
-
-    static final String S3_BUCKET = "S3_BUCKET";
-    static final String S3_BUCKET_DEF = "newfdsb";
 
     static final String ATHENA_S3_KEY = "ATHENA_S3_KEY";
     static final String ATHENA_S3_KEY_DEF = "athena/";
@@ -44,11 +37,8 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
     static final String VERIFICATION_FACTOR = "VERIFICATION_FACTOR";
     static final String VERIFICATION_FACTOR_DEF = "10";
 
-    static final String MODEL_OUTPUT_PATH = "MODEL_OUTPUT_PATH";
-    static final String MODEL_OUTPUT_PATH_DEF = "s3://newfdsb/ml/model";
-
-    static final String SAGEMAKER_ROLE_ARN = "SAGEMAKER_ROLE_ARN";
-    static final String SAGEMAKER_ROLE_ARN_DEF = null;
+    private static final Logger logger = LogManager.getLogger(PrepareDataForTrainingJobLambda.class);
+    private final ObjectMapper mapper = new ObjectMapper();
 
     public static class PrepareDataForTrainingJobLambdaException extends RuntimeException {
         PrepareDataForTrainingJobLambdaException(Throwable e) {
@@ -58,9 +48,9 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
 
     @Override
     public List<S3Event> handleRequest(KinesisEvent input, Context context) {
-        ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        context.getLogger().log(String.format("Processing Kinesis input: %s", input));
+
+        logger.info("Processing Kinesis input: {}", input);
 
         List<S3Event> results = new ArrayList<>();
 
@@ -70,22 +60,29 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
                         .readValue(r.getKinesis().getData().array());
                 results.add(handleRequest(s3Event, context));
             } catch (IOException e) {
-                context.getLogger().log(e.getMessage());
+                logger.throwing(e);
             }
         }
         return results;
     }
 
     private S3Event handleRequest(S3Event s3Event, Context context) {
-        context.getLogger().log(String.format("Received: %s", s3Event.toString()));
+        logger.info("Received S3 event");
+        String configBucket = System.getenv("S3_BUCKET");
 
         boolean isParquetUpdated = false;
 
         for (S3EventNotification.S3EventNotificationRecord record : s3Event.getRecords()) {
-            String s3Key = record.getS3().getObject().getKey();
+            String eventKey = record.getS3().getObject().getKey();
+            String eventBucket = record.getS3().getBucket().getName();
 
-            if (s3Key.startsWith("parquet/")) {
+            logger.info("Got an event with s3://bucket/key: s3://{}/{}", eventBucket, eventKey);
+
+            if (eventKey.startsWith("parquet/") && eventBucket.equals(configBucket)) {
+                logger.info("Found key started with 'parquet/': {}", eventKey);
+
                 isParquetUpdated = true;
+                break;
             }
         }
 
@@ -93,21 +90,20 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
             try {
                 IntegrationModuleHelper h = new IntegrationModuleHelper();
 
-                context.getLogger().log("Starting data preparation for the training job");
-                Map<String, String> statistic = new JobDataGenerator()
-                        .generateTrainingData(h).getStatistic();
+                logger.info("Starting data preparation for the training job");
+                Map<String, String> statistic
+                        = new JobDataGenerator().generateTrainingData(h).getStatistic();
 
-                context.getLogger().log("Data was prepared. Training part has "
-                        + statistic.get(TOTAL_TRAIN_RECORDS_PROCESSED)
-                        + ", validation part has "
-                        + statistic.get(TOTAL_VERIFY_RECORDS_PROCESSED)
-                        + " records");
-                context.getLogger().log("Starting training job");
+                logger.info("Data was prepared. Training part has {}, validation part has {} records",
+                        statistic.get(TOTAL_TRAIN_RECORDS_PROCESSED),
+                        statistic.get(TOTAL_VERIFY_RECORDS_PROCESSED));
+
+                logger.info("Starting training job");
                 CreateTrainingJobResult jobResult = new JobRunner()
                         .createJob(h,
                                 statistic.get("train"),
                                 statistic.get("validation"));
-                context.getLogger().log("Training job started. ARN is: " + jobResult.getTrainingJobArn());
+                logger.info("Training job started. ARN is: {}", jobResult.getTrainingJobArn());
             } catch (Exception e) {
                 throw new PrepareDataForTrainingJobLambdaException(e);
             }

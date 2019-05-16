@@ -180,7 +180,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub '${ServicePrefix}S3EventProxy'
-      Handler: com.provectus.fds.LambdaS3EventProxy
+      Handler: com.provectus.fds.ml.LambdaS3EventProxy
       CodeUri: ./fds-lambda-ml-integration/target/fds-lambda-ml-integration-1.0-SNAPSHOT.jar
       Runtime: java8
       Role: !GetAtt S3ProxyExecutionRole.Arn
@@ -493,10 +493,13 @@ Resources:
         !Sub '${ServicePrefix}MlEndpointReplacer'
       Environment:
         Variables:
+          S3_BUCKET: !Sub '${S3BucketName}'
           REGION_ID: !Ref 'AWS::Region'
           SERVICE_PREFIX: !Sub '${ServicePrefix}'
           SAGEMAKER_ROLE_ARN: !GetAtt 'SageMakerRole.Arn'
           ENDPOINT_NAME: !Sub '${ServicePrefix}Endpoint'
+          # see https://docs.aws.amazon.com/en_us/sagemaker/latest/dg/API_ProductionVariant.html
+          PRODUCTION_VARIANT_INITIAL_INSTANCE_COUNT: 1
       Handler: com.provectus.fds.ml.ReplaceEndpointConfigLambda
       MemorySize: 256
       Timeout: 900

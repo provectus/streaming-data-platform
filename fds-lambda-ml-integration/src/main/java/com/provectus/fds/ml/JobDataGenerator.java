@@ -1,7 +1,6 @@
 package com.provectus.fds.ml;
 
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.athena.AmazonAthenaClientBuilder;
 import com.provectus.fds.ml.processor.AthenaConfig;
@@ -23,12 +22,8 @@ class JobDataGenerator {
                 .withClientExecutionTimeout(Integer.parseInt(h.getConfig(CLIENT_EXECUTION_TIMEOUT, CLIENT_EXECUTION_TIMEOUT_DEF)));
 
         AmazonAthenaClientBuilder athenaClientBuilder = AmazonAthenaClientBuilder.standard()
-                .withRegion(h.getConfig(ATHENA_REGION_ID, ATHENA_REGION_ID_DEF))
+                .withRegion(System.getenv("ATHENA_REGION_ID"))
                 .withClientConfiguration(configuration);
-
-//        if (!enableLocalCredentials) {
-//            athenaClientBuilder.withCredentials(InstanceProfileCredentialsProvider.getInstance());
-//        }
 
         AmazonAthena client = athenaClientBuilder.build();
 
@@ -38,13 +33,13 @@ class JobDataGenerator {
         int gcd = h.gcd(trainingFactor, verificationFactor);
         try (CsvRecordProcessor recordProcessor
                 = new CsvRecordProcessor(
-                h.getConfig(S3_BUCKET, S3_BUCKET_DEF),
+                System.getenv("S3_BUCKET"),
                 h.getConfig(ATHENA_S3_KEY, ATHENA_S3_KEY_DEF),
                 trainingFactor / gcd, verificationFactor / gcd)) {
 
             AthenaConfig athenaConfig = new AthenaConfig();
             athenaConfig.setClient(client);
-            athenaConfig.setDbName(h.getConfig(ATHENA_DATABASE, ATHENA_DATABASE_DEF));
+            athenaConfig.setDbName(System.getenv("ATHENA_DATABASE"));
             athenaConfig.setOutputLocation(getOutputLocation(h));
             athenaConfig.setQuery(h.getResourceFileAsString("categorized_bids.sql"));
             athenaConfig.setSleepTime(Long.parseLong(h.getConfig(SLEEP_AMOUNT_IN_MS, SLEEP_AMOUNT_IN_MS_DEF)));
@@ -59,7 +54,7 @@ class JobDataGenerator {
 
     private String getOutputLocation(IntegrationModuleHelper h) {
         return String.format("s3://%s/%s",
-                h.getConfig(S3_BUCKET, S3_BUCKET_DEF),
+                System.getenv("S3_BUCKET"),
                 h.getConfig(ATHENA_S3_KEY, ATHENA_S3_KEY_DEF));
     }
 }

@@ -5,9 +5,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.provectus.fds.ml.PrepareDataForTrainingJobLambda.ATHENA_REGION_ID;
-import static com.provectus.fds.ml.PrepareDataForTrainingJobLambda.ATHENA_REGION_ID_DEF;
-
 class SagemakerAlgorithmsRegistry {
 
     // This map intended only for these algorithms

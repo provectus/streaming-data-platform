@@ -11,8 +11,6 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.provectus.fds.ml.PrepareDataForTrainingJobLambda.*;
-
 public class JobRunner {
 
     private static final String JOB_PREFIX = "fds-training-job-";
@@ -38,7 +36,7 @@ public class JobRunner {
         AmazonSageMakerAsync sage = sageMakerBuilder.build();
         CreateTrainingJobRequest req = new CreateTrainingJobRequest();
         req.setTrainingJobName(JOB_PREFIX + Instant.now().getEpochSecond());
-        req.setRoleArn(h.getConfig(SAGEMAKER_ROLE_ARN, SAGEMAKER_ROLE_ARN_DEF));
+        req.setRoleArn(System.getenv("SAGEMAKER_ROLE_ARN"));
 
         setHyperParameters(req);
         setAlgorithm(h, req);
@@ -73,7 +71,7 @@ public class JobRunner {
         jobRequest.setInputDataConfig(channels);
 
         OutputDataConfig outputDataConfig = new OutputDataConfig();
-        outputDataConfig.setS3OutputPath(h.getConfig(MODEL_OUTPUT_PATH, MODEL_OUTPUT_PATH_DEF));
+        outputDataConfig.setS3OutputPath(System.getenv("MODEL_OUTPUT_PATH"));
         jobRequest.setOutputDataConfig(outputDataConfig);
     }
 
@@ -82,7 +80,7 @@ public class JobRunner {
         SagemakerAlgorithmsRegistry registry = new SagemakerAlgorithmsRegistry();
 
         specification.setTrainingImage(
-                registry.getFullImageUri(h.getConfig(ATHENA_REGION_ID, ATHENA_REGION_ID_DEF),
+                registry.getFullImageUri(System.getenv("ATHENA_REGION_ID"),
                         TRAINING_ALGORITHM));
         specification.setTrainingInputMode(TRAINING_INPUT_MODE);
 

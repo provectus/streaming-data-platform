@@ -13,6 +13,7 @@
         <aws.lambda.events.version>2.2.4</aws.lambda.events.version>
         <aws.java.sdk.version>1.11.253</aws.java.sdk.version>
         <aws.kinesisanalytics.version>1.0.1</aws.kinesisanalytics.version>
+        <aws-lambda-java-log4j2.version>1.1.0</aws-lambda-java-log4j2.version>
         <junit.version>4.12</junit.version>
         <com.fasterxml.jackson.version>2.9.8</com.fasterxml.jackson.version>
         <flink.version>1.6.3</flink.version>
@@ -21,6 +22,11 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <org.apache.parquet.version>1.10.0</org.apache.parquet.version>
         <hadoop.version>2.7.3</hadoop.version>
+        <async-http-client.version>2.6.0</async-http-client.version>
+        <io.airlift.version>0.36</io.airlift.version>
+        <org.apache.logging.log4j.version>2.11.2</org.apache.logging.log4j.version>
+        <org.awaitility.version>3.1.5</org.awaitility.version>
+        <org.hamcrest.version>2.1</org.hamcrest.version>
 
         <!-- Plugins -->
         <maven.compiler.plugin.version>3.8.0</maven.compiler.plugin.version>
@@ -190,28 +196,28 @@
             <dependency>
                 <groupId>org.asynchttpclient</groupId>
                 <artifactId>async-http-client</artifactId>
-                <version>2.6.0</version>
+                <version>${async-http-client.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.lz4</groupId>
-                <artifactId>lz4-java</artifactId>
-                <version>1.5.1</version>
+                <groupId>io.airlift</groupId>
+                <artifactId>slice</artifactId>
+                <version>${io.airlift.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-lambda-java-log4j2</artifactId>
-                <version>1.1.0</version>
+                <version>${aws-lambda-java-log4j2.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-core</artifactId>
-                <version>2.11.2</version>
+                <version>${org.apache.logging.log4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-api</artifactId>
-                <version>2.11.2</version>
+                <version>${org.apache.logging.log4j.version}</version>
             </dependency>
 
             <dependency>
@@ -224,14 +230,14 @@
             <dependency>
                 <groupId>org.awaitility</groupId>
                 <artifactId>awaitility</artifactId>
-                <version>3.1.5</version>
+                <version>${org.awaitility.version}</version>
                 <scope>test</scope>
             </dependency>
 
             <dependency>
                 <groupId>org.hamcrest</groupId>
                 <artifactId>hamcrest</artifactId>
-                <version>2.1</version>
+                <version>${org.hamcrest.version}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>

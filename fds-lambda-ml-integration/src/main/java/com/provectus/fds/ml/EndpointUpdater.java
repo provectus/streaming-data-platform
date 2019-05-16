@@ -9,7 +9,7 @@ import com.provectus.fds.ml.utils.IntegrationModuleHelper;
 import java.util.Collections;
 import java.util.List;
 
-public class EndpointUpdater {
+class EndpointUpdater {
     private String dataUrl;
     private String sageMakerRole;
     private String endpointName;
@@ -39,8 +39,9 @@ public class EndpointUpdater {
     }
 
     private CreateEndpointConfigRequest createEndpointConfiguration(AmazonSageMakerAsync sage, CreateModelRequest modelRequest) {
-        ProductionVariant variant = new ProductionVariant().withInitialInstanceCount(1)
-                .withInitialVariantWeight(1F)
+        ProductionVariant variant = new ProductionVariant()
+                .withInitialInstanceCount(Integer.valueOf(
+                        System.getenv("PRODUCTION_VARIANT_INITIAL_INSTANCE_COUNT")))
                 .withInstanceType(instanceType)
                 .withModelName(modelRequest.getModelName())
                 .withVariantName(modelRequest.getModelName());
@@ -81,7 +82,7 @@ public class EndpointUpdater {
         private String modelName = "Model";
 
         private String servicePrefix;
-        private IntegrationModuleHelper helper = new IntegrationModuleHelper();
+        private final IntegrationModuleHelper helper = new IntegrationModuleHelper();
 
         EndpointUpdaterBuilder() {
         }
@@ -165,7 +166,8 @@ public class EndpointUpdater {
 
         /**
          * Generate name for the AWS resource
-         * @return String by the pattern ${ServicePrefix}-resourceName-${RandomSeed}
+         * @return String with maximum allowed resource name length (63)
+         * by the pattern ${ServicePrefix}-resourceName-${RandomSeed}
          */
         String generateName(String resourceName) {
 
