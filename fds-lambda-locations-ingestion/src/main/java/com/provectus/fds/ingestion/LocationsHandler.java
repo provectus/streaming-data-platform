@@ -83,8 +83,6 @@ public class LocationsHandler implements RequestHandler<KinesisEvent, List<Strin
             String bucket = record.getS3().getBucket().getName();
             String key = record.getS3().getObject().getKey().replace('+', ' ');
 
-            logger.debug("S3 event. Bucket: {}. Key: {}.", bucket, key);
-
             if (key.startsWith(PREFIX)) {
                 try {
                     key = URLDecoder.decode(key, "UTF-8");

@@ -1553,7 +1553,7 @@ Resources:
       Timeout: 180
       Environment:
         Variables:
-          STREAM_NAME: !Ref 'LocationStreamName'
+          STREAM_NAME: !Sub '${ServicePrefix}${LocationStreamName}'
 
   S3EventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
