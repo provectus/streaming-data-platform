@@ -13,7 +13,7 @@
         <aws.lambda.events.version>2.2.4</aws.lambda.events.version>
         <aws.java.sdk.version>1.11.253</aws.java.sdk.version>
         <aws.kinesisanalytics.version>1.0.1</aws.kinesisanalytics.version>
-        <junit.version>4.12</junit.version>
+        <aws.lambda.log4j.version>1.0.0</aws.lambda.log4j.version>
         <com.fasterxml.jackson.version>2.9.8</com.fasterxml.jackson.version>
         <flink.version>1.6.3</flink.version>
         <lombok.version>1.18.4</lombok.version>
@@ -21,6 +21,10 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <org.apache.parquet.version>1.10.0</org.apache.parquet.version>
         <hadoop.version>2.7.3</hadoop.version>
+        <slf4j.version>1.7.26</slf4j.version>
+        <junit.version>4.12</junit.version>
+        <hamcrest.version>2.1</hamcrest.version>
+        <awaitility.version>3.1.5</awaitility.version>
 
         <!-- Plugins -->
         <maven.compiler.plugin.version>3.8.0</maven.compiler.plugin.version>
@@ -37,7 +41,7 @@
             <url>http://3.122.127.16/artifactory/libs-release</url>
         </repository>
         <repository>
-            <snapshots />
+            <snapshots/>
             <id>snapshot</id>
             <name>libs-snapshot</name>
             <url>http://3.122.127.16/artifactory/libs-snapshot</url>
@@ -56,10 +60,17 @@
                 <artifactId>aws-lambda-java-core</artifactId>
                 <version>${aws.lambda.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-lambda-java-events</artifactId>
                 <version>${aws.lambda.events.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-lambda-java-log4j2</artifactId>
+                <version>1.1.0</version>
             </dependency>
 
             <dependency>
@@ -85,17 +96,18 @@
                 <artifactId>aws-java-sdk-athena</artifactId>
                 <version>${aws.java.sdk.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk-sagemaker</artifactId>
                 <version>${aws.java.sdk.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk-sagemakerruntime</artifactId>
                 <version>${aws.java.sdk.version}</version>
             </dependency>
-
 
             <dependency>
                 <groupId>junit</groupId>
@@ -215,6 +227,24 @@
             </dependency>
 
             <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-lambda-java-log4j</artifactId>
+                <version>${aws.lambda.log4j.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>jcl-over-slf4j</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
@@ -224,14 +254,14 @@
             <dependency>
                 <groupId>org.awaitility</groupId>
                 <artifactId>awaitility</artifactId>
-                <version>3.1.5</version>
+                <version>${awaitility.version}</version>
                 <scope>test</scope>
             </dependency>
 
             <dependency>
                 <groupId>org.hamcrest</groupId>
                 <artifactId>hamcrest</artifactId>
-                <version>2.1</version>
+                <version>${hamcrest.version}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
@@ -278,6 +308,7 @@
         <module>fds-common-dynamodb</module>
         <module>fds-flink-streaming</module>
         <module>fds-lambda-ml-integration</module>
+        <module>fds-lambda-locations-ingestion</module>
     </modules>
 
     <reporting>
