@@ -77,12 +77,13 @@ public class ReplaceEndpointConfigLambda implements RequestHandler<KinesisEvent,
 
     static class LambdaConfiguration extends Configuration {
         private String servicePrefix;
+        private Integer initialInstanceCount;
+
         private String getServicePrefx() {
             if (servicePrefix == null)
                 servicePrefix = getOrThrow("SERVICE_PREFIX");
             return servicePrefix;
         }
-        private Integer initialInstanceCount;
         public int getInitialInstanceCount() {
             if (initialInstanceCount == null)
                 initialInstanceCount = Integer.valueOf(getOrElse("PRODUCTION_VARIANT_INITIAL_INSTANCE_COUNT", "1"));

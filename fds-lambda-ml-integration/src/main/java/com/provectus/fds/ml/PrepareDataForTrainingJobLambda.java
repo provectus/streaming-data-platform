@@ -23,13 +23,15 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
 
     static class LambdaConfiguration extends Configuration {
         private String athenaKey;
+        private String athenaDatabase;
+        private String modelOutputPath;
+
         public String getAthenaKey() {
             if (athenaKey == null)
                 athenaKey = getOrThrow("ATHENA_KEY");
             return athenaKey;
         }
 
-        private String athenaDatabase;
         public String getAthenaDatabase() {
             if (athenaDatabase == null) {
                 athenaDatabase = getOrThrow("ATHENA_DATABASE");
@@ -37,7 +39,6 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
             return athenaDatabase;
         }
 
-        private String modelOutputPath;
         public String getModelOutputPath() {
             if (modelOutputPath == null)
                 modelOutputPath = getOrThrow("MODEL_OUTPUT_PATH");

@@ -25,7 +25,7 @@ public class InvokeEndpointLambda implements RequestHandler<APIGatewayProxyReque
     private final ObjectMapper objectMapper
             = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    private final LambdaConfiguration config = new LambdaConfiguration();
+    private final Configuration config = new Configuration();
 
     @Override
     public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent input, Context context) {
@@ -74,8 +74,4 @@ public class InvokeEndpointLambda implements RequestHandler<APIGatewayProxyReque
             throw new RuntimeException(e);
         }
     }
-
-    private static class LambdaConfiguration extends Configuration {
-    }
-
 }
