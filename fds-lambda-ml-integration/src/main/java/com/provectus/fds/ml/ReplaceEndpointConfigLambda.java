@@ -24,6 +24,7 @@ public class ReplaceEndpointConfigLambda implements RequestHandler<KinesisEvent,
     private final IntegrationModuleHelper h = new IntegrationModuleHelper();
 
     private static final String modelFileName = "model.tar.gz";
+    LambdaConfiguration config = new LambdaConfiguration();
 
     @Override
     public List<S3Event> handleRequest(KinesisEvent input, Context context) {
@@ -46,7 +47,7 @@ public class ReplaceEndpointConfigLambda implements RequestHandler<KinesisEvent,
     @SuppressWarnings("unused")
     private S3Event handleRequest(S3Event s3Event, Context context) {
         logger.debug("Received S3 event: {}", h.writeValueAsString(s3Event, mapper));
-        String configBucket = System.getenv("S3_BUCKET");
+        String configBucket = config.getBucket();
 
         for (S3EventNotification.S3EventNotificationRecord record : s3Event.getRecords()) {
             String eventBucket = record.getS3().getBucket().getName();
@@ -58,12 +59,14 @@ public class ReplaceEndpointConfigLambda implements RequestHandler<KinesisEvent,
 
                 logger.info("Starting updating endpoint process");
 
-                EndpointUpdater.EndpointUpdaterBuilder updaterBuilder = new EndpointUpdater.EndpointUpdaterBuilder();
+                EndpointUpdater.EndpointUpdaterBuilder updaterBuilder
+                        = new EndpointUpdater.EndpointUpdaterBuilder(config);
+
                 updaterBuilder
-                        .withEndpointName(getEndpointName())
-                        .withServicePrefix(getServicePrefx())
-                        .withRegionId(getRegionId())
-                        .withSageMakerRole(getSageMakerRoleArn())
+                        .withEndpointName(config.getEndpoint())
+                        .withServicePrefix(config.getServicePrefx())
+                        .withRegionId(config.getRegion())
+                        .withSageMakerRole(config.getSagemakerRole())
                         .withDataUrl(String.format("s3://%s/%s", eventBucket, eventKey));
 
                 updaterBuilder.build().updateEndpoint();
@@ -72,19 +75,19 @@ public class ReplaceEndpointConfigLambda implements RequestHandler<KinesisEvent,
         return s3Event;
     }
 
-    private String getRegionId() {
-        return System.getenv("REGION_ID");
-    }
+    static class LambdaConfiguration extends Configuration {
+        private String servicePrefix;
+        private String getServicePrefx() {
+            if (servicePrefix == null)
+                servicePrefix = getOrThrow("SERVICE_PREFIX");
+            return servicePrefix;
+        }
+        private Integer initialInstanceCount;
+        public int getInitialInstanceCount() {
+            if (initialInstanceCount == null)
+                initialInstanceCount = Integer.valueOf(getOrElse("PRODUCTION_VARIANT_INITIAL_INSTANCE_COUNT", "1"));
 
-    private String getSageMakerRoleArn() {
-        return System.getenv("SAGEMAKER_ROLE_ARN");
-    }
-
-    private String getServicePrefx() {
-        return System.getenv("SERVICE_PREFIX");
-    }
-
-    private String getEndpointName() {
-        return System.getenv("ENDPOINT_NAME");
+            return initialInstanceCount;
+        }
     }
 }

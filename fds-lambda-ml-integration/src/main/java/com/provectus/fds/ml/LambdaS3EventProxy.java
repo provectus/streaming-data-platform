@@ -21,11 +21,12 @@ import java.util.List;
 @SuppressWarnings("unused")
 public class LambdaS3EventProxy implements RequestHandler<S3Event, String> {
     private static final Logger logger = LogManager.getLogger(LambdaS3EventProxy.class);
-    private static final String OK = "OK";
-    private static final String FAILED = "FAILED";
 
     private final ObjectMapper mapper
             = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private final LambdaConfiguration config = new LambdaConfiguration();
+
+    private static final String PARTITION_KEY_PATTERN = "partitionKey-%d";
 
     public LambdaS3EventProxy() {
     }
@@ -38,19 +39,19 @@ public class LambdaS3EventProxy implements RequestHandler<S3Event, String> {
         AmazonKinesis kinesisClient = clientBuilder.build();
 
         PutRecordsRequest putRecordsRequest = new PutRecordsRequest();
-        putRecordsRequest.setStreamName(System.getenv("STREAM_NAME"));
+        putRecordsRequest.setStreamName(config.getStreamName());
 
         List<PutRecordsRequestEntry> entryList = new ArrayList<>();
 
         PutRecordsRequestEntry entry = new PutRecordsRequestEntry();
         entry.setData(ByteBuffer.wrap(mapper.writeValueAsBytes(s3event)));
-        entry.setPartitionKey(String.format("partitionKey-%d", s3event.hashCode()));
+        entry.setPartitionKey(String.format(PARTITION_KEY_PATTERN, s3event.hashCode()));
         entryList.add(entry);
 
         putRecordsRequest.setRecords(entryList);
 
         logger.info("Putting S3Event into stream: '{}' '{}'",
-                s3event.toString(), System.getenv("STREAM_NAME"));
+                s3event.toString(), config.getStreamName());
 
         PutRecordsResult putRecordsResult = kinesisClient.putRecords(putRecordsRequest);
 
@@ -68,4 +69,15 @@ public class LambdaS3EventProxy implements RequestHandler<S3Event, String> {
             throw new RuntimeException(logger.throwing(e));
         }
     }
+
+    private static class LambdaConfiguration extends Configuration {
+        private String streamName;
+
+        private String getStreamName() {
+            if (streamName == null)
+                streamName = getOrThrow("STREAM_NAME");
+            return streamName;
+        }
+    }
+
 }

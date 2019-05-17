@@ -6,43 +6,44 @@ import com.amazonaws.services.athena.AmazonAthenaClientBuilder;
 import com.provectus.fds.ml.processor.AthenaConfig;
 import com.provectus.fds.ml.processor.AthenaProcessor;
 import com.provectus.fds.ml.processor.CsvRecordProcessor;
-import com.provectus.fds.ml.utils.IntegrationModuleHelper;
 
-import static com.provectus.fds.ml.PrepareDataForTrainingJobLambda.*;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.stream.Collectors;
 
 class JobDataGenerator {
 
-    CsvRecordProcessor generateTrainingData(IntegrationModuleHelper h) throws Exception {
-        return generateTrainingData(h, false);
-    }
+    private static final long SLEEP_TIME = 1000L;
 
-    CsvRecordProcessor generateTrainingData(IntegrationModuleHelper h, boolean enableLocalCredentials) throws Exception {
+    private static final int CLIENT_EXECUTION_TIMEOUT = 0;
+    private static final int TRAINING_FACTOR = 90;
+    private static final int VERIFICATION_FACTOR = 10;
+
+    private static final String SQL_RESOURCE = "categorized_bids.sql";
+
+    CsvRecordProcessor generateTrainingData(PrepareDataForTrainingJobLambda.LambdaConfiguration config) throws Exception {
 
         ClientConfiguration configuration = new ClientConfiguration()
-                .withClientExecutionTimeout(Integer.parseInt(h.getConfig(CLIENT_EXECUTION_TIMEOUT, CLIENT_EXECUTION_TIMEOUT_DEF)));
+                .withClientExecutionTimeout(CLIENT_EXECUTION_TIMEOUT);
 
         AmazonAthenaClientBuilder athenaClientBuilder = AmazonAthenaClientBuilder.standard()
-                .withRegion(System.getenv("ATHENA_REGION_ID"))
+                .withRegion(config.getRegion())
                 .withClientConfiguration(configuration);
 
         AmazonAthena client = athenaClientBuilder.build();
 
-        int trainingFactor = Integer.parseInt(h.getConfig(TRAINING_FACTOR, TRAINING_FACTOR_DEF));
-        int verificationFactor = Integer.parseInt(h.getConfig(VERIFICATION_FACTOR, VERIFICATION_FACTOR_DEF));
-
-        int gcd = h.gcd(trainingFactor, verificationFactor);
         try (CsvRecordProcessor recordProcessor
-                = new CsvRecordProcessor(
-                System.getenv("S3_BUCKET"),
-                h.getConfig(ATHENA_S3_KEY, ATHENA_S3_KEY_DEF),
-                trainingFactor / gcd, verificationFactor / gcd)) {
+                = new CsvRecordProcessor(config.getBucket(),
+                config.getAthenaKey(),
+                TRAINING_FACTOR, VERIFICATION_FACTOR)) {
 
             AthenaConfig athenaConfig = new AthenaConfig();
             athenaConfig.setClient(client);
-            athenaConfig.setDbName(System.getenv("ATHENA_DATABASE"));
-            athenaConfig.setOutputLocation(getOutputLocation(h));
-            athenaConfig.setQuery(h.getResourceFileAsString("categorized_bids.sql"));
-            athenaConfig.setSleepTime(Long.parseLong(h.getConfig(SLEEP_AMOUNT_IN_MS, SLEEP_AMOUNT_IN_MS_DEF)));
+            athenaConfig.setDbName(config.getAthenaDatabase());
+            athenaConfig.setOutputLocation(getOutputLocation(config));
+            athenaConfig.setQuery(getSqlString());
+            athenaConfig.setSleepTime(SLEEP_TIME);
             athenaConfig.setRecordProcessor(recordProcessor);
 
             AthenaProcessor athenaProcessor = new AthenaProcessor();
@@ -52,9 +53,18 @@ class JobDataGenerator {
         }
     }
 
-    private String getOutputLocation(IntegrationModuleHelper h) {
+    private String getSqlString() {
+        InputStream is = getClass().getClassLoader().getResourceAsStream(JobDataGenerator.SQL_RESOURCE);
+        if (is != null) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+            return reader.lines().collect(Collectors.joining(System.lineSeparator()));
+        }
+        return null;
+    }
+
+    private String getOutputLocation(PrepareDataForTrainingJobLambda.LambdaConfiguration config) {
         return String.format("s3://%s/%s",
-                System.getenv("S3_BUCKET"),
-                h.getConfig(ATHENA_S3_KEY, ATHENA_S3_KEY_DEF));
+                config.getBucket(),
+                config.getAthenaKey());
     }
 }

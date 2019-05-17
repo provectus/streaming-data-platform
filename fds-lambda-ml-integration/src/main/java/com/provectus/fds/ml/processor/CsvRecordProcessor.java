@@ -5,6 +5,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.provectus.fds.ml.JobRunner;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,11 +18,11 @@ import java.util.Map;
 
 public class CsvRecordProcessor implements RecordProcessor {
 
-    private String s3bucket = "newfdsb";
-    private String s3key = "athena/";
+    private String s3bucket;
+    private String s3key;
 
-    private int trainingFactor = 9;
-    private int verificationFactor = 1;
+    private int trainingFactor;
+    private int verificationFactor;
 
     private PrintWriter trainStream;
     private PrintWriter verifyStream;
@@ -39,10 +40,6 @@ public class CsvRecordProcessor implements RecordProcessor {
 
     public static final String TOTAL_TRAIN_RECORDS_PROCESSED = "total_train_records_processed";
     public static final String TOTAL_VERIFY_RECORDS_PROCESSED = "total_verify_records_processed";
-
-    // with default values
-    public CsvRecordProcessor() {
-    }
 
     public CsvRecordProcessor(String s3bucket, String s3key, int trainingFactor, int verificationFactor) {
         this.s3bucket = s3bucket;
@@ -112,8 +109,8 @@ public class CsvRecordProcessor implements RecordProcessor {
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType("text/csv");
 
-        copyToS3(s3clinet, metadata, trainPath, "train");
-        copyToS3(s3clinet, metadata, verifyPath, "validation");
+        copyToS3(s3clinet, metadata, trainPath, JobRunner.TRAIN);
+        copyToS3(s3clinet, metadata, verifyPath, JobRunner.VALIDATION);
     }
 
     @Override

@@ -6,7 +6,6 @@ import com.amazonaws.services.lambda.runtime.events.KinesisEvent;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.s3.event.S3EventNotification;
 import com.amazonaws.services.sagemaker.model.CreateTrainingJobResult;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provectus.fds.ml.utils.IntegrationModuleHelper;
@@ -18,31 +17,43 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static com.provectus.fds.ml.processor.CsvRecordProcessor.TOTAL_TRAIN_RECORDS_PROCESSED;
-import static com.provectus.fds.ml.processor.CsvRecordProcessor.TOTAL_VERIFY_RECORDS_PROCESSED;
+import com.provectus.fds.ml.processor.CsvRecordProcessor;
 
 public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEvent, List<S3Event>> {
 
-    static final String SLEEP_AMOUNT_IN_MS = "SLEEP_AMOUNT_IN_MS";
-    static final String SLEEP_AMOUNT_IN_MS_DEF = "1000";
+    static class LambdaConfiguration extends Configuration {
+        private String athenaKey;
+        public String getAthenaKey() {
+            if (athenaKey == null)
+                athenaKey = getOrThrow("ATHENA_KEY");
+            return athenaKey;
+        }
 
-    static final String CLIENT_EXECUTION_TIMEOUT = "CLIENT_EXECUTION_TIMEOUT";
-    static final String CLIENT_EXECUTION_TIMEOUT_DEF = "0";
+        private String athenaDatabase;
+        public String getAthenaDatabase() {
+            if (athenaDatabase == null) {
+                athenaDatabase = getOrThrow("ATHENA_DATABASE");
+            }
+            return athenaDatabase;
+        }
 
-    static final String ATHENA_S3_KEY = "ATHENA_S3_KEY";
-    static final String ATHENA_S3_KEY_DEF = "athena/";
+        private String modelOutputPath;
+        public String getModelOutputPath() {
+            if (modelOutputPath == null)
+                modelOutputPath = getOrThrow("MODEL_OUTPUT_PATH");
+            return modelOutputPath;
+        }
+    }
 
-    static final String TRAINING_FACTOR = "TRAINING_FACTOR";
-    static final String TRAINING_FACTOR_DEF = "90";
-
-    static final String VERIFICATION_FACTOR = "VERIFICATION_FACTOR";
-    static final String VERIFICATION_FACTOR_DEF = "10";
 
     private static final Logger logger = LogManager.getLogger(PrepareDataForTrainingJobLambda.class);
     private final IntegrationModuleHelper h = new IntegrationModuleHelper();
+    private final LambdaConfiguration config = new LambdaConfiguration();
 
     private final ObjectMapper mapper
             = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private final JobDataGenerator jobDataGenerator = new JobDataGenerator();
+    private final JobRunner jobRunner = new JobRunner();
 
     public static class PrepareDataForTrainingJobLambdaException extends RuntimeException {
         PrepareDataForTrainingJobLambdaException(Throwable e) {
@@ -70,7 +81,7 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
 
     private S3Event handleRequest(S3Event s3Event, Context context) {
         logger.debug("Received S3 event: {}", h.writeValueAsString(s3Event, mapper));
-        String configBucket = System.getenv("S3_BUCKET");
+        String configBucket = config.getBucket();
 
         boolean isParquetUpdated = false;
 
@@ -93,17 +104,17 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
 
                 logger.debug("Starting data preparation for the training job");
                 Map<String, String> statistic
-                        = new JobDataGenerator().generateTrainingData(h).getStatistic();
+                        = jobDataGenerator.generateTrainingData(config).getStatistic();
 
                 logger.debug("Data was prepared. Training part has {}, validation part has {} records",
-                        statistic.get(TOTAL_TRAIN_RECORDS_PROCESSED),
-                        statistic.get(TOTAL_VERIFY_RECORDS_PROCESSED));
+                        statistic.get(CsvRecordProcessor.TOTAL_TRAIN_RECORDS_PROCESSED),
+                        statistic.get(CsvRecordProcessor.TOTAL_VERIFY_RECORDS_PROCESSED));
 
                 logger.debug("Starting training job");
-                CreateTrainingJobResult jobResult = new JobRunner()
-                        .createJob(h,
-                                statistic.get("train"),
-                                statistic.get("validation"));
+                CreateTrainingJobResult jobResult
+                        = jobRunner.createJob(config,
+                                statistic.get(JobRunner.TRAIN),
+                                statistic.get(JobRunner.VALIDATION));
                 logger.info("Training job started. ARN is: {}", jobResult.getTrainingJobArn());
             } catch (Exception e) {
                 throw new PrepareDataForTrainingJobLambdaException(e);

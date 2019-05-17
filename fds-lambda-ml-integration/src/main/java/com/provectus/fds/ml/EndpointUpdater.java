@@ -4,10 +4,10 @@ import com.amazonaws.services.sagemaker.AmazonSageMakerAsync;
 import com.amazonaws.services.sagemaker.AmazonSageMakerAsyncClient;
 import com.amazonaws.services.sagemaker.AmazonSageMakerAsyncClientBuilder;
 import com.amazonaws.services.sagemaker.model.*;
-import com.provectus.fds.ml.utils.IntegrationModuleHelper;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 class EndpointUpdater {
     private String dataUrl;
@@ -20,6 +20,8 @@ class EndpointUpdater {
 
     private String modelName;
     private String endpointConfigName;
+
+    private ReplaceEndpointConfigLambda.LambdaConfiguration config;
 
     UpdateEndpointResult updateEndpoint() {
         AmazonSageMakerAsyncClientBuilder sageMakerBuilder
@@ -40,8 +42,7 @@ class EndpointUpdater {
 
     private CreateEndpointConfigRequest createEndpointConfiguration(AmazonSageMakerAsync sage, CreateModelRequest modelRequest) {
         ProductionVariant variant = new ProductionVariant()
-                .withInitialInstanceCount(Integer.valueOf(
-                        System.getenv("PRODUCTION_VARIANT_INITIAL_INSTANCE_COUNT")))
+                .withInitialInstanceCount(config.getInitialInstanceCount())
                 .withInstanceType(instanceType)
                 .withModelName(modelRequest.getModelName())
                 .withVariantName(modelRequest.getModelName());
@@ -82,13 +83,10 @@ class EndpointUpdater {
         private String modelName = "Model";
 
         private String servicePrefix;
-        private final IntegrationModuleHelper helper = new IntegrationModuleHelper();
+        private ReplaceEndpointConfigLambda.LambdaConfiguration config;
 
-        EndpointUpdaterBuilder() {
-        }
-
-        public static EndpointUpdaterBuilder anEndpointUpdater() {
-            return new EndpointUpdaterBuilder();
+        EndpointUpdaterBuilder(ReplaceEndpointConfigLambda.LambdaConfiguration config) {
+            this.config = config;
         }
 
         public EndpointUpdaterBuilder withDataUrl(String dataUrl) {
@@ -161,6 +159,8 @@ class EndpointUpdater {
             endpointUpdater.endpointConfigName = generateName(this.endpointConfigName);
             endpointUpdater.modelName = generateName(this.modelName);
 
+            endpointUpdater.config = this.config;
+
             return endpointUpdater;
         }
 
@@ -176,7 +176,13 @@ class EndpointUpdater {
             }
 
             return String.format("%s-%s-%s", servicePrefix,
-                    resourceName, helper.getRandomHexString()).substring(0, 63);
+                    resourceName, getRandomHexString()).substring(0, MAX_RESOURCE_NAME);
+        }
+
+        public static final int MAX_RESOURCE_NAME = 63;
+
+        private String getRandomHexString() {
+            return UUID.randomUUID().toString().replace("-", "");
         }
     }
 }

@@ -10,6 +10,7 @@ import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointRequest;
 import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointResult;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -24,6 +25,8 @@ public class InvokeEndpointLambda implements RequestHandler<APIGatewayProxyReque
     private final ObjectMapper objectMapper
             = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
+    private final LambdaConfiguration config = new LambdaConfiguration();
+
     @Override
     public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent input, Context context) {
         try {
@@ -34,7 +37,7 @@ public class InvokeEndpointLambda implements RequestHandler<APIGatewayProxyReque
             AmazonSageMakerRuntime runtime
                     = AmazonSageMakerRuntimeClientBuilder
                     .standard()
-                    .withRegion(System.getenv("REGION"))
+                    .withRegion(config.getRegion())
                     .build();
 
             StringJoiner joiner = new StringJoiner(",");
@@ -50,7 +53,7 @@ public class InvokeEndpointLambda implements RequestHandler<APIGatewayProxyReque
                     = ByteBuffer.wrap(joiner.toString().getBytes(Charset.forName("UTF-8")));
 
             InvokeEndpointRequest request = new InvokeEndpointRequest()
-                    .withEndpointName(System.getenv("ENDPOINT"))
+                    .withEndpointName(config.getEndpoint())
                     .withContentType("text/csv")
                     .withBody(bodyBuffer);
 
@@ -62,7 +65,7 @@ public class InvokeEndpointLambda implements RequestHandler<APIGatewayProxyReque
 
             APIGatewayProxyResponseEvent responseEvent = new APIGatewayProxyResponseEvent();
             responseEvent.setBody(bodyResponse);
-            responseEvent.setStatusCode(200);
+            responseEvent.setStatusCode(HttpStatus.SC_OK);
 
             return responseEvent;
 
@@ -71,4 +74,8 @@ public class InvokeEndpointLambda implements RequestHandler<APIGatewayProxyReque
             throw new RuntimeException(e);
         }
     }
+
+    private static class LambdaConfiguration extends Configuration {
+    }
+
 }
