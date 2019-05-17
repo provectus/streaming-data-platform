@@ -1,9 +1,8 @@
 package com.provectus.fds.ml;
 
-import net.jpountz.xxhash.StreamingXXHash64;
-import net.jpountz.xxhash.XXHashFactory;
+import io.airlift.slice.Slices;
+import io.airlift.slice.XxHash64;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 public class PredictRequest {
@@ -87,7 +86,7 @@ public class PredictRequest {
                 ", domain='" + domain + '\'' +
                 ", creativeId='" + creativeId + '\'' +
                 ", creativeCategory='" + creativeCategory + '\'' +
-                ", winPrice='" + winPrice + '\'' +
+                ", winPrice=" + winPrice +
                 '}';
     }
 
@@ -123,22 +122,6 @@ public class PredictRequest {
     }
 
     private long calculateXXHash64(String arg) throws IOException {
-        XXHashFactory factory = XXHashFactory.fastestInstance();
-
-        byte[] data = arg.getBytes("UTF-8");
-        ByteArrayInputStream in = new ByteArrayInputStream(data);
-
-        long seed = 0L; // used to initialize the hash value, use whatever
-        // value you want, but always the same
-        StreamingXXHash64 hash64 = factory.newStreamingHash64(seed);
-        byte[] buf = new byte[64]; // for real-world usage, use a larger buffer, like 8192 bytes
-        for (;;) {
-            int read = in.read(buf);
-            if (read == -1) {
-                break;
-            }
-            hash64.update(buf, 0, read);
-        }
-        return hash64.getValue();
+        return XxHash64.hash(Slices.utf8Slice(arg));
     }
 }

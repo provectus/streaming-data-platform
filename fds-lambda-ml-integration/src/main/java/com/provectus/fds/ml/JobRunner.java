@@ -4,14 +4,11 @@ import com.amazonaws.services.sagemaker.AmazonSageMakerAsync;
 import com.amazonaws.services.sagemaker.AmazonSageMakerAsyncClient;
 import com.amazonaws.services.sagemaker.AmazonSageMakerAsyncClientBuilder;
 import com.amazonaws.services.sagemaker.model.*;
-import com.provectus.fds.ml.utils.IntegrationModuleHelper;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
-
-import static com.provectus.fds.ml.PrepareDataForTrainingJobLambda.*;
 
 public class JobRunner {
 
@@ -29,8 +26,11 @@ public class JobRunner {
     private static final String RESOURCE_INSTANCE_TYPE = "ml.m5.large";
     private static final int RESOURCE_VOLUME_SIZE_IN_GB = 30;
 
+    public static final String TRAIN = "train";
+    public static final String VALIDATION = "validation";
 
-    CreateTrainingJobResult createJob(IntegrationModuleHelper h,
+
+    CreateTrainingJobResult createJob(PrepareDataForTrainingJobLambda.LambdaConfiguration config,
                                       String trainSource, String validationSource) throws IOException {
         AmazonSageMakerAsyncClientBuilder sageMakerBuilder
                 = AmazonSageMakerAsyncClient.asyncBuilder();
@@ -38,11 +38,11 @@ public class JobRunner {
         AmazonSageMakerAsync sage = sageMakerBuilder.build();
         CreateTrainingJobRequest req = new CreateTrainingJobRequest();
         req.setTrainingJobName(JOB_PREFIX + Instant.now().getEpochSecond());
-        req.setRoleArn(h.getConfig(SAGEMAKER_ROLE_ARN, SAGEMAKER_ROLE_ARN_DEF));
+        req.setRoleArn(config.getSagemakerRole());
 
         setHyperParameters(req);
-        setAlgorithm(h, req);
-        setDataConfig(h, trainSource, validationSource, req);
+        setAlgorithm(config, req);
+        setDataConfig(config, trainSource, validationSource, req);
         setStoppingConditions(req);
         setResources(req);
 
@@ -65,25 +65,23 @@ public class JobRunner {
         jobRequest.setStoppingCondition(stoppingCondition);
     }
 
-    private void setDataConfig(IntegrationModuleHelper h, String trainSource, String validationSource, CreateTrainingJobRequest jobRequest) {
-        Channel trainChannel = createChannel("train", trainSource);
-        Channel validationChannel = createChannel("validation", validationSource);
+    private void setDataConfig(PrepareDataForTrainingJobLambda.LambdaConfiguration config, String trainSource, String validationSource, CreateTrainingJobRequest jobRequest) {
+        Channel trainChannel = createChannel(TRAIN, trainSource);
+        Channel validationChannel = createChannel(VALIDATION, validationSource);
 
         List<Channel> channels = Arrays.asList(trainChannel, validationChannel);
         jobRequest.setInputDataConfig(channels);
 
         OutputDataConfig outputDataConfig = new OutputDataConfig();
-        outputDataConfig.setS3OutputPath(h.getConfig(MODEL_OUTPUT_PATH, MODEL_OUTPUT_PATH_DEF));
+        outputDataConfig.setS3OutputPath(config.getModelOutputPath());
         jobRequest.setOutputDataConfig(outputDataConfig);
     }
 
-    private void setAlgorithm(IntegrationModuleHelper h, CreateTrainingJobRequest jobRequest) {
+    private void setAlgorithm(PrepareDataForTrainingJobLambda.LambdaConfiguration config, CreateTrainingJobRequest jobRequest) {
         AlgorithmSpecification specification = new AlgorithmSpecification();
         SagemakerAlgorithmsRegistry registry = new SagemakerAlgorithmsRegistry();
 
-        specification.setTrainingImage(
-                registry.getFullImageUri(h.getConfig(ATHENA_REGION_ID, ATHENA_REGION_ID_DEF),
-                        TRAINING_ALGORITHM));
+        specification.setTrainingImage(registry.getFullImageUri(config.getRegion(), TRAINING_ALGORITHM));
         specification.setTrainingInputMode(TRAINING_INPUT_MODE);
 
         jobRequest.setAlgorithmSpecification(specification);
