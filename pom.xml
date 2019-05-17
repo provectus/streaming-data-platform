@@ -13,7 +13,7 @@
         <aws.lambda.events.version>2.2.4</aws.lambda.events.version>
         <aws.java.sdk.version>1.11.253</aws.java.sdk.version>
         <aws.kinesisanalytics.version>1.0.1</aws.kinesisanalytics.version>
-        <aws-lambda-java-log4j2.version>1.1.0</aws-lambda-java-log4j2.version>
+        <aws-lambda-java-log4j2.version>1.0.0</aws-lambda-java-log4j2.version>
         <junit.version>4.12</junit.version>
         <com.fasterxml.jackson.version>2.9.8</com.fasterxml.jackson.version>
         <flink.version>1.6.3</flink.version>
@@ -24,7 +24,7 @@
         <hadoop.version>2.7.3</hadoop.version>
         <async-http-client.version>2.6.0</async-http-client.version>
         <io.airlift.version>0.36</io.airlift.version>
-        <org.apache.logging.log4j.version>2.11.2</org.apache.logging.log4j.version>
+        <org.apache.logging.log4j.version>2.8.2</org.apache.logging.log4j.version>
         <org.awaitility.version>3.1.5</org.awaitility.version>
         <org.hamcrest.version>2.1</org.hamcrest.version>
 

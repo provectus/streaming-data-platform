@@ -50,7 +50,7 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
     public List<S3Event> handleRequest(KinesisEvent input, Context context) {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        logger.info("Processing Kinesis input: {}", input);
+        logger.info("Processing Kinesis event");
 
         List<S3Event> results = new ArrayList<>();
 
@@ -76,10 +76,10 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
             String eventKey = record.getS3().getObject().getKey();
             String eventBucket = record.getS3().getBucket().getName();
 
-            logger.info("Got an event with s3://bucket/key: s3://{}/{}", eventBucket, eventKey);
+            logger.info("Got an event with s3://{}/{}", eventBucket, eventKey);
 
-            if (eventKey.startsWith("parquet/") && eventBucket.equals(configBucket)) {
-                logger.info("Found key started with 'parquet/': {}", eventKey);
+            if (eventKey.startsWith("parquet/impressions/") && eventBucket.equals(configBucket)) {
+                logger.info("Found key with 'parquet/': {}, {}", eventKey, record.getEventName());
 
                 isParquetUpdated = true;
                 break;

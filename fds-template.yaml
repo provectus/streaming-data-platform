@@ -175,6 +175,12 @@ Resources:
       Principal: s3.amazonaws.com
       SourceArn: !Sub 'arn:aws:s3:::${S3BucketName}'
 
+  LogGroupS3EventProxy:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        !Sub '/aws/lambda/${ServicePrefix}S3EventProxy'
+
   # Send all s3 events to the delivery stream
   S3EventProxy:
     Type: AWS::Serverless::Function

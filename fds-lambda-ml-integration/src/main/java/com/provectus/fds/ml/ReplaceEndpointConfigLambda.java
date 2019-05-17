@@ -23,7 +23,7 @@ public class ReplaceEndpointConfigLambda implements RequestHandler<KinesisEvent,
     @Override
     public List<S3Event> handleRequest(KinesisEvent input, Context context) {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        logger.info("Processing Kinesis input: {}", input);
+        logger.info("Processing Kinesis event");
 
         List<S3Event> results = new ArrayList<>();
 
@@ -48,7 +48,7 @@ public class ReplaceEndpointConfigLambda implements RequestHandler<KinesisEvent,
             String eventBucket = record.getS3().getBucket().getName();
             String eventKey = record.getS3().getObject().getKey();
 
-            logger.info("Got an event with s3://bucket/key: s3://{}/{}", eventBucket, eventKey);
+            logger.info("Got an event with s3://{}/{}", eventBucket, eventKey);
 
             if (eventKey.endsWith("model.tar.gz")  && eventBucket.equals(configBucket)) {
 

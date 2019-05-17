@@ -32,6 +32,8 @@ public class LambdaS3EventProxy implements RequestHandler<S3Event, String> {
     public String handle(S3Event s3event) throws JsonProcessingException {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
+        logger.debug("Handle S3 event: {}", mapper.writeValueAsString(s3event));
+
         AmazonKinesisClientBuilder clientBuilder = AmazonKinesisClientBuilder.standard();
         AmazonKinesis kinesisClient = clientBuilder.build();
 
