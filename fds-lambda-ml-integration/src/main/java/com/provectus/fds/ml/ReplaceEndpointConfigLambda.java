@@ -7,6 +7,7 @@ import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.s3.event.S3EventNotification;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.provectus.fds.ml.utils.IntegrationModuleHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,12 +19,15 @@ import java.util.List;
 public class ReplaceEndpointConfigLambda implements RequestHandler<KinesisEvent, List<S3Event>> {
 
     private static final Logger logger = LogManager.getLogger(ReplaceEndpointConfigLambda.class);
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper
+            = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private final IntegrationModuleHelper h = new IntegrationModuleHelper();
+
+    private static final String modelFileName = "model.tar.gz";
 
     @Override
     public List<S3Event> handleRequest(KinesisEvent input, Context context) {
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        logger.info("Processing Kinesis event");
+        logger.debug("Processing Kinesis event: {}", h.writeValueAsString(input, mapper));
 
         List<S3Event> results = new ArrayList<>();
 
@@ -33,7 +37,7 @@ public class ReplaceEndpointConfigLambda implements RequestHandler<KinesisEvent,
                         .readValue(r.getKinesis().getData().array());
                 results.add(handleRequest(s3Event, context));
             } catch (IOException e) {
-                logger.throwing(e);
+                throw new RuntimeException(logger.throwing(e));
             }
         }
         return results;
@@ -41,16 +45,16 @@ public class ReplaceEndpointConfigLambda implements RequestHandler<KinesisEvent,
 
     @SuppressWarnings("unused")
     private S3Event handleRequest(S3Event s3Event, Context context) {
-        logger.info("Received S3 event");
+        logger.debug("Received S3 event: {}", h.writeValueAsString(s3Event, mapper));
         String configBucket = System.getenv("S3_BUCKET");
 
         for (S3EventNotification.S3EventNotificationRecord record : s3Event.getRecords()) {
             String eventBucket = record.getS3().getBucket().getName();
             String eventKey = record.getS3().getObject().getKey();
 
-            logger.info("Got an event with s3://{}/{}", eventBucket, eventKey);
+            logger.info("Got an event with s3://{}/{}, {}", eventBucket, eventKey, record.getEventName());
 
-            if (eventKey.endsWith("model.tar.gz")  && eventBucket.equals(configBucket)) {
+            if (eventKey.endsWith(modelFileName)  && eventBucket.equals(configBucket)) {
 
                 logger.info("Starting updating endpoint process");
 

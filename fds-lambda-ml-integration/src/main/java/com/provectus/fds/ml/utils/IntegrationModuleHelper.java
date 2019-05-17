@@ -1,5 +1,9 @@
 package com.provectus.fds.ml.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.logging.log4j.Logger;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -83,5 +87,21 @@ public class IntegrationModuleHelper {
 
     public String getRandomHexString() {
         return UUID.randomUUID().toString().replace("-", "");
+    }
+
+    /**
+     * Proxy method for ObjectMapper which hides all of the checked
+     * exception
+     *
+     * @param o Object to serialize into String
+     * @param mapper Configured ObjectMapper
+     * @return JSON String of the object
+     */
+    public String writeValueAsString(Object o, ObjectMapper mapper) {
+        try {
+            return mapper.writeValueAsString(o);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -24,13 +24,13 @@ public class LambdaS3EventProxy implements RequestHandler<S3Event, String> {
     private static final String OK = "OK";
     private static final String FAILED = "FAILED";
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper
+            = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     public LambdaS3EventProxy() {
     }
 
     public String handle(S3Event s3event) throws JsonProcessingException {
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         logger.debug("Handle S3 event: {}", mapper.writeValueAsString(s3event));
 
@@ -65,8 +65,7 @@ public class LambdaS3EventProxy implements RequestHandler<S3Event, String> {
         try {
             return handle(s3event);
         } catch (JsonProcessingException e) {
-            logger.catching(e);
-            return null;
+            throw new RuntimeException(logger.throwing(e));
         }
     }
 }

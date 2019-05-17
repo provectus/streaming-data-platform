@@ -6,6 +6,7 @@ import com.amazonaws.services.lambda.runtime.events.KinesisEvent;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.s3.event.S3EventNotification;
 import com.amazonaws.services.sagemaker.model.CreateTrainingJobResult;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provectus.fds.ml.utils.IntegrationModuleHelper;
@@ -38,7 +39,10 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
     static final String VERIFICATION_FACTOR_DEF = "10";
 
     private static final Logger logger = LogManager.getLogger(PrepareDataForTrainingJobLambda.class);
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final IntegrationModuleHelper h = new IntegrationModuleHelper();
+
+    private final ObjectMapper mapper
+            = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     public static class PrepareDataForTrainingJobLambdaException extends RuntimeException {
         PrepareDataForTrainingJobLambdaException(Throwable e) {
@@ -48,26 +52,24 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
 
     @Override
     public List<S3Event> handleRequest(KinesisEvent input, Context context) {
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-        logger.info("Processing Kinesis event");
 
         List<S3Event> results = new ArrayList<>();
+        try {
+            logger.debug("Processing Kinesis event: {}", h.writeValueAsString(input, mapper));
 
-        for (KinesisEvent.KinesisEventRecord r : input.getRecords()) {
-            try {
+            for (KinesisEvent.KinesisEventRecord r : input.getRecords()) {
                 S3Event s3Event = mapper.readerFor(S3Event.class)
                         .readValue(r.getKinesis().getData().array());
                 results.add(handleRequest(s3Event, context));
-            } catch (IOException e) {
-                logger.throwing(e);
             }
+        } catch (IOException e) {
+            throw new RuntimeException(logger.throwing(e));
         }
         return results;
     }
 
     private S3Event handleRequest(S3Event s3Event, Context context) {
-        logger.info("Received S3 event");
+        logger.debug("Received S3 event: {}", h.writeValueAsString(s3Event, mapper));
         String configBucket = System.getenv("S3_BUCKET");
 
         boolean isParquetUpdated = false;
@@ -76,10 +78,10 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
             String eventKey = record.getS3().getObject().getKey();
             String eventBucket = record.getS3().getBucket().getName();
 
-            logger.info("Got an event with s3://{}/{}", eventBucket, eventKey);
+            logger.debug("Got an event with s3://{}/{}", eventBucket, eventKey);
 
             if (eventKey.startsWith("parquet/impressions/") && eventBucket.equals(configBucket)) {
-                logger.info("Found key with 'parquet/': {}, {}", eventKey, record.getEventName());
+                logger.info("Found key with 'parquet/impressions/': {}, {}", eventKey, record.getEventName());
 
                 isParquetUpdated = true;
                 break;
@@ -88,17 +90,16 @@ public class PrepareDataForTrainingJobLambda implements RequestHandler<KinesisEv
 
         if (isParquetUpdated) {
             try {
-                IntegrationModuleHelper h = new IntegrationModuleHelper();
 
-                logger.info("Starting data preparation for the training job");
+                logger.debug("Starting data preparation for the training job");
                 Map<String, String> statistic
                         = new JobDataGenerator().generateTrainingData(h).getStatistic();
 
-                logger.info("Data was prepared. Training part has {}, validation part has {} records",
+                logger.debug("Data was prepared. Training part has {}, validation part has {} records",
                         statistic.get(TOTAL_TRAIN_RECORDS_PROCESSED),
                         statistic.get(TOTAL_VERIFY_RECORDS_PROCESSED));
 
-                logger.info("Starting training job");
+                logger.debug("Starting training job");
                 CreateTrainingJobResult jobResult = new JobRunner()
                         .createJob(h,
                                 statistic.get("train"),

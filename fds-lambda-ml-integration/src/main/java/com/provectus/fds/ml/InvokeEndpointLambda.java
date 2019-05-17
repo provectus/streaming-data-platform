@@ -21,15 +21,15 @@ import java.util.StringJoiner;
 public class InvokeEndpointLambda implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     private static final Logger logger = LogManager.getLogger(InvokeEndpointLambda.class);
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper
+            = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent input, Context context) {
         try {
-            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
             PredictRequest r = objectMapper.readValue(input.getBody(), PredictRequest.class);
 
-            logger.info("Got a prediction request: {}", r);
+            logger.debug("Got a prediction request: {}", objectMapper.writeValueAsString(r));
 
             AmazonSageMakerRuntime runtime
                     = AmazonSageMakerRuntimeClientBuilder
@@ -67,6 +67,7 @@ public class InvokeEndpointLambda implements RequestHandler<APIGatewayProxyReque
             return responseEvent;
 
         } catch (Exception e) {
+            logger.throwing(e);
             throw new RuntimeException(e);
         }
     }
