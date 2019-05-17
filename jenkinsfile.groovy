@@ -1,6 +1,13 @@
 def repository = "squadex-fastdata-solution"
 def organization = "provectus"
 node("JenkinsOnDemand") {
+
+    properties([
+            // We must disable concurent builds to eliminate the error
+            // with only 5 kinesis streams simultaneously
+            disableConcurrentBuilds()
+    ])
+
     stage("Initialize") {
         sh """
         curl -o apache-maven.tar.gz http://archive.apache.org/dist/maven/maven-3/3.6.0/binaries/apache-maven-3.6.0-bin.tar.gz
