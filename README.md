@@ -1,6 +1,8 @@
 # AWS Native Streaming Data Platform
 1. [Overview](#Overview)
     1. [Architecture](#architecture)
+    1. [How It Works](#how-it-works)
+        1. [Machine Learning and Continuous Model Training](#machine-learning-and-continuous-model-training)
     1. [Region availability](#region-availability)
 1. [Developing](#developing)
     1. [Build](#build)
@@ -42,6 +44,32 @@ Smart partitioning on S3 and columnar format enables subsecond SQL queries from 
 
 Each type of message is registered in AWS Glue with associated metadata for catologization and self-description purposes. 
 AWS Athena is an interactive ad-hoc SQL interface on top of these tables. Aggregated and processed data is stored in DynamoDB for online reporting capabilities. 
+
+#### Machine Learning and Continuous Model Training
+
+Streaming Data Platform can predict the probability of win bid by 
+the specified price. This API is accessible over AWS SDK API when 
+you must create a SageMaker endpoint. But this API also accessible 
+over HTTP. One of the output values we get after the stack has 
+been created successfully is variable UrlForPredictions. 
+
+You may use this URL such way:
+
+```bash
+curl -d \
+  '{"campaignItemId":"realCompaignItemId","domain":"realDomain","creativeId":"realCreativeId","creativeCategory":"realCreativeCategory","winPrice":prefferedPrice}' -H "Content-Type: application/json" \
+  -X POST ${UrlForPredictions}
+```
+
+And the result of this statement may be like this: 
+
+```json
+{"predictions": [{"score": 0.9999716281890869, "predicted_label": 1.0}]}
+```
+
+Currently, Streaming Data Platform has a feature called Continuous Model 
+Training. It's mean that the learning model will retrain as soon as 
+new data is arrived by the Streaming Data Platform.
 
 ### Region availability
 All services which was used in stack available only in the following AWS regions:
