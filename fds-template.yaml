@@ -42,6 +42,7 @@ Metadata:
           - AggregationPeriod
           - BidsSessionTimeout
           - ClicksSessionTimeout
+          - LogLevel
     ParameterLabels:
       - ServicePrefix:
           default: Prefix for all entities
@@ -73,6 +74,8 @@ Metadata:
           default: Session length (in minutes) for joing bids with impressions
       - ClicksSessionTimeout:
           default: Session length (in minutes) for joing impressions with clicks
+      - LogLevel:
+          default: Default log level in lamdas
 Parameters:
   ServicePrefix:
     AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
@@ -136,6 +139,9 @@ Parameters:
   ClicksSessionTimeout:
     Default: 5
     Type: Number
+  LogLevel:
+    Default: debug
+    Type: String
 
 Rules:
   RegionSupport:
@@ -195,6 +201,7 @@ Resources:
       Environment:
         Variables:
           STREAM_NAME: !Ref S3EventsDeliveryStream
+          LOG_LEVEL: !Ref LogLevel
 
   S3ProxyExecutionRole:
     Type: AWS::IAM::Role
@@ -434,6 +441,7 @@ Resources:
         Variables:
           REGION: !Ref 'AWS::Region'
           ENDPOINT: !Sub '${ServicePrefix}Endpoint'
+          LOG_LEVEL: !Ref LogLevel
 
   LogGroupInvokeEndpointLambda:
     Type: AWS::Logs::LogGroup
@@ -464,13 +472,15 @@ Resources:
       Environment:
         Variables:
           S3_BUCKET: !Sub '${S3BucketName}'
-          REGION_ID: !Ref 'AWS::Region'
+          REGION: !Ref 'AWS::Region'
 
           ATHENA_KEY: 'athena/'
           ATHENA_DATABASE: !Ref 'AnalyticalDBName'
 
           MODEL_OUTPUT_PATH: !Sub 's3://${S3BucketName}/ml/model'
           SAGEMAKER_ROLE_ARN: !GetAtt 'SageMakerRole.Arn'
+
+          LOG_LEVEL: !Ref LogLevel
       Handler: com.provectus.fds.ml.PrepareDataForTrainingJobLambda
       MemorySize: 256
       Timeout: 600
@@ -502,7 +512,7 @@ Resources:
       Environment:
         Variables:
           S3_BUCKET: !Sub '${S3BucketName}'
-          REGION_ID: !Ref 'AWS::Region'
+          REGION: !Ref 'AWS::Region'
 
           SERVICE_PREFIX: !Sub '${ServicePrefix}'
 
@@ -510,6 +520,8 @@ Resources:
           ENDPOINT: !Sub '${ServicePrefix}Endpoint'
           # see https://docs.aws.amazon.com/en_us/sagemaker/latest/dg/API_ProductionVariant.html
           PRODUCTION_VARIANT_INITIAL_INSTANCE_COUNT: 1
+
+          LOG_LEVEL: !Ref LogLevel
       Handler: com.provectus.fds.ml.ReplaceEndpointConfigLambda
       MemorySize: 256
       Timeout: 900
