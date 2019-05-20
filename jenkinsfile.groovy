@@ -19,7 +19,7 @@ node("JenkinsOnDemand") {
         autoCheckout(repository, organization)
     }
     stage("Build") {
-        sh "/tmp/apache-maven-3.6.1/bin/mvn clean package"
+        sh "/tmp/apache-maven-3.6.1/bin/mvn --batch-mode --no-transfer-progress clean package"
     }
     stage("Test") {
 	withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'CFNBot', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
