@@ -1,87 +1,26 @@
 package com.provectus.fds.ml.utils;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Helper utility class for current module
  */
 public class IntegrationModuleHelper {
+
     /**
-     * Reads given resource file as a string.
+     * Proxy method for ObjectMapper which hides all of the checked
+     * exception
      *
-     * @param fileName the path to the resource file
-     * @return the file's contents or null if the file could not be opened
+     * @param o      Object to serialize into String
+     * @param mapper Configured ObjectMapper
+     * @return JSON String of the object
      */
-    public String getResourceFileAsString(String fileName) {
-        InputStream is = getClass().getClassLoader().getResourceAsStream(fileName);
-        return readInputStreamAsString(is);
-    }
-
-    public String getFileAsString(Path fileName) throws IOException {
-        InputStream is = Files.newInputStream(fileName);
-        return readInputStreamAsString(is);
-    }
-
-    public String getFileAsString(String fileName) throws IOException {
-        InputStream is = Files.newInputStream(Paths.get(fileName));
-        return readInputStreamAsString(is);
-    }
-
-    private String readInputStreamAsString(InputStream is) {
-        if (is != null) {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-            return reader.lines().collect(Collectors.joining(System.lineSeparator()));
+    public String writeValueAsString(Object o, ObjectMapper mapper) {
+        try {
+            return mapper.writeValueAsString(o);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
-        return null;
-    }
-
-    /**
-     * Returns Greatest Common Divisor
-     */
-    public int gcd(int a, int b) {
-        if (b == 0)
-            return a;
-        return gcd(b,a % b);
-    }
-
-    /**
-     * Returns configuration from current environment or if this variable
-     * dosn't exists then default value from parameter defVal
-     */
-    public String getConfig(String key, String defVal) {
-        return System.getenv().getOrDefault(key, defVal);
-    }
-
-    public String expandEnvVars(String text) {
-        Map<String, String> envMap = System.getenv();
-        for (Map.Entry<String, String> entry : envMap.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue().replace("\\", "\\\\");
-            text = text.replaceAll("\\$\\{" + key + "\\}", value);
-        }
-        return text;
-    }
-
-    private static final String OS = System.getProperty("os.name").toLowerCase();
-
-    public Path getHomePath() {
-        if (OS.contains("win")) {
-            return Paths.get(expandEnvVars("${HOMEDRIVE}${HOMEPATH}"));
-        } else {
-            return Paths.get(expandEnvVars("${HOME}"));
-        }
-    }
-
-    public String getRandomHexString() {
-        return UUID.randomUUID().toString().replace("-", "");
     }
 }

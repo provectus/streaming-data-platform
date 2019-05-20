@@ -10,49 +10,67 @@ import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointRequest;
 import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointResult;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.HttpStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.StringJoiner;
 
+@SuppressWarnings("unused")
 public class InvokeEndpointLambda implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
+    private static final Logger logger = LogManager.getLogger(InvokeEndpointLambda.class);
+
+    private final ObjectMapper objectMapper
+            = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    private final Configuration config = new Configuration();
 
     @Override
     public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent input, Context context) {
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
             PredictRequest r = objectMapper.readValue(input.getBody(), PredictRequest.class);
+
+            logger.debug("Got a prediction request: {}", objectMapper.writeValueAsString(r));
 
             AmazonSageMakerRuntime runtime
                     = AmazonSageMakerRuntimeClientBuilder
                     .standard()
-                    .withRegion(System.getenv("REGION"))
+                    .withRegion(config.getRegion())
                     .build();
 
-            String body =
-                    r.getCategorizedCampaignItemId() + "," +
-                    r.getCategorizedDomain() + "," +
-                    r.getCategorizedCreativeId() + "," +
-                    r.getCategorizedCreativeCategory() + "," +
-                    r.getWinPrice();
+            StringJoiner joiner = new StringJoiner(",");
+            joiner.add(String.valueOf(r.getCategorizedCampaignItemId()))
+                    .add(String.valueOf(r.getCategorizedDomain()))
+                    .add(String.valueOf(r.getCategorizedCreativeId()))
+                    .add(String.valueOf(r.getCategorizedCreativeCategory()))
+                    .add(String.valueOf(r.getWinPrice()));
 
-            ByteBuffer bodyBuffer = ByteBuffer.wrap(body.getBytes());
+            logger.info("Invoke the request: {}", joiner);
+
+            ByteBuffer bodyBuffer
+                    = ByteBuffer.wrap(joiner.toString().getBytes(Charset.forName("UTF-8")));
 
             InvokeEndpointRequest request = new InvokeEndpointRequest()
-                    .withEndpointName(System.getenv("ENDPOINT"))
+                    .withEndpointName(config.getEndpoint())
                     .withContentType("text/csv")
                     .withBody(bodyBuffer);
 
             InvokeEndpointResult invokeEndpointResult = runtime.invokeEndpoint(request);
 
             String bodyResponse = new String(invokeEndpointResult.getBody().array());
+
+            logger.info("Got the prediction answer: {}", bodyResponse);
+
             APIGatewayProxyResponseEvent responseEvent = new APIGatewayProxyResponseEvent();
             responseEvent.setBody(bodyResponse);
-            responseEvent.setStatusCode(200);
+            responseEvent.setStatusCode(HttpStatus.SC_OK);
 
             return responseEvent;
 
         } catch (Exception e) {
+            logger.throwing(e);
             throw new RuntimeException(e);
         }
     }

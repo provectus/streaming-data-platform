@@ -10,7 +10,7 @@ public class EndpointUpdaterTest {
     public void testGeneratedNames() {
 
         EndpointUpdater.EndpointUpdaterBuilder builder
-                = new EndpointUpdater.EndpointUpdaterBuilder();
+                = new EndpointUpdater.EndpointUpdaterBuilder(new ReplaceEndpointConfigLambda.LambdaConfiguration());
 
         builder.withServicePrefix("0123456789");
         String generatedName
