@@ -9,19 +9,29 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <lombok.version>1.18.4</lombok.version>
+
         <aws.lambda.version>1.2.0</aws.lambda.version>
         <aws.lambda.events.version>2.2.4</aws.lambda.events.version>
         <aws.java.sdk.version>1.11.253</aws.java.sdk.version>
         <aws.kinesisanalytics.version>1.0.1</aws.kinesisanalytics.version>
-        <aws.lambda.log4j.version>1.0.0</aws.lambda.log4j.version>
+        <amazon.kinesis.producer.version>0.12.11</amazon.kinesis.producer.version>
+        <async.http.client.version>2.6.0</async.http.client.version>
         <com.fasterxml.jackson.version>2.9.8</com.fasterxml.jackson.version>
-        <flink.version>1.6.3</flink.version>
-        <lombok.version>1.18.4</lombok.version>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
         <org.apache.parquet.version>1.10.0</org.apache.parquet.version>
+        <flink.version>1.6.3</flink.version>
         <hadoop.version>2.7.3</hadoop.version>
+
+        <!-- Logging -->
+        <aws.lambda.log4j.version>1.0.0</aws.lambda.log4j.version>
+        <aws.lambda.log4j2.version>1.1.0</aws.lambda.log4j2.version>
+        <log4j.version>2.11.2</log4j.version>
         <slf4j.version>1.7.26</slf4j.version>
+        <lz4.version>1.5.1</lz4.version>
+
+        <!-- Tests  -->
         <junit.version>4.12</junit.version>
         <hamcrest.version>2.1</hamcrest.version>
         <awaitility.version>3.1.5</awaitility.version>
@@ -69,12 +79,6 @@
 
             <dependency>
                 <groupId>com.amazonaws</groupId>
-                <artifactId>aws-lambda-java-log4j2</artifactId>
-                <version>1.1.0</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk-kinesis</artifactId>
                 <version>${aws.java.sdk.version}</version>
             </dependency>
@@ -107,13 +111,6 @@
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk-sagemakerruntime</artifactId>
                 <version>${aws.java.sdk.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${junit.version}</version>
-                <scope>test</scope>
             </dependency>
 
             <dependency>
@@ -160,6 +157,11 @@
                 <version>${aws.java.sdk.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>amazon-kinesis-producer</artifactId>
+                <version>${amazon.kinesis.producer.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-common</artifactId>
                 <version>${hadoop.version}</version>
@@ -202,28 +204,30 @@
             <dependency>
                 <groupId>org.asynchttpclient</groupId>
                 <artifactId>async-http-client</artifactId>
-                <version>2.6.0</version>
+                <version>${async.http.client.version}</version>
             </dependency>
+
+            <!-- Logging -->
             <dependency>
                 <groupId>org.lz4</groupId>
                 <artifactId>lz4-java</artifactId>
-                <version>1.5.1</version>
+                <version>${lz4.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-lambda-java-log4j2</artifactId>
-                <version>1.1.0</version>
+                <version>${aws.lambda.log4j2.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-core</artifactId>
-                <version>2.11.2</version>
+                <version>${log4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-api</artifactId>
-                <version>2.11.2</version>
+                <version>${log4j.version}</version>
             </dependency>
 
             <dependency>
@@ -249,6 +253,14 @@
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
                 <scope>provided</scope>
+            </dependency>
+
+            <!-- Tests -->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
             </dependency>
 
             <dependency>

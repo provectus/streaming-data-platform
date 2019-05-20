@@ -47,6 +47,10 @@
             <artifactId>aws-java-sdk-kinesis</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>amazon-kinesis-producer</artifactId>
+        </dependency>
 
         <!-- Logging -->
         <dependency>

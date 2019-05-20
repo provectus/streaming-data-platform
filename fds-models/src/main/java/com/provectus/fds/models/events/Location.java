@@ -13,18 +13,18 @@ import lombok.*;
 public class Location {
     private static final int FIELDS_COUNT = 4;
 
-    private long campaignItemId;
+    private String appUID;
     private long timestamp;
     private double longitude;
     private double latitude;
 
     @JsonCreator
     public Location(
-            @JsonProperty("campaignItemId") long campaignItemId,
+            @JsonProperty("appUID") String appUID,
             @JsonProperty("timestamp") long timestamp,
             @JsonProperty("longitude") double longitude,
             @JsonProperty("latitude") double latitude) {
-        this.campaignItemId = campaignItemId;
+        this.appUID = appUID;
         this.timestamp = timestamp;
         this.longitude = longitude;
         this.latitude = latitude;
@@ -41,7 +41,7 @@ public class Location {
         }
 
         return Location.builder()
-                .campaignItemId(Long.parseLong(elements[0]))
+                .appUID(elements[0])
                 .timestamp(Long.parseLong(elements[1]))
                 .longitude(Double.parseDouble(elements[2]))
                 .latitude(Double.parseDouble(elements[3]))

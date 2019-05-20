@@ -11,7 +11,7 @@ import static org.junit.Assert.assertEquals;
 public class LocationsHandlerTest {
     @Test
     public void shouldParseLocation() {
-        String row = "1,1557705600,55.789609,49.124116";
+        String row = "app1,1557705600,55.789609,49.124116";
         Location expected = getLocation();
 
         assertEquals(expected, Location.from(row.split(",")));
@@ -26,7 +26,7 @@ public class LocationsHandlerTest {
 
     private Location getLocation() {
         return Location.builder()
-                .campaignItemId(1)
+                .appUID("app1")
                 .timestamp(1557705600)
                 .longitude(55.789609)
                 .latitude(49.124116)
