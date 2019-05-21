@@ -47,11 +47,10 @@ AWS Athena is an interactive ad-hoc SQL interface on top of these tables. Aggreg
 
 #### Machine Learning and Continuous Model Training
 
-Streaming Data Platform can predict the probability of win bid by 
-the specified price. This API is accessible over AWS SDK API when 
-you must create a SageMaker endpoint. But this API also accessible 
-over HTTP. One of the output values we get after the stack has 
-been created successfully is variable UrlForPredictions. 
+Streaming Data Platform can predict the probability winning of the bid by 
+the specified price. This API is accessible over HTTP. One of the output 
+values we get after the stack had been created successfully is variable 
+UrlForPredictions. 
 
 You may use this URL such way:
 
@@ -67,9 +66,16 @@ And the result of this statement may be like this:
 {"predictions": [{"score": 0.9999716281890869, "predicted_label": 1.0}]}
 ```
 
+You can learn more about SageMaker response format 
+[here](https://docs.aws.amazon.com/en_us/sagemaker/latest/dg/LL-in-formats.html)
+
 Currently, Streaming Data Platform has a feature called Continuous Model 
 Training. It's mean that the learning model will retrain as soon as 
 new data is arrived by the Streaming Data Platform.
+
+Streaming Data Platform uses AWS SageMaker managed service to complete predictions
+work. The endpoint belongs to the new stack and gets the new training model 
+each time the ingestion layer consume information about new bids/impression.
 
 ### Region availability
 All services which was used in stack available only in the following AWS regions:
@@ -102,6 +108,7 @@ aws cloudformation deploy
 Stack outputs:
 - `UrlForAPI` - URL for injection requests
 - `UrlForReports` - URL for retrieving reports
+- `UrlForPredictions` - URL for retrieving predictions
 ### Test
 #### Integration
 The integration test would be launched in `us-west-2` region by default.
