@@ -29,7 +29,6 @@ import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class LocationsHandler implements RequestHandler<KinesisEvent, List<String>> {
     private static final Logger logger = LoggerFactory.getLogger(LocationsHandler.class);
@@ -51,11 +50,8 @@ public class LocationsHandler implements RequestHandler<KinesisEvent, List<Strin
     private final ObjectMapper mapper;
     private final KinesisProducer producer;
     private final FutureCallback<UserRecordResult> callback;
-    private final AtomicLong counter;
 
     public LocationsHandler() {
-        counter = new AtomicLong();
-
         mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -65,13 +61,11 @@ public class LocationsHandler implements RequestHandler<KinesisEvent, List<Strin
         callback = new FutureCallback<UserRecordResult>() {
             @Override
             public void onFailure(Throwable t) {
-                counter.decrementAndGet();
                 logger.error("Error occurred while writing to Kinesis", t);
             }
 
             @Override
             public void onSuccess(UserRecordResult result) {
-                counter.decrementAndGet();
                 // Success
             }
         };
@@ -130,13 +124,7 @@ public class LocationsHandler implements RequestHandler<KinesisEvent, List<Strin
             }
         }
 
-        while (counter.get() != 0) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                logger.error("Locations processing was interrupted", e);
-            }
-        }
+        producer.flushSync();
 
         return OK;
     }
@@ -149,8 +137,6 @@ public class LocationsHandler implements RequestHandler<KinesisEvent, List<Strin
                             location.getAppUID(),
                             ByteBuffer.wrap(JsonUtils.write(location))),
                     callback);
-
-            counter.incrementAndGet();
         } catch (JsonProcessingException e) {
             logger.error("Can't prepare location for writing", e);
         }

@@ -37,6 +37,7 @@
         <junit.version>4.12</junit.version>
         <hamcrest.version>2.1</hamcrest.version>
         <awaitility.version>3.1.5</awaitility.version>
+        <flinkspector.version>0.9.2</flinkspector.version>
 
         <!-- Plugins -->
         <maven.compiler.plugin.version>3.8.0</maven.compiler.plugin.version>
@@ -245,6 +246,12 @@
 
             <dependency>
                 <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.slf4j</groupId>
                 <artifactId>jcl-over-slf4j</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
@@ -281,6 +288,13 @@
                 <groupId>org.hamcrest</groupId>
                 <artifactId>hamcrest</artifactId>
                 <version>${hamcrest.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.flinkspector</groupId>
+                <artifactId>flinkspector-datastream_2.11</artifactId>
+                <version>${flinkspector.version}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
