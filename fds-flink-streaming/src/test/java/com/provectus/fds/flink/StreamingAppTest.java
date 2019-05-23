@@ -1,14 +1,17 @@
 package com.provectus.fds.flink;
 
+import com.provectus.fds.flink.selectors.EventSelector;
 import com.provectus.fds.models.bcns.*;
 import com.provectus.fds.models.events.Aggregation;
 import com.provectus.fds.models.events.Click;
 import com.provectus.fds.models.events.Impression;
+import com.provectus.fds.models.events.Location;
 import com.provectus.fds.models.utils.DateTimeUtils;
 import io.flinkspector.datastream.DataStreamTestBase;
 import io.flinkspector.datastream.input.EventTimeInputBuilder;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.SplitStream;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.junit.Before;
@@ -214,6 +217,98 @@ public class StreamingAppTest extends DataStreamTestBase {
         StreamingJob
                 .aggregateClicks(clickStream, TEST_AGGREGATION_PERIOD)
                 .addSink(testSink);
+    }
+
+    @Test
+    public void testLocationsJoin() {
+        // Prepare sources
+        Impression impression = Impression.from(BidBcn.from(getBcn(1, BcnType.BID)),
+                ImpressionBcn.from(getBcn(1, BcnType.IMPRESSION)));
+        Click click = Click.from(impression, ClickBcn.from(getBcn(1, BcnType.CLICK)));
+        Location location = Location.builder()
+                .appUID(click.getImpression().getBidBcn().getAppUID())
+                .timestamp(WINDOW_START_1)
+                .latitude(1.123456)
+                .longitude(1.123456)
+                .build();
+
+        DataStream<Location> locationStream = createTestStream(EventTimeInputBuilder.startWith(location, WINDOW_START_1));
+        DataStream<Click> clickStream = createTestStream(EventTimeInputBuilder.startWith(click, WINDOW_START_1));
+        DataStream<Impression> impressionStream = createTestStream(EventTimeInputBuilder
+                .startWith(impression, WINDOW_START_1 + 5 * 60 * 1000));
+
+        // Expected results
+        SinkFunction<Wlkin> wlkinTestSink = createTestSink(allOf(
+                hasItems(Wlkin.builder()
+                        .txId(impression.getPartitionKey())
+                        .winPrice(impression.getImpressionBcn().getWinPrice())
+                        .appUID(location.getAppUID())
+                        .timestamp(location.getTimestamp())
+                        .latitude(location.getLatitude())
+                        .longitude(location.getLongitude())
+                        .build()),
+                iterableWithSize(1)));
+
+        SinkFunction<WlkinClick> wlkinClickTest = createTestSink(allOf(
+                hasItems(WlkinClick.builder()
+                        .txId(impression.getPartitionKey())
+                        .appUID(location.getAppUID())
+                        .timestamp(location.getTimestamp())
+                        .latitude(location.getLatitude())
+                        .longitude(location.getLongitude())
+                        .build()),
+                iterableWithSize(1)));
+
+        // Configure chain
+        StreamingJob.createWlkinStream(impressionStream, locationStream, TEST_AGGREGATION_PERIOD).addSink(wlkinTestSink);
+        StreamingJob.createWlkinClickStream(clickStream, locationStream, TEST_AGGREGATION_PERIOD).addSink(wlkinClickTest);
+    }
+
+    @Test
+    public void testBcnSplit() {
+        Bcn bcn1 = getBcn(1, BcnType.BID);
+        Bcn bcn2 = getBcn(1, BcnType.CLICK);
+        Bcn bcn3 = getBcn(1, BcnType.IMPRESSION);
+
+        // Prepare sources
+        DataStream<Bcn> bcnStream = createTestStream(EventTimeInputBuilder
+                .startWith(bcn1, WINDOW_START_1)
+                .emitWithTimestamp(bcn2, WINDOW_START_1)
+                .emitWithTimestamp(bcn3, WINDOW_START_1));
+
+        // Expected results
+        SinkFunction<BidBcn> bidTestSink = createTestSink(allOf(hasItems(BidBcn.from(bcn1)), iterableWithSize(1)));
+        SinkFunction<ClickBcn> clickTestSink = createTestSink(allOf(hasItems(ClickBcn.from(bcn2)), iterableWithSize(1)));
+        SinkFunction<ImpressionBcn> impressionTestSink = createTestSink(allOf(hasItems(ImpressionBcn.from(bcn3)), iterableWithSize(1)));
+
+        // Configure chain
+        splitBcns(bcnStream, bidTestSink, clickTestSink, impressionTestSink);
+    }
+
+    private void splitBcns(
+            DataStream<Bcn> bcnStream,
+            SinkFunction<BidBcn> bidSink,
+            SinkFunction<ClickBcn> clickSink,
+            SinkFunction<ImpressionBcn> impressionSink) {
+        SplitStream<Bcn> splitStream = bcnStream.split(new EventSelector());
+
+        splitStream
+                .select(BcnType.BID.getCode())
+                .map(BidBcn::from)
+                .keyBy(BidBcn::getPartitionKey)
+                .addSink(bidSink);
+
+        splitStream
+                .select(BcnType.IMPRESSION.getCode())
+                .map(ImpressionBcn::from)
+                .keyBy(ImpressionBcn::getPartitionKey)
+                .addSink(impressionSink);
+
+        splitStream
+                .select(BcnType.CLICK.getCode())
+                .map(ClickBcn::from)
+                .keyBy(ClickBcn::getPartitionKey)
+                .addSink(clickSink);
     }
 
     private Bcn getBcn(int id, BcnType type) {

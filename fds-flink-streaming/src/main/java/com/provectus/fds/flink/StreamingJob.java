@@ -10,6 +10,7 @@ import com.provectus.fds.models.bcns.*;
 import com.provectus.fds.models.events.Aggregation;
 import com.provectus.fds.models.events.Click;
 import com.provectus.fds.models.events.Impression;
+import com.provectus.fds.models.events.Location;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -47,11 +48,14 @@ class StreamingJob {
     private final DataStream<BidBcn> bidBcnStream;
     private final DataStream<ImpressionBcn> impressionBcnStream;
     private final DataStream<ClickBcn> clickBcnStream;
+    private final DataStream<Location> locationStream;
 
     private final SinkFunction<Aggregation> aggregateSink;
     private final SinkFunction<BidBcn> bidSink;
     private final SinkFunction<ImpressionBcn> impressionSink;
     private final SinkFunction<ClickBcn> clickSink;
+    private final SinkFunction<Wlkin> wlkinSink;
+    private final SinkFunction<WlkinClick> wlkinClickSink;
 
     StreamingJob(StreamExecutionEnvironment environment, StreamingProperties properties) {
         this.environment = environment;
@@ -62,15 +66,20 @@ class StreamingJob {
         bidSink = getSink(properties.getSinkBidStreamName(), new BidBcnSchema());
         impressionSink = getSink(properties.getSinkImpressionStreamName(), new ImpressionBcnSchema());
         clickSink = getSink(properties.getSinkClickStreamName(), new ClickBcnSchema());
+        wlkinSink = getSink(properties.getSinkWlkinStreamName(), new WlkinSchema());
+        wlkinClickSink = getSink(properties.getSinkWlkinClickStreamName(), new WlkinClickSchema());
 
         // Create streams
-        bcnStream = getInputStream(properties.getSourceStreamName(), new BcnSchema());
+        bcnStream = getInputStream(properties.getSourceBcnStreamName(), new BcnSchema());
         bidBcnStream = getInputStream(properties.getSinkBidStreamName(), new BidBcnSchema())
                 .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
         impressionBcnStream = getInputStream(properties.getSinkImpressionStreamName(), new ImpressionBcnSchema())
                 .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
         clickBcnStream = getInputStream(properties.getSinkClickStreamName(), new ClickBcnSchema())
                 .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
+        locationStream = getInputStream(properties.getSourceLocationStreamName(), new LocationSchema())
+                .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
+
 
         configure();
 
@@ -88,6 +97,14 @@ class StreamingJob {
         DataStream<Click> clickStream =
                 createClickStream(impressionStream, clickBcnStream, properties.getClicksSessionTimeout())
                         .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
+
+        // Join with locations
+        createWlkinStream(impressionStream, locationStream, properties.getLocationsSessionTimeout())
+                .addSink(wlkinSink)
+                .name("Wlkins sink");
+        createWlkinClickStream(clickStream, locationStream, properties.getLocationsSessionTimeout())
+                .addSink(wlkinClickSink)
+                .name("Wlkin clicks sink");
 
         // Aggregation streams
         Time period = properties.getAggregationPeriod();
@@ -136,6 +153,36 @@ class StreamingJob {
                 });
     }
 
+    static DataStream<Wlkin> createWlkinStream(DataStream<Impression> impressionStream,
+                                               DataStream<Location> locationStream,
+                                               Time sessionTimeout) {
+        return impressionStream
+                .keyBy(imp -> imp.getBidBcn().getAppUID())
+                .intervalJoin(locationStream.keyBy(Location::getAppUID))
+                .between(Time.milliseconds(-sessionTimeout.toMilliseconds()), Time.milliseconds(sessionTimeout.toMilliseconds()))
+                .process(new ProcessJoinFunction<Impression, Location, Wlkin>() {
+                    @Override
+                    public void processElement(Impression left, Location right, Context ctx, Collector<Wlkin> out) {
+                        out.collect(Wlkin.from(left, right));
+                    }
+                });
+    }
+
+    static DataStream<WlkinClick> createWlkinClickStream(DataStream<Click> clickStream,
+                                                         DataStream<Location> locationStream,
+                                                         Time sessionTimeout) {
+        return clickStream
+                .keyBy(click -> click.getImpression().getBidBcn().getAppUID())
+                .intervalJoin(locationStream.keyBy(Location::getAppUID))
+                .between(Time.milliseconds(-sessionTimeout.toMilliseconds()), Time.milliseconds(sessionTimeout.toMilliseconds()))
+                .process(new ProcessJoinFunction<Click, Location, WlkinClick>() {
+                    @Override
+                    public void processElement(Click left, Location right, Context ctx, Collector<WlkinClick> out) {
+                        out.collect(WlkinClick.from(left, right));
+                    }
+                });
+    }
+
     static DataStream<Aggregation> aggregateBidsBcn(DataStream<BidBcn> bidBcnStream, Time aggregationPeriod) {
         return bidBcnStream
                 .keyBy(BidBcn::getCampaignItemId)
@@ -169,21 +216,24 @@ class StreamingJob {
                 .map(BidBcn::from)
                 .name(BID_BCN_STREAM)
                 .keyBy(BidBcn::getPartitionKey)
-                .addSink(bidSink);
+                .addSink(bidSink)
+                .name("Bids sink");
 
         splitStream
                 .select(BcnType.IMPRESSION.getCode())
                 .map(ImpressionBcn::from)
                 .name(IMPRESSION_BCN_STREAM)
                 .keyBy(ImpressionBcn::getPartitionKey)
-                .addSink(impressionSink);
+                .addSink(impressionSink)
+                .name("Impressions sink");
 
         splitStream
                 .select(BcnType.CLICK.getCode())
                 .map(ClickBcn::from)
                 .name(CLICKS_BCN_STREAM)
                 .keyBy(ClickBcn::getPartitionKey)
-                .addSink(clickSink);
+                .addSink(clickSink)
+                .name("Clicks sink");
     }
 
     private <T> DataStream<T> getInputStream(String streamName, DeserializationSchema<T> schema) {

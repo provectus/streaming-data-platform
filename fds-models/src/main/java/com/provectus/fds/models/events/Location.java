@@ -13,14 +13,16 @@ import lombok.*;
 public class Location {
     private static final int FIELDS_COUNT = 4;
 
+    @JsonProperty("app_uid")
     private String appUID;
+
     private long timestamp;
     private double longitude;
     private double latitude;
 
     @JsonCreator
     public Location(
-            @JsonProperty("appUID") String appUID,
+            @JsonProperty("app_uid") String appUID,
             @JsonProperty("timestamp") long timestamp,
             @JsonProperty("longitude") double longitude,
             @JsonProperty("latitude") double latitude) {

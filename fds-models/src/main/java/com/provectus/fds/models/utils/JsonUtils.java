@@ -25,4 +25,8 @@ public class JsonUtils {
     public static <T> T read(byte[] bytes, Class<T> clazz) throws IOException {
         return objectMapper.readerFor(clazz).readValue(bytes);
     }
+
+    public static <T> String writeAsString(T object) throws IOException {
+        return objectMapper.writeValueAsString(object);
+    }
 }

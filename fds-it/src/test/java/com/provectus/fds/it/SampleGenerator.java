@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provectus.fds.models.bcns.BidBcn;
 import com.provectus.fds.models.bcns.ClickBcn;
 import com.provectus.fds.models.bcns.ImpressionBcn;
+import com.provectus.fds.models.events.Location;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Response;
@@ -77,12 +78,23 @@ public class SampleGenerator {
             String appuid = UUID.randomUUID().toString();
             long winPrice = random.nextInt(1_000, 2_000);
 
-            BidBcn bid = new BidBcn(txid, campaignItemId, domain, creativeId, creativeCategory, appuid);
+            BidBcn bid = BidBcn.builder()
+                    .txId(txid)
+                    .campaignItemId(campaignItemId)
+                    .domain(domain)
+                    .creativeId(creativeId)
+                    .creativeCategory(creativeCategory)
+                    .appUID(appuid)
+                    .build();
             ImpressionBcn impressionBcn = new ImpressionBcn(txid, winPrice);
             ClickBcn clickBcn = new ClickBcn(txid);
+            Location location = new Location(appuid, System.currentTimeMillis(), 55.796506, 49.108451);
 
             futuresByType.computeIfAbsent(BID_TYPE, (k) -> new ArrayList<>())
                     .add(sendRequest(BID_TYPE, bid));
+
+            futuresByType.computeIfAbsent(LOCATION_TYPE, (k) -> new ArrayList<>())
+                    .add(sendRequest(LOCATION_TYPE, location));
 
             if (numberOfImps > 0) {
                 futuresByType.computeIfAbsent(IMP_TYPE, (k) -> new ArrayList<>())
@@ -100,6 +112,9 @@ public class SampleGenerator {
         result.setCountOfBids(awaitSuccessfull(futuresByType.get(BID_TYPE)));
         result.setCountOfImpressions(awaitSuccessfull(futuresByType.get(IMP_TYPE)));
         result.setCountOfClicks(awaitSuccessfull(futuresByType.get(CLICK_TYPE)));
+
+        awaitSuccessfull(futuresByType.get(LOCATION_TYPE));
+
         return result;
     }
 }

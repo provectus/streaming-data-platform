@@ -5,13 +5,13 @@ import com.provectus.fds.models.utils.JsonUtils;
 import lombok.*;
 
 import java.io.IOException;
-import java.util.StringJoiner;
 
 @Builder
 @Getter
 @Setter
 @NoArgsConstructor
 @ToString
+@EqualsAndHashCode
 public class BidBcn implements Partitioned {
     @JsonProperty("tx_id")
     private String txId;
@@ -68,29 +68,6 @@ public class BidBcn implements Partitioned {
         if (!getDomain().equals(bidBcn.getDomain())) return false;
         if (!getCreativeCategory().equals(bidBcn.getCreativeCategory())) return false;
         return getAppUID().equals(bidBcn.getAppUID());
-    }
-
-    @Override
-    public int hashCode() {
-        int result = getTxId().hashCode();
-        result = 31 * result + (int) (getCampaignItemId() ^ (getCampaignItemId() >>> 32));
-        result = 31 * result + getCreativeId().hashCode();
-        result = 31 * result + getDomain().hashCode();
-        result = 31 * result + getCreativeCategory().hashCode();
-        result = 31 * result + getAppUID().hashCode();
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return new StringJoiner(", ", BidBcn.class.getSimpleName() + "[", "]")
-                .add("txId='" + txId + "'")
-                .add("campaignItemId=" + campaignItemId)
-                .add("creativeId='" + creativeId + "'")
-                .add("domain='" + domain + "'")
-                .add("creativeCategory='" + creativeCategory + "'")
-                .add("appUID='" + appUID + "'")
-                .toString();
     }
 
     public static BidBcn from(Bcn bcn) {

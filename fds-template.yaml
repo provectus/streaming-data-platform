@@ -39,10 +39,13 @@ Metadata:
           - SinkBidStreamName
           - SinkImpressionStreamName
           - SinkClickStreamName
+          - SinkWlkinStreamName
+          - SinkWlkinClickStreamName
           - LocationStreamName
           - AggregationPeriod
           - BidsSessionTimeout
           - ClicksSessionTimeout
+          - LocationsSessionTimeout
     ParameterLabels:
       - ServicePrefix:
           default: Prefix for all entities
@@ -68,6 +71,10 @@ Metadata:
           default: A name of the impressions Kinesis stream
       - SinkClickStreamName:
           default: A name of the clicks Kinesis stream
+      - SinkWlkinClickStreamName:
+          default: A name of the wlkins Kinesis stream
+      - SinkWlkinClickStreamName:
+          default: A name of the wlkin clicks Kinesis stream
       - LocationStreamName:
           default: A name of the locations Kinesis stream
       - AggregationPeriod:
@@ -76,6 +83,8 @@ Metadata:
           default: Session length (in minutes) for joing bids with impressions
       - ClicksSessionTimeout:
           default: Session length (in minutes) for joing impressions with clicks
+      - LocationsSessionTimeout:
+          default: Session length (in minutes) for joing locations with clicks and impressions
 Parameters:
   ServicePrefix:
     AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
@@ -130,6 +139,16 @@ Parameters:
     ConstraintDescription: Should be a valid Kinesis topic name
     Default: clicks
     Type: String
+  SinkWlkinStreamName:
+    AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
+    ConstraintDescription: Should be a valid Kinesis topic name
+    Default: wlkins
+    Type: String
+  SinkWlkinClickStreamName:
+    AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
+    ConstraintDescription: Should be a valid Kinesis topic name
+    Default: wlkins-clicks
+    Type: String
   LocationStreamName:
     AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
     ConstraintDescription: Should be a valid Kinesis topic name
@@ -143,6 +162,9 @@ Parameters:
     Type: Number
   ClicksSessionTimeout:
     Default: 5
+    Type: Number
+  LocationsSessionTimeout:
+    Default: 10
     Type: Number
 
 Rules:
@@ -600,6 +622,7 @@ Resources:
                   - kinesis:PutRecords
                 Resource:
                   - !GetAtt 'BcnStream.Arn'
+                  - !GetAtt 'LocationStream.Arn'
               - Sid: dynamo
                 Effect: Allow
                 Action:
@@ -664,6 +687,9 @@ Resources:
                   - !GetAtt 'ImpressionStream.Arn'
                   - !GetAtt 'ClickStream.Arn'
                   - !GetAtt 'AggregateStream.Arn'
+                  - !GetAtt 'LocationStream.Arn'
+                  - !GetAtt 'WlkinStream.Arn'
+                  - !GetAtt 'WlkinClickStream.Arn'
               - Effect: Allow
                 Sid: S3BucketAccess
                 Action:
@@ -732,6 +758,18 @@ Resources:
     Properties:
       Name: !Sub '${ServicePrefix}${LocationStreamName}'
       ShardCount: !Ref 'ShardCount'
+  WlkinStream:
+    Type: AWS::Kinesis::Stream
+    DependsOn: 'AggregateStream'
+    Properties:
+      Name: !Sub '${ServicePrefix}${SinkWlkinStreamName}'
+      ShardCount: !Ref 'ShardCount'
+  WlkinClickStream:
+    Type: AWS::Kinesis::Stream
+    DependsOn: 'AggregateStream'
+    Properties:
+      Name: !Sub '${ServicePrefix}${SinkWlkinClickStreamName}'
+      ShardCount: !Ref 'ShardCount'
   LogGroupApi:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -798,6 +836,22 @@ Resources:
                 type:
                   type: string
                   default: click
+            Location:
+              title: Location
+              type: object
+              properties:
+                app_uid:
+                  required: true
+                  type: string
+                timestamp:
+                  required: true
+                  type: number
+                longitude:
+                  required: true
+                  type: number
+                latitude:
+                  required: true
+                  type: number
         info:
           title: KinesisProxy
           version: '2016-03-31T18:25:32Z'
@@ -892,6 +946,34 @@ Resources:
                     statusCode: '200'
                 type: aws
                 uri: !Sub 'arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord'
+          /location:
+            post:
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Location'
+              responses:
+                '200':
+                  description: 200 response
+              x-amazon-apigateway-integration:
+                credentials: !GetAtt 'KinesisAnalyticsRole.Arn'
+                httpMethod: POST
+                requestParameters:
+                  integration.request.header.Content-Type: '''application/x-amz-json-1.1'''
+                requestTemplates:
+                  application/json: !Sub |
+                    {
+                        "StreamName": "${LocationStream}",
+                        "Data": "$util.base64Encode($input.json('$'))",
+                        "PartitionKey": $input.json('app_uid')
+                    }
+                responses:
+                  default:
+                    statusCode: '200'
+                type: aws
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord'
   LogGroupKinesisAnalyticsApp:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -926,6 +1008,9 @@ Resources:
       - ImpressionStream
       - ClickStream
       - AggregateStream
+      - LocationStream
+      - WlkinStream
+      - WlkinClickStream
     Properties:
       ApplicationName: !Sub '${ServicePrefix}Application'
       ApplicationDescription: Flink joining & aggregation app
@@ -944,7 +1029,8 @@ Resources:
               PropertyMap:
                 source.aws.region: !Sub '${AWS::Region}'
                 source.stream.init.pos: 'TRIM_HORIZON'
-                source.stream.name: !Ref 'BcnStream'
+                source.bcn.stream.name: !Ref 'BcnStream'
+                source.location.stream.name: !Ref 'LocationStream'
             - PropertyGroupId: SinkConfigProperties
               PropertyMap:
                 sink.aws.region: !Sub '${AWS::Region}'
@@ -952,10 +1038,13 @@ Resources:
                 sink.bid.stream.name: !Ref 'BidStream'
                 sink.impression.stream.name: !Ref 'ImpressionStream'
                 sink.click.stream.name: !Ref 'ClickStream'
+                sink.wlkin.stream.name: !Ref 'WlkinStream'
+                sink.wlkin.click.stream.name: !Ref 'WlkinClickStream'
             - PropertyGroupId: AggregationProperties
               PropertyMap:
                 aggregation.bids.session.timeout: !Sub '${BidsSessionTimeout}'
                 aggregation.clicks.session.timeout: !Sub '${ClicksSessionTimeout}'
+                aggregation.locations.session.timeout: !Sub '${LocationsSessionTimeout}'
                 aggregation.period: !Sub '${AggregationPeriod}'
         FlinkApplicationConfiguration:
           CheckpointConfiguration:
