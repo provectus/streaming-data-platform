@@ -37,15 +37,25 @@ public class LocationsHandler implements RequestHandler<KinesisEvent, List<Strin
     private static final String FAILED = "FAILED";
 
     private static final String STREAM_NAME = "STREAM_NAME";
-    private static final String STREAM_NAME_DEFAULT = "locations";
     private static final String AWS_REGION = "AWS_REGION";
-    private static final String AWS_REGION_DEFAULT = "us-west-2";
+    private static final String RECORD_MAX_BUFFERED_TIME = "RECORD_MAX_BUFFERED_TIME";
+    private static final String MAX_CONNECTIONS = "MAX_CONNECTIONS";
+    private static final String REQUEST_TIMEOUT = "REQUEST_TIMEOUT";
+    private static final String AGGREGATION_ENABLED = "AGGREGATION_ENABLED";
+    private static final String AGGREGATION_MAX_COUNT = "AGGREGATION_MAX_COUNT";
+    private static final String AGGREGATION_MAX_SIZE = "AGGREGATION_MAX_SIZE";
 
     private static final String PREFIX = "locations/";
     private static final String SEPARATOR = ",";
 
-    private final String streamName = System.getenv().getOrDefault(STREAM_NAME, STREAM_NAME_DEFAULT);
-    private final String region = System.getenv().getOrDefault(AWS_REGION, AWS_REGION_DEFAULT);
+    private final String streamName = System.getenv().getOrDefault(STREAM_NAME, "locations");
+    private final String region = System.getenv().getOrDefault(AWS_REGION, "us-west-2");
+    private final long recordMaxBufferedTime = Long.parseLong(System.getenv().getOrDefault(RECORD_MAX_BUFFERED_TIME, "100"));
+    private final long maxConnections = Long.parseLong(System.getenv().getOrDefault(MAX_CONNECTIONS, "24"));
+    private final long requestTimeout = Long.parseLong(System.getenv().getOrDefault(REQUEST_TIMEOUT, "600"));
+    private final boolean aggregationEnabled = Boolean.parseBoolean(System.getenv().getOrDefault(AGGREGATION_ENABLED, "true"));
+    private final long getAggregationMaxCount = Long.parseLong(System.getenv().getOrDefault(AGGREGATION_MAX_COUNT, "4294967295"));
+    private final long getAggregationMaxSize = Long.parseLong(System.getenv().getOrDefault(AGGREGATION_MAX_SIZE, "51200"));
 
     private final ObjectMapper mapper;
     private final KinesisProducer producer;
@@ -56,6 +66,12 @@ public class LocationsHandler implements RequestHandler<KinesisEvent, List<Strin
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         producer = new KinesisProducer(new KinesisProducerConfiguration()
+                .setRecordMaxBufferedTime(recordMaxBufferedTime)
+                .setMaxConnections(maxConnections)
+                .setRequestTimeout(requestTimeout)
+                .setAggregationEnabled(aggregationEnabled)
+                .setAggregationMaxCount(getAggregationMaxCount)
+                .setAggregationMaxSize(getAggregationMaxSize)
                 .setRegion(region));
 
         callback = new FutureCallback<UserRecordResult>() {
