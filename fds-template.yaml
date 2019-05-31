@@ -39,6 +39,7 @@ Metadata:
           - SinkBidStreamName
           - SinkImpressionStreamName
           - SinkClickStreamName
+          - LocationStreamName
           - AggregationPeriod
           - BidsSessionTimeout
           - ClicksSessionTimeout
@@ -68,6 +69,8 @@ Metadata:
           default: A name of the impressions Kinesis stream
       - SinkClickStreamName:
           default: A name of the clicks Kinesis stream
+      - LocationStreamName:
+          default: A name of the locations Kinesis stream
       - AggregationPeriod:
           default: Period of triggering aggreation function
       - BidsSessionTimeout:
@@ -129,6 +132,11 @@ Parameters:
     AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
     ConstraintDescription: Should be a valid Kinesis topic name
     Default: clicks
+    Type: String
+  LocationStreamName:
+    AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
+    ConstraintDescription: Should be a valid Kinesis topic name
+    Default: locations
     Type: String
   AggregationPeriod:
     Default: 10
@@ -729,6 +737,12 @@ Resources:
     DependsOn: 'S3EventsDeliveryStream'
     Properties:
       Name: !Sub '${ServicePrefix}aggregates'
+      ShardCount: !Ref 'ShardCount'
+  LocationStream:
+    DependsOn: 'AggregateStream'
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Sub '${ServicePrefix}${LocationStreamName}'
       ShardCount: !Ref 'ShardCount'
   LogGroupApi:
     Type: AWS::Logs::LogGroup
@@ -1528,6 +1542,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub '/aws/lambda/${ServicePrefix}JsonToParquetConverter'
+
   JsonToParquetLambda:
     DependsOn:
       - S3DeliveryAccessRole
@@ -1545,12 +1560,40 @@ Resources:
       Role: !GetAtt 'S3DeliveryAccessRole.Arn'
       Runtime: java8
 
+  LogGroupLocationsIngestionLambda:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}LocationsHandler'
+
+  LocationsIngestionLambda:
+    Type: AWS::Serverless::Function
+    DependsOn: S3DeliveryAccessRole
+    Properties:
+      FunctionName: !Sub '${ServicePrefix}LocationsHandler'
+      Role: !GetAtt 'S3DeliveryAccessRole.Arn'
+      CodeUri: ./fds-lambda-locations-ingestion/target/fds-lambda-locations-ingestion-1.0-SNAPSHOT.jar
+      Handler: com.provectus.fds.ingestion.LocationsHandler
+      Runtime: java8
+      MemorySize: 256
+      Timeout: 180
+      Environment:
+        Variables:
+          STREAM_NAME: !Sub '${ServicePrefix}${LocationStreamName}'
+
   S3EventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
       EventSourceArn: !GetAtt S3EventsDeliveryStream.Arn
       FunctionName: !GetAtt JsonToParquetLambda.Arn
       # process s3 events in series https://stackoverflow.com/a/42693053/2743959
+      StartingPosition: TRIM_HORIZON
+      BatchSize: 1
+
+  S3LocationsEventMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt S3EventsDeliveryStream.Arn
+      FunctionName: !GetAtt LocationsIngestionLambda.Arn
       StartingPosition: TRIM_HORIZON
       BatchSize: 1
 
