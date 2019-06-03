@@ -1,7 +1,7 @@
 package com.provectus.fds.models.bcns;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.provectus.fds.models.events.Impression;
+import com.provectus.fds.models.events.Click;
 import com.provectus.fds.models.events.Location;
 import com.provectus.fds.models.utils.JsonUtils;
 import lombok.*;
@@ -14,12 +14,9 @@ import java.io.IOException;
 @NoArgsConstructor
 @ToString
 @EqualsAndHashCode
-public class Wlkin implements Partitioned {
+public class WalkinClick implements Partitioned {
     @JsonProperty("tx_id")
     private String txId;
-
-    @JsonProperty("win_price")
-    private long winPrice;
 
     @JsonProperty("app_uid")
     private String appUID;
@@ -28,15 +25,13 @@ public class Wlkin implements Partitioned {
     private double longitude;
     private double latitude;
 
-    public Wlkin(
+    public WalkinClick(
             @JsonProperty("tx_id") String txId,
-            @JsonProperty("win_price") long winPrice,
             @JsonProperty("app_uid") String appUID,
             @JsonProperty("timestamp") long timestamp,
             @JsonProperty("longitude") double longitude,
             @JsonProperty("latitude") double latitude) {
         this.txId = txId;
-        this.winPrice = winPrice;
         this.appUID = appUID;
         this.timestamp = timestamp;
         this.longitude = longitude;
@@ -53,10 +48,9 @@ public class Wlkin implements Partitioned {
         return JsonUtils.write(this);
     }
 
-    public static Wlkin from(Impression impression, Location location) {
+    public static WalkinClick from(Click click, Location location) {
         return builder()
-                .txId(impression.getPartitionKey())
-                .winPrice(impression.getImpressionBcn() == null ? 0 : impression.getImpressionBcn().getWinPrice())
+                .txId(click.getPartitionKey())
                 .appUID(location.getAppUID())
                 .timestamp(location.getTimestamp())
                 .longitude(location.getLongitude())

@@ -21,8 +21,8 @@ public class StreamingProperties {
     private static final String SINK_BID_STREAM_NAME = "sink.bid.stream.name";
     private static final String SINK_IMPRESSION_STREAM_NAME = "sink.impression.stream.name";
     private static final String SINK_CLICK_STREAM_NAME = "sink.click.stream.name";
-    private static final String SINK_WLKIN_STREAM_NAME = "sink.wlkin.stream.name";
-    private static final String SINK_WLKIN_CLICK_STREAM_NAME = "sink.wlkin.click.stream.name";
+    private static final String SINK_WALKIN_STREAM_NAME = "sink.walkin.stream.name";
+    private static final String SINK_WALKIN_CLICK_STREAM_NAME = "sink.walkin.click.stream.name";
     private static final String SINK_AWS_REGION = "sink.aws.region";
 
     private static final String AGGREGATION_BIDS_SESSION_TIMEOUT = "aggregation.bids.session.timeout";
@@ -39,8 +39,8 @@ public class StreamingProperties {
     private String sinkBidStreamName;
     private String sinkImpressionStreamName;
     private String sinkClickStreamName;
-    private String sinkWlkinStreamName;
-    private String sinkWlkinClickStreamName;
+    private String sinkWalkinStreamName;
+    private String sinkWalkinClickStreamName;
     private String sinkAwsRegion;
 
     private Time bidsSessionTimeout;
@@ -58,8 +58,8 @@ public class StreamingProperties {
         sinkBidStreamName = (String) sinkProperties.get(SINK_BID_STREAM_NAME);
         sinkImpressionStreamName = (String) sinkProperties.get(SINK_IMPRESSION_STREAM_NAME);
         sinkClickStreamName = (String) sinkProperties.get(SINK_CLICK_STREAM_NAME);
-        sinkWlkinStreamName = (String) sinkProperties.get(SINK_WLKIN_STREAM_NAME);
-        sinkWlkinClickStreamName = (String) sinkProperties.get(SINK_WLKIN_CLICK_STREAM_NAME);
+        sinkWalkinStreamName = (String) sinkProperties.get(SINK_WALKIN_STREAM_NAME);
+        sinkWalkinClickStreamName = (String) sinkProperties.get(SINK_WALKIN_CLICK_STREAM_NAME);
         sinkAwsRegion = (String) sinkProperties.get(SINK_AWS_REGION);
 
         bidsSessionTimeout = Time.minutes(Long.parseLong(aggregationProperties.get(AGGREGATION_BIDS_SESSION_TIMEOUT).toString()));
@@ -131,12 +131,12 @@ public class StreamingProperties {
         return sinkClickStreamName;
     }
 
-    public String getSinkWlkinStreamName() {
-        return sinkWlkinStreamName;
+    public String getSinkWalkinStreamName() {
+        return sinkWalkinStreamName;
     }
 
-    public String getSinkWlkinClickStreamName() {
-        return sinkWlkinClickStreamName;
+    public String getSinkWalkinClickStreamName() {
+        return sinkWalkinClickStreamName;
     }
 
     public String getSinkAwsRegion() {

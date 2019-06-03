@@ -54,8 +54,8 @@ class StreamingJob {
     private final SinkFunction<BidBcn> bidSink;
     private final SinkFunction<ImpressionBcn> impressionSink;
     private final SinkFunction<ClickBcn> clickSink;
-    private final SinkFunction<Wlkin> wlkinSink;
-    private final SinkFunction<WlkinClick> wlkinClickSink;
+    private final SinkFunction<Walkin> walkinSink;
+    private final SinkFunction<WalkinClick> walkinClickSink;
 
     StreamingJob(StreamExecutionEnvironment environment, StreamingProperties properties) {
         this.environment = environment;
@@ -66,8 +66,8 @@ class StreamingJob {
         bidSink = getSink(properties.getSinkBidStreamName(), new BidBcnSchema());
         impressionSink = getSink(properties.getSinkImpressionStreamName(), new ImpressionBcnSchema());
         clickSink = getSink(properties.getSinkClickStreamName(), new ClickBcnSchema());
-        wlkinSink = getSink(properties.getSinkWlkinStreamName(), new WlkinSchema());
-        wlkinClickSink = getSink(properties.getSinkWlkinClickStreamName(), new WlkinClickSchema());
+        walkinSink = getSink(properties.getSinkWalkinStreamName(), new WalkinSchema());
+        walkinClickSink = getSink(properties.getSinkWalkinClickStreamName(), new WalkinClickSchema());
 
         // Create streams
         bcnStream = getInputStream(properties.getSourceBcnStreamName(), new BcnSchema());
@@ -99,12 +99,12 @@ class StreamingJob {
                         .assignTimestampsAndWatermarks(new EventTimeExtractor<>());
 
         // Join with locations
-        createWlkinStream(impressionStream, locationStream, properties.getLocationsSessionTimeout())
-                .addSink(wlkinSink)
-                .name("Wlkins sink");
-        createWlkinClickStream(clickStream, locationStream, properties.getLocationsSessionTimeout())
-                .addSink(wlkinClickSink)
-                .name("Wlkin clicks sink");
+        createWalkinStream(impressionStream, locationStream, properties.getLocationsSessionTimeout())
+                .addSink(walkinSink)
+                .name("Walkins sink");
+        createWalkinClickStream(clickStream, locationStream, properties.getLocationsSessionTimeout())
+                .addSink(walkinClickSink)
+                .name("Walkin clicks sink");
 
         // Aggregation streams
         Time period = properties.getAggregationPeriod();
@@ -153,32 +153,32 @@ class StreamingJob {
                 });
     }
 
-    static DataStream<Wlkin> createWlkinStream(DataStream<Impression> impressionStream,
+    static DataStream<Walkin> createWalkinStream(DataStream<Impression> impressionStream,
                                                DataStream<Location> locationStream,
                                                Time sessionTimeout) {
         return impressionStream
                 .keyBy(imp -> imp.getBidBcn().getAppUID())
                 .intervalJoin(locationStream.keyBy(Location::getAppUID))
                 .between(Time.milliseconds(-sessionTimeout.toMilliseconds()), Time.milliseconds(sessionTimeout.toMilliseconds()))
-                .process(new ProcessJoinFunction<Impression, Location, Wlkin>() {
+                .process(new ProcessJoinFunction<Impression, Location, Walkin>() {
                     @Override
-                    public void processElement(Impression left, Location right, Context ctx, Collector<Wlkin> out) {
-                        out.collect(Wlkin.from(left, right));
+                    public void processElement(Impression left, Location right, Context ctx, Collector<Walkin> out) {
+                        out.collect(Walkin.from(left, right));
                     }
                 });
     }
 
-    static DataStream<WlkinClick> createWlkinClickStream(DataStream<Click> clickStream,
-                                                         DataStream<Location> locationStream,
-                                                         Time sessionTimeout) {
+    static DataStream<WalkinClick> createWalkinClickStream(DataStream<Click> clickStream,
+                                                          DataStream<Location> locationStream,
+                                                          Time sessionTimeout) {
         return clickStream
                 .keyBy(click -> click.getImpression().getBidBcn().getAppUID())
                 .intervalJoin(locationStream.keyBy(Location::getAppUID))
                 .between(Time.milliseconds(-sessionTimeout.toMilliseconds()), Time.milliseconds(sessionTimeout.toMilliseconds()))
-                .process(new ProcessJoinFunction<Click, Location, WlkinClick>() {
+                .process(new ProcessJoinFunction<Click, Location, WalkinClick>() {
                     @Override
-                    public void processElement(Click left, Location right, Context ctx, Collector<WlkinClick> out) {
-                        out.collect(WlkinClick.from(left, right));
+                    public void processElement(Click left, Location right, Context ctx, Collector<WalkinClick> out) {
+                        out.collect(WalkinClick.from(left, right));
                     }
                 });
     }

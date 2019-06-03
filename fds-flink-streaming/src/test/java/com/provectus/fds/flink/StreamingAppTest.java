@@ -238,8 +238,8 @@ public class StreamingAppTest extends DataStreamTestBase {
                 .startWith(impression, WINDOW_START_1 + 5 * 60 * 1000));
 
         // Expected results
-        SinkFunction<Wlkin> wlkinTestSink = createTestSink(allOf(
-                hasItems(Wlkin.builder()
+        SinkFunction<Walkin> walkinTestSink = createTestSink(allOf(
+                hasItems(Walkin.builder()
                         .txId(impression.getPartitionKey())
                         .winPrice(impression.getImpressionBcn().getWinPrice())
                         .appUID(location.getAppUID())
@@ -249,8 +249,8 @@ public class StreamingAppTest extends DataStreamTestBase {
                         .build()),
                 iterableWithSize(1)));
 
-        SinkFunction<WlkinClick> wlkinClickTest = createTestSink(allOf(
-                hasItems(WlkinClick.builder()
+        SinkFunction<WalkinClick> walkinClickTest = createTestSink(allOf(
+                hasItems(WalkinClick.builder()
                         .txId(impression.getPartitionKey())
                         .appUID(location.getAppUID())
                         .timestamp(location.getTimestamp())
@@ -260,8 +260,8 @@ public class StreamingAppTest extends DataStreamTestBase {
                 iterableWithSize(1)));
 
         // Configure chain
-        StreamingJob.createWlkinStream(impressionStream, locationStream, TEST_AGGREGATION_PERIOD).addSink(wlkinTestSink);
-        StreamingJob.createWlkinClickStream(clickStream, locationStream, TEST_AGGREGATION_PERIOD).addSink(wlkinClickTest);
+        StreamingJob.createWalkinStream(impressionStream, locationStream, TEST_AGGREGATION_PERIOD).addSink(walkinTestSink);
+        StreamingJob.createWalkinClickStream(clickStream, locationStream, TEST_AGGREGATION_PERIOD).addSink(walkinClickTest);
     }
 
     @Test
