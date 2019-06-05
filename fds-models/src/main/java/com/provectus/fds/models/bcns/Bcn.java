@@ -3,18 +3,16 @@ package com.provectus.fds.models.bcns;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.provectus.fds.models.utils.JsonUtils;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.io.IOException;
-import java.util.StringJoiner;
 
 @Getter
 @Builder
 @Setter
 @NoArgsConstructor
+@ToString
+@EqualsAndHashCode
 public class Bcn implements Partitioned {
     @JsonProperty("tx_id")
     private String txId;
@@ -66,49 +64,5 @@ public class Bcn implements Partitioned {
     @Override
     public byte[] getBytes() throws IOException {
         return JsonUtils.write(this);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Bcn)) return false;
-
-        Bcn bcn = (Bcn) o;
-
-        if (getCampaignItemId() != bcn.getCampaignItemId()) return false;
-        if (getWinPrice() != bcn.getWinPrice()) return false;
-        if (!getTxId().equals(bcn.getTxId())) return false;
-        if (!getDomain().equals(bcn.getDomain())) return false;
-        if (!getCreativeId().equals(bcn.getCreativeId())) return false;
-        if (!getCreativeCategory().equals(bcn.getCreativeCategory())) return false;
-        if (!getAppUID().equals(bcn.getAppUID())) return false;
-        return getType().equals(bcn.getType());
-    }
-
-    @Override
-    public int hashCode() {
-        int result = getTxId().hashCode();
-        result = 31 * result + (int) (getCampaignItemId() ^ (getCampaignItemId() >>> 32));
-        result = 31 * result + getDomain().hashCode();
-        result = 31 * result + getCreativeId().hashCode();
-        result = 31 * result + getCreativeCategory().hashCode();
-        result = 31 * result + getAppUID().hashCode();
-        result = 31 * result + (int) (getWinPrice() ^ (getWinPrice() >>> 32));
-        result = 31 * result + getType().hashCode();
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return new StringJoiner(", ", Bcn.class.getSimpleName() + "[", "]")
-                .add("txId='" + txId + "'")
-                .add("campaignItemId=" + campaignItemId)
-                .add("domain='" + domain + "'")
-                .add("creativeId='" + creativeId + "'")
-                .add("creativeCategory='" + creativeCategory + "'")
-                .add("appUID='" + appUID + "'")
-                .add("winPrice=" + winPrice)
-                .add("type='" + type + "'")
-                .toString();
     }
 }

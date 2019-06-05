@@ -11,6 +11,7 @@ import java.io.IOException;
 @Setter
 @NoArgsConstructor
 @ToString
+@EqualsAndHashCode
 public class ClickBcn implements Partitioned {
     @JsonProperty("tx_id")
     private String txId;
@@ -27,21 +28,6 @@ public class ClickBcn implements Partitioned {
     @Override
     public byte[] getBytes() throws IOException {
         return JsonUtils.write(this);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ClickBcn)) return false;
-
-        ClickBcn clickBcn = (ClickBcn) o;
-
-        return getTxId().equals(clickBcn.getTxId());
-    }
-
-    @Override
-    public int hashCode() {
-        return getTxId().hashCode();
     }
 
     public static ClickBcn from(Bcn bcn) {
