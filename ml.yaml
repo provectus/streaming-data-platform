@@ -1,0 +1,488 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description:  Machine Learning part of Streaming Data Platform solution
+Metadata:
+  Authors:
+    Description: German Osin (gosin@provectus.com), Rustam Gimadiev (rgimadiev@provectus.com), Andrew Saushkin (asaushkin@provectus.com), Astamur Kirillin (akirillin@provectus.com)
+Parameters:
+  ServicePrefix:
+    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
+    ConstraintDescription: Prefix should be DNS compliant
+    Default: testing
+    Type: String
+  S3BucketName:
+    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
+    ConstraintDescription: Bucket name must not contain uppercase characters or underscores
+    Default: bucket
+    Type: String
+  LocationsIngestionLambdaArn:
+    Type: String
+  JsonToParquetLambdaArn:
+    Type: String
+  ShardCount:
+    Default: 2
+    Type: Number
+  LogLevel:
+    Default: debug
+    Type: String
+  S3ResourceBucket:
+    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
+    ConstraintDescription: Bucket name must not contain uppercase characters or underscores
+    Default: fds-lambda-java
+    Type: String
+  AnalyticalDBName:
+    Type: String
+Resources:
+  # S3 bucket for storing parquets and raw files
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Ref S3BucketName
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt S3EventProxy.Arn
+  # Allow S3 bucket trigger S3EventProxy lambda
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt S3EventProxy.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub 'arn:aws:s3:::${S3BucketName}'
+  # Log group for S3EventProxy lambda
+  LogGroupS3EventProxy:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        !Sub '/aws/lambda/${ServicePrefix}S3EventProxy'
+
+  S3EventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt S3EventsStream.Arn
+      FunctionName: !Ref JsonToParquetLambdaArn
+      # process s3 events in series https://stackoverflow.com/a/42693053/2743959
+      StartingPosition: TRIM_HORIZON
+      BatchSize: 1
+
+  S3LocationsEventMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt S3EventsStream.Arn
+      FunctionName: !Ref LocationsIngestionLambdaArn
+      StartingPosition: TRIM_HORIZON
+      BatchSize: 1
+
+
+  # Lambda S3EventProxy
+  # ???
+  S3EventProxy:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ServicePrefix}S3EventProxy'
+      Handler: com.provectus.fds.ml.LambdaS3EventProxy
+      CodeUri: ./fds-lambda-ml-integration/target/fds-lambda-ml-integration-1.0-SNAPSHOT.jar
+      Runtime: java8
+      Role: !GetAtt S3ProxyExecutionRole.Arn
+      MemorySize: 256
+      Timeout: 30
+      Environment:
+        Variables:
+          STREAM_NAME: !Ref S3EventsStream
+          LOG_LEVEL: !Ref LogLevel
+  # Role for S3EventProxy lambda
+  S3EventsStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Sub '${ServicePrefix}-s3-events'
+      ShardCount: !Ref ShardCount
+  S3ProxyExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}ProxyKinesisAccessPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: KinesisAccessPolicy
+                Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:DescribeStreamSummary
+                  - kinesis:GetRecords
+                  - kinesis:GetShardIterator
+                  - kinesis:ListShards
+                  - kinesis:ListStreams
+                  - kinesis:SubscribeToShard
+                  - kinesis:PutRecords
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+
+  # ???
+  MLExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}MlIntegrationPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: loggroups
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !GetAtt 'LogGroupMlIntegrationLambda.Arn'
+                  - !GetAtt 'LogGroupInvokeEndpointLambda.Arn'
+
+              - Sid: athenaAll
+                Action:
+                  - athena:ListWorkGroups
+                  - athena:GetExecutionEngine
+                  - athena:GetExecutionEngines
+                  - athena:GetNamespace
+                  - athena:GetCatalogs
+                  - athena:GetNamespaces
+                  - athena:GetTables
+                  - athena:GetTable
+                Resource:
+                  - '*'
+                Effect: Allow
+
+              - Sid: athenaWorkgroup
+                Action:
+                  - athena:StartQueryExecution
+                  - athena:GetQueryResults
+                  - athena:DeleteNamedQuery
+                  - athena:GetNamedQuery
+                  - athena:ListQueryExecutions
+                  - athena:StopQueryExecution
+                  - athena:GetQueryResultsStream
+                  - athena:ListNamedQueries
+                  - athena:CreateNamedQuery
+                  - athena:GetQueryExecution
+                  - athena:BatchGetNamedQuery
+                  - athena:BatchGetQueryExecution
+                  - athena:GetWorkGroup
+                Resource:
+                  - !Sub 'arn:aws:athena:${AWS::Region}:${AWS::AccountId}:workgroup/primary'
+                Effect: Allow
+
+              - Sid: glue
+                Action:
+                  - glue:GetTable
+                  - glue:GetPartitions
+                  - glue:GetDatabase
+                  - glue:GetDatabases
+                  - glue:GetTables
+                  - glue:GetPartition
+                  - glue:BatchGetPartition
+                Resource:
+                  - '*'
+                Effect: Allow
+
+              - Sid: s3
+                Action:
+                  - s3:CreateBucket
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:GetObject
+                  - s3:GetBucketLocation
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3BucketName}'
+                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+                Effect: Allow
+
+              - Sid: sagemaker
+                Action:
+                  - sagemaker:CreateTrainingJob
+                  - sagemaker:CreateModel
+                  - sagemaker:CreateEndpointConfig
+                  - sagemaker:UpdateEndpoint
+                Resource:
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:training-job/fds-training-job-*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:model/*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint-config/*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/*"
+                Effect: Allow
+
+              - Sid: invokeEndpoint
+                Action:
+                  - sagemaker:InvokeEndpoint
+                Effect: Allow
+                Resource:
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/${ServicePrefix}endpoint"
+
+              - Sid: iam
+                Action:
+                  - iam:PassRole
+                Resource:
+                  - !GetAtt 'SageMakerRole.Arn'
+                Effect: Allow
+
+        - PolicyName: !Sub '${ServicePrefix}ConsumerKinesisAccessPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: KinesisAccessPolicy
+                Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:DescribeStreamSummary
+                  - kinesis:GetRecords
+                  - kinesis:GetShardIterator
+                  - kinesis:ListShards
+                  - kinesis:ListStreams
+                  - kinesis:SubscribeToShard
+                  - kinesis:PutRecords
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+
+  # ???
+  SageMakerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sagemaker.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName:
+            !Sub '${ServicePrefix}SageMakerPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: AllowAccessToS3Bucket
+                Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                  - s3:PutObject
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3BucketName}'
+                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+                  - !Sub 'arn:aws:s3:::${S3ResourceBucket}'
+                  - !Sub 'arn:aws:s3:::${S3ResourceBucket}/*'
+
+  ApiGateway:
+    Type: "AWS::ApiGateway::RestApi"
+    Properties:
+      Name: !Sub '${ServicePrefix}PredictAPI'
+      Description: "Predict Bid Win API"
+
+  ApiGatewayRootMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: "NONE"
+      HttpMethod: "POST"
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: "AWS_PROXY"
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${InvokeEndpointLambda.Arn}/invocations'
+      ResourceId: !GetAtt "ApiGateway.RootResourceId"
+      RestApiId: !Ref "ApiGateway"
+
+  ApiGatewayDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    DependsOn:
+      - "ApiGatewayRootMethod"
+    Properties:
+      RestApiId: !Ref "ApiGateway"
+      StageName: !Ref "ServicePrefix"
+
+  InvokeEndpointLambda:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      FunctionName: !Sub "${ServicePrefix}InvokeEndpointLambda"
+      Handler: com.provectus.fds.ml.InvokeEndpointLambda
+      CodeUri: ./fds-lambda-ml-integration/target/fds-lambda-ml-integration-1.0-SNAPSHOT.jar
+      Runtime: java8
+      MemorySize: 256
+      Timeout: 30
+      Role: !GetAtt "MLExecutionRole.Arn"
+      Environment:
+        Variables:
+          REGION: !Ref 'AWS::Region'
+          ENDPOINT: !Sub '${ServicePrefix}Endpoint'
+          LOG_LEVEL: !Ref LogLevel
+
+  LogGroupInvokeEndpointLambda:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        !Sub '/aws/lambda/${ServicePrefix}InvokeEndpointLambda'
+
+  LambdaApiGatewayInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !GetAtt "InvokeEndpointLambda.Arn"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/POST/"
+
+  LogGroupMlIntegrationLambda:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        !Sub '/aws/lambda/${ServicePrefix}MlIntegration'
+  MlIntegrationLambda:
+    Type: AWS::Serverless::Function
+    DependsOn: LambdaExecutionRole
+    Properties:
+      CodeUri: ./fds-lambda-ml-integration/target/fds-lambda-ml-integration-1.0-SNAPSHOT.jar
+      FunctionName:
+        !Sub '${ServicePrefix}MlIntegration'
+      Environment:
+        Variables:
+          S3_BUCKET: !Sub '${S3BucketName}'
+          REGION: !Ref 'AWS::Region'
+
+          ATHENA_KEY: 'athena/'
+          ATHENA_DATABASE: !Ref 'AnalyticalDBName'
+
+          MODEL_OUTPUT_PATH: !Sub 's3://${S3BucketName}/ml/model'
+          SAGEMAKER_ROLE_ARN: !GetAtt 'SageMakerRole.Arn'
+
+          LOG_LEVEL: !Ref LogLevel
+      Handler: com.provectus.fds.ml.PrepareDataForTrainingJobLambda
+      MemorySize: 256
+      Timeout: 600
+      Role:
+        !GetAtt 'MLExecutionRole.Arn'
+      Runtime: java8
+
+  MlIntegrationEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt S3EventsStream.Arn
+      FunctionName: !GetAtt MlIntegrationLambda.Arn
+      # process s3 events in series https://stackoverflow.com/a/42693053/2743959
+      StartingPosition: TRIM_HORIZON
+      BatchSize: 1
+
+  LogGroupMlEndpointReplacerLambda:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        !Sub '/aws/lambda/${ServicePrefix}MlEndpointReplacer'
+  MlEndpointReplacerLambda:
+    Type: AWS::Serverless::Function
+    DependsOn: LambdaExecutionRole
+    Properties:
+      CodeUri: ./fds-lambda-ml-integration/target/fds-lambda-ml-integration-1.0-SNAPSHOT.jar
+      FunctionName:
+        !Sub '${ServicePrefix}MlEndpointReplacer'
+      Environment:
+        Variables:
+          S3_BUCKET: !Sub '${S3BucketName}'
+          REGION: !Ref 'AWS::Region'
+
+          SERVICE_PREFIX: !Sub '${ServicePrefix}'
+
+          SAGEMAKER_ROLE_ARN: !GetAtt 'SageMakerRole.Arn'
+          ENDPOINT: !Sub '${ServicePrefix}Endpoint'
+          # see https://docs.aws.amazon.com/en_us/sagemaker/latest/dg/API_ProductionVariant.html
+          PRODUCTION_VARIANT_INITIAL_INSTANCE_COUNT: "1"
+
+          LOG_LEVEL: !Ref LogLevel
+      Handler: com.provectus.fds.ml.ReplaceEndpointConfigLambda
+      MemorySize: 256
+      Timeout: 900
+      Role:
+        !GetAtt 'MLExecutionRole.Arn'
+      Runtime: java8
+
+  EndpointReplacerEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt S3EventsStream.Arn
+      FunctionName: !GetAtt MlEndpointReplacerLambda.Arn
+      # process s3 events in series https://stackoverflow.com/a/42693053/2743959
+      StartingPosition: TRIM_HORIZON
+      BatchSize: 1
+  Endpoint:
+    Type: "AWS::SageMaker::Endpoint"
+    Properties:
+      EndpointConfigName:
+        !GetAtt EndpointConfig.EndpointConfigName
+      EndpointName: !Sub '${ServicePrefix}Endpoint'
+  EndpointConfig:
+    Type: "AWS::SageMaker::EndpointConfig"
+    Properties:
+      ProductionVariants:
+        - InitialInstanceCount: 1
+          InitialVariantWeight: 1.0
+          InstanceType: ml.t2.large
+          ModelName: !GetAtt Model.ModelName
+          VariantName: !GetAtt Model.ModelName
+  Model:
+    Type: "AWS::SageMaker::Model"
+    Properties:
+      ExecutionRoleArn: !GetAtt 'SageMakerRole.Arn'
+      PrimaryContainer:
+        ModelDataUrl: !Sub 's3://${S3ResourceBucket}/model.tar.gz'
+        Image: !Sub "174872318107.dkr.ecr.${AWS::Region}.amazonaws.com/linear-learner:latest"
+      ModelName: !Sub "${ServicePrefix}Model"
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}KinesisAccessPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: kinesisanalytics
+                Effect: Allow
+                Action:
+                  - kinesisanalytics:StartApplication
+                  - kinesisanalytics:DescribeApplication
+                Resource: !Sub 'arn:aws:kinesisanalytics:${AWS::Region}:${AWS::AccountId}:application/${ServicePrefix}Application'
+Outputs:
+  S3BucketName:
+    Value: !Ref S3Bucket
