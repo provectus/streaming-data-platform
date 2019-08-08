@@ -68,7 +68,7 @@ Deploy cloudformation stack:
 aws cloudformation deploy
     --template-file fds.yaml
     --capabilities CAPABILITY_AUTO_EXPAND CAPABILITY_IAM
-    [ --parameter-overrides ServicePrefixName=<some-value> AnalyticalDBName=<some-value> S3Bucket=<some-value> AggregationPeriod=10 S3ResourceBucket=<some-value>]
+    [ --parameter-overrides S3Bucket=<some-value> AggregationPeriod=10 S3ResourceBucket=<some-value>]
     --stack-name <stack-name>
 ```
 Stack outputs:

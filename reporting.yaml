@@ -211,3 +211,7 @@ Resources:
       StageDescription:
         AccessLogSetting:
           DestinationArn: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupApi}'
+Outputs:
+  UrlForReports:
+    Description: Root URL of the reports gateway
+    Value: !Sub 'https://${ReportingApi}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}'

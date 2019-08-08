@@ -6,33 +6,19 @@ Metadata:
     Description: German Osin (gosin@provectus.com), Rustam Gimadiev (rgimadiev@provectus.com), Andrew Saushkin (asaushkin@provectus.com), Astamur Kirillin (akirillin@provectus.com)
 Parameters:
   AnalyticalDBName:
-    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
-    Default: sdp-db
     Type: String
   BufInterval:
-    Default: 60
     Type: Number
   BufSize:
-    Default: 50
     Type: Number
   S3ResourceBucket:
-    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
-    ConstraintDescription: Bucket name must not contain uppercase characters or underscores
-    Default: sdp-lambda-java
     Type: String
   ServicePrefix:
-    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
-    ConstraintDescription: Prefix should be DNS compliant
-    Default: testing
     Type: String
   S3BucketName:
-    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
-    ConstraintDescription: Bucket name must not contain uppercase characters or underscores
-    Default: bucket
     Type: String
   ShardCount:
-      Default: 2
-      Type: Number
+    Type: Number
   SinkWalkinStreamName:
     AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
     ConstraintDescription: Should be a valid Kinesis topic name
@@ -49,16 +35,12 @@ Parameters:
     Default: locations
     Type: String
   AggregationPeriod:
-    Default: 10
     Type: Number
   BidsSessionTimeout:
-    Default: 5
     Type: Number
   ClicksSessionTimeout:
-    Default: 5
     Type: Number
   LocationsSessionTimeout:
-    Default: 10
     Type: Number
 Resources:
   # Kinesis delivery stream for all raw events

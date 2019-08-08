@@ -20,7 +20,6 @@ Parameters:
   JsonToParquetLambdaArn:
     Type: String
   ShardCount:
-    Default: 2
     Type: Number
   LogLevel:
     Default: debug
@@ -486,3 +485,6 @@ Resources:
 Outputs:
   S3BucketName:
     Value: !Ref S3Bucket
+  UrlForPredictions:
+    Description: Prediction URL of the API gateway
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}"

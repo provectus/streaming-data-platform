@@ -258,3 +258,7 @@ Resources:
                     statusCode: '200'
                 type: aws
                 uri: !Sub 'arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord'
+Outputs:
+  UrlForAPI:
+    Description: Root URL of the API gateway
+    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}'

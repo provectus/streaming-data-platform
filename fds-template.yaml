@@ -9,11 +9,14 @@ Metadata:
       - Label:
           default: General Configuration
         Parameters:
-          - ServicePrefix
+          - BufInterval
+          - BufSize
           - S3ResourceBucket
+          - AggregationPeriod
+          - BidsSessionTimeout
+          - ClicksSessionTimeout
+          - LocationsSessionTimeout
     ParameterLabels:
-      - ServicePrefix:
-          default: Prefix for all entities
       - AnalyticalDBName:
           default: Name for all databases
       - S3BucketName:
@@ -26,22 +29,6 @@ Metadata:
           default: Buffering size
       - ShardCount:
           default: Number of Kinesis streams shards
-      - SourceStreamName:
-          default: A name of the input Kinesis stream
-      - SinkAggregateStreamName:
-          default: A name of the aggregates Kinesis stream
-      - SinkBidStreamName:
-          default: A name of the bids Kinesis stream
-      - SinkImpressionStreamName:
-          default: A name of the impressions Kinesis stream
-      - SinkClickStreamName:
-          default: A name of the clicks Kinesis stream
-      - SinkWalkinClickStreamName:
-          default: A name of the walkins Kinesis stream
-      - SinkWalkinClickStreamName:
-          default: A name of the walkin clicks Kinesis stream
-      - LocationStreamName:
-          default: A name of the locations Kinesis stream
       - AggregationPeriod:
           default: Period of triggering aggreation function
       - BidsSessionTimeout:
@@ -53,15 +40,34 @@ Metadata:
       - LogLevel:
           default: Default log level in lamdas
 Parameters:
-  ServicePrefix:
-    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
-    ConstraintDescription: Prefix should be DNS compliant
-    Default: testing
-    Type: String
+  BufInterval:
+    Default: 60
+    Type: Number
+  BufSize:
+    Default: 50
+    Type: Number
   S3ResourceBucket:
     AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
     ConstraintDescription: Bucket name must not contain uppercase characters or underscores
     Default: fds-lambda-java
+    Type: String
+  ShardCount:
+    Default: 2
+    Type: Number
+  AggregationPeriod:
+    Default: 10
+    Type: Number
+  BidsSessionTimeout:
+    Default: 5
+    Type: Number
+  ClicksSessionTimeout:
+    Default: 5
+    Type: Number
+  LocationsSessionTimeout:
+    Default: 10
+    Type: Number
+  LogLevel:
+    Default: debug
     Type: String
 Rules:
   RegionSupport:
@@ -81,43 +87,62 @@ Resources:
     Properties:
       TemplateURL: './common.yaml'
       Parameters:
-        ServicePrefix: !Ref ServicePrefix
-        AnalyticalDBName: !Sub '${ServicePrefix}-db'
-        S3BucketName: !Sub 'sdp-${ServicePrefix}-bucket'
-        LocationStreamName: !Sub '${ServicePrefix}-locations'
+        ServicePrefix: !Ref AWS::StackName
+        AnalyticalDBName: !Sub '${AWS::StackName}-db'
+        S3BucketName: !Sub 'sdp-${AWS::StackName}-bucket'
+        LocationStreamName: !Sub '${AWS::StackName}-locations'
   ml:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: './ml.yaml'
       Parameters:
-        ServicePrefix: !Ref ServicePrefix
+        ServicePrefix: !Ref AWS::StackName
         S3ResourceBucket: !Ref S3ResourceBucket
-        S3BucketName:  !Sub 'sdp-${ServicePrefix}-bucket'
-        AnalyticalDBName: !Sub '${ServicePrefix}-db'
+        S3BucketName:  !Sub 'sdp-${AWS::StackName}-bucket'
+        AnalyticalDBName: !Sub '${AWS::StackName}-db'
         JsonToParquetLambdaArn: !GetAtt common.Outputs.JsonToParquetLambdaArn
         LocationsIngestionLambdaArn: !GetAtt common.Outputs.LocationsIngestionLambdaArn
+        LogLevel: !Ref LogLevel
+        ShardCount: !Ref ShardCount
   processing:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: './processing.yaml'
       Parameters:
-        ServicePrefix: !Ref ServicePrefix
+        ServicePrefix: !Ref AWS::StackName
         S3ResourceBucket: !Ref S3ResourceBucket
-        AnalyticalDBName: !Sub '${ServicePrefix}-db'
+        AnalyticalDBName: !Sub '${AWS::StackName}-db'
         LocationStreamName: 'locations'
         S3BucketName: !GetAtt ml.Outputs.S3BucketName
+        BufInterval: !Ref BufInterval
+        BufSize: !Ref BufSize
+        ShardCount: !Ref ShardCount
+        AggregationPeriod: !Ref AggregationPeriod
+        BidsSessionTimeout: !Ref BidsSessionTimeout
+        ClicksSessionTimeout: !Ref ClicksSessionTimeout
+        LocationsSessionTimeout: !Ref LocationsSessionTimeout
   injection:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: './injection.yaml'
       Parameters:
-          ServicePrefix: !Ref ServicePrefix
-          BcnStreamName: !Sub '${ServicePrefix}-bcns'
-          LocationStreamName: !Sub '${ServicePrefix}-locations'
+          ServicePrefix: !Ref AWS::StackName
+          BcnStreamName: !Sub '${AWS::StackName}-bcns'
+          LocationStreamName: !Sub '${AWS::StackName}-locations'
   reporting:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: './reporting.yaml'
       Parameters:
-        ServicePrefix: !Ref ServicePrefix
-        AggregationDynamoTableName: !GetAtt processing.Outputs.AggregationDynamoTableName 
+        ServicePrefix: !Ref AWS::StackName
+        AggregationDynamoTableName: !GetAtt processing.Outputs.AggregationDynamoTableName
+Outputs:
+  UrlForAPI:
+    Description: Root URL of the API gateway
+    Value: !GetAtt injection.Outputs.UrlForAPI
+  UrlForReports:
+    Description: Root URL of the reports gateway
+    Value: !GetAtt reporting.Outputs.UrlForReports
+  UrlForPredictions:
+    Description: Prediction URL of the API gateway
+    Value: !GetAtt ml.Outputs.UrlForPredictions

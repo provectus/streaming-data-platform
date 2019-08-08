@@ -107,9 +107,8 @@ if [[ -z "${onlyPackage}" ]]; then
     ${AWS_CLI} --region ${regionName} cloudformation deploy \
         --s3-bucket ${resourceBucket} \
         --template-file ${PROJECT_DIR}/fds.yaml \
-        --capabilities CAPABILITY_IAM \
+        --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
         --parameter-overrides \
-        ServicePrefix=${stackname} \
         AnalyticalDBName=${stackname} \
         S3BucketName=fds${stackname} \
         S3ResourceBucket=${resourceBucket} \
