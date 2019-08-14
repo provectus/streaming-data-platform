@@ -20,7 +20,7 @@ node("JenkinsOnDemand") {
     }
     stage("Build") {
       	withCredentials([usernamePassword(credentialsId: 'artifactory', passwordVariable: 'CI_ARTIFACTORY_USER_PASSWORD', usernameVariable: 'CI_ARTIFACTORY_USER_NAME')]) {
-            sh "/tmp/apache-maven-3.6.0/bin/mvn clean package"
+            sh "/tmp/apache-maven-3.6.0/bin/mvn -s settings.xml clean package"
         }
     }
     stage("Test") {
@@ -29,7 +29,7 @@ node("JenkinsOnDemand") {
                 sh """
                 export PATH=\$PATH:\$HOME/.local/bin
                 BUCKET=jenkins-`cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 32 | head -n 1`
-                /tmp/apache-maven-3.6.0/bin/mvn -fn clean package verify -DresourceBucket=\${BUCKET}
+                /tmp/apache-maven-3.6.0/bin/mvn -s settings.xml-fn clean package verify -DresourceBucket=\${BUCKET}
                 (aws s3 rb s3://\${BUCKET} --force || exit 0)
                 """
             }
