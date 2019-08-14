@@ -109,8 +109,6 @@ if [[ -z "${onlyPackage}" ]]; then
         --template-file ${PROJECT_DIR}/fds.yaml \
         --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
         --parameter-overrides \
-        AnalyticalDBName=${stackname} \
-        S3BucketName=fds${stackname} \
         S3ResourceBucket=${resourceBucket} \
         --stack-name ${stackname}
 
