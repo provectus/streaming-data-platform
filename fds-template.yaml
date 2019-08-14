@@ -144,3 +144,6 @@ Outputs:
   UrlForPredictions:
     Description: Prediction URL of the API gateway
     Value: !GetAtt ml.Outputs.UrlForPredictions
+  Bucket:
+    Description: S3 bucket with data
+    Value: !GetAtt ml.Outputs.S3BucketName
