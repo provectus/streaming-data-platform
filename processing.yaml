@@ -135,6 +135,17 @@ Resources:
                   - !GetAtt 'LocationStream.Arn'
                   - !GetAtt 'WalkinStream.Arn'
                   - !GetAtt 'WalkinClickStream.Arn'
+              - Effect: Allow
+                Sid: S3BucketAccess
+                Action:
+                  - s3:ListBucket
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                  - s3:GetObjectVersion
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+                  - !Sub 'arn:aws:s3:::${S3ResourceBucket}/fds-flink-streaming.jar'
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
