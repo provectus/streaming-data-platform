@@ -14,13 +14,11 @@ Metadata:
           - S3ResourceBucket
           - AggregationPeriod
           - BidsSessionTimeout
+          - ShardCount
           - ClicksSessionTimeout
           - LocationsSessionTimeout
+          - LogLevel
     ParameterLabels:
-      - AnalyticalDBName:
-          default: Name for all databases
-      - S3BucketName:
-          default: Name of S3 bucket
       - S3ResourceBucket:
           default: Name of an auxiliary S3 bucket
       - BufInterval:

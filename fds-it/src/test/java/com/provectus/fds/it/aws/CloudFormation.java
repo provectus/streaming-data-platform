@@ -54,18 +54,8 @@ public class CloudFormation implements AutoCloseable {
 
         List<String> capabilities = Arrays.asList(Capability.CAPABILITY_IAM.name(), Capability.CAPABILITY_AUTO_EXPAND.name());
         createRequest.setCapabilities(capabilities);
-        s3bucket = String.format("fds%s", stackName);
 
         List<Parameter> parameters = Arrays.asList(
-                new Parameter()
-                        .withParameterKey("ServicePrefix")
-                        .withParameterValue(stackName),
-                new Parameter()
-                        .withParameterKey("AnalyticalDBName")
-                        .withParameterValue(stackName),
-                new Parameter()
-                        .withParameterKey("S3BucketName")
-                        .withParameterValue(s3bucket),
                 new Parameter()
                         .withParameterKey("AggregationPeriod")
                         .withParameterValue("2"),
