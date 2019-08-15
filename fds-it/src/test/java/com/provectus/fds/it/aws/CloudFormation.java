@@ -73,7 +73,13 @@ public class CloudFormation implements AutoCloseable {
                 stackName,
                 result.getStackStatus()
         ));
-        this.s3bucket = getOutput("Bucket".toLowerCase()).getOutputValue();
+        System.out.println("Outputs:");
+        Map<String,Output> outputs = new HashMap<>();
+        for (Output output : result.getOutputs()) {
+            System.out.println(String.format("%s:%s",output.getOutputKey(),output.getOutputValue()));
+            outputs.put(output.getOutputKey().toLowerCase(), output);
+        }
+        this.s3bucket = outputs.get("Bucket".toLowerCase()).getOutputValue();
         return result;
     }
 
