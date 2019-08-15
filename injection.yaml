@@ -1,0 +1,264 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Injection part of Streaming Data Platform solution
+Metadata:
+  Authors:
+    Description: German Osin (gosin@provectus.com), Rustam Gimadiev (rgimadiev@provectus.com), Andrew Saushkin (asaushkin@provectus.com), Astamur Kirillin (akirillin@provectus.com)
+Parameters:
+  ServicePrefix:
+    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
+    ConstraintDescription: Prefix should be DNS compliant
+    Default: testing
+    Type: String
+  BcnStreamName:
+    Type: String
+  LocationStreamName:
+    Type: String
+Resources:
+  ApiGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}ApiGatewayRolePolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Sid: LogGroupsAccess
+                Action:
+                  - logs:DescribeLogGroups
+                Resource:
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
+              - Effect: Allow
+                Sid: CloudWatchAccess
+                Action:
+                  - cloudwatch:*
+                Resource:
+                  - '*'
+              - Effect: Allow
+                Sid: KinesisStreamsAccess
+                Action:
+                  - kinesis:*
+                Resource:
+                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${BcnStreamName}'
+                  - !Sub 'arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${LocationStreamName}'
+  LogGroupApi:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/sdp/${ServicePrefix}/ApiGatewayStage'
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref 'Api'
+      StageName: !Sub '${ServicePrefix}'
+      StageDescription:
+        AccessLogSetting:
+          DestinationArn: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupApi}'
+  Api:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub '${ServicePrefix}API'
+      Description: API used for requests
+      FailOnWarnings: false
+      Body:
+        openapi: 3.0.0
+        components:
+          schemas:
+            Bid:
+              title: Bid
+              type: object
+              properties:
+                app_uid:
+                  required: true
+                  type: string
+                campaign_item_id:
+                  required: true
+                  type: integer
+                creative_category:
+                  type: string
+                creative_id:
+                  type: string
+                tx_id:
+                  required: true
+                  type: string
+                domain:
+                  type: string
+                win_price:
+                  type: integer
+                type:
+                  type: string
+                  default: bid
+            Impression:
+              title: Impression
+              type: object
+              properties:
+                tx_id:
+                  required: true
+                  type: string
+                win_price:
+                  required: true
+                  type: integer
+                type:
+                  type: string
+                  default: imp
+            Click:
+              title: Click
+              type: object
+              properties:
+                tx_id:
+                  required: true
+                  type: string
+                type:
+                  type: string
+                  default: click
+            Location:
+              title: Location
+              type: object
+              properties:
+                app_uid:
+                  required: true
+                  type: string
+                timestamp:
+                  required: true
+                  type: number
+                longitude:
+                  required: true
+                  type: number
+                latitude:
+                  required: true
+                  type: number
+        info:
+          title: KinesisProxy
+          version: '2016-03-31T18:25:32Z'
+        paths:
+          /bid:
+            post:
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Bid'
+              responses:
+                '200':
+                  description: 200 response
+              x-amazon-apigateway-integration:
+                credentials: !GetAtt 'ApiGatewayRole.Arn'
+                httpMethod: POST
+                requestParameters:
+                  integration.request.header.Content-Type: '''application/x-amz-json-1.1'''
+                requestTemplates:
+                  application/json: !Sub |
+                    #set($allParams = $input.path('$'))
+                    #set($discard=$allParams.put("type", "bid"))
+                    {
+                        "StreamName": "${BcnStreamName}",
+                        "Data": "$util.base64Encode($input.json('$'))",
+                        "PartitionKey": $input.json('tx_id')
+                    }
+                responses:
+                  default:
+                    statusCode: '200'
+                type: aws
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord'
+          /click:
+            post:
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Click'
+              responses:
+                '200':
+                  description: 200 response
+              x-amazon-apigateway-integration:
+                credentials: !GetAtt 'ApiGatewayRole.Arn'
+                httpMethod: POST
+                requestParameters:
+                  integration.request.header.Content-Type: '''application/x-amz-json-1.1'''
+                requestTemplates:
+                  application/json: !Sub |
+                    #set($allParams = $input.path('$'))
+                    #set($discard=$allParams.put("type", "click"))
+                    {
+                        "StreamName": "${BcnStreamName}",
+                        "Data": "$util.base64Encode($input.json('$'))",
+                        "PartitionKey": $input.json('tx_id')
+                    }
+                responses:
+                  default:
+                    statusCode: '200'
+                type: aws
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord'
+          /impression:
+            post:
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Impression'
+              responses:
+                '200':
+                  description: 200 response
+              x-amazon-apigateway-integration:
+                credentials: !GetAtt 'ApiGatewayRole.Arn'
+                httpMethod: POST
+                requestParameters:
+                  integration.request.header.Content-Type: '''application/x-amz-json-1.1'''
+                requestTemplates:
+                  application/json: !Sub |
+                    #set($allParams = $input.path('$'))
+                    #set($discard=$allParams.put("type", "imp"))
+                    {
+                        "StreamName": "${BcnStreamName}",
+                        "Data": "$util.base64Encode($input.json('$'))",
+                        "PartitionKey": $input.json('tx_id')
+                    }
+                responses:
+                  default:
+                    statusCode: '200'
+                type: aws
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord'
+          /location:
+            post:
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Location'
+              responses:
+                '200':
+                  description: 200 response
+              x-amazon-apigateway-integration:
+                credentials: !GetAtt 'ApiGatewayRole.Arn'
+                httpMethod: POST
+                requestParameters:
+                  integration.request.header.Content-Type: '''application/x-amz-json-1.1'''
+                requestTemplates:
+                  application/json: !Sub |
+                    {
+                        "StreamName": "${LocationStreamName}",
+                        "Data": "$util.base64Encode($input.json('$'))",
+                        "PartitionKey": $input.json('app_uid')
+                    }
+                responses:
+                  default:
+                    statusCode: '200'
+                type: aws
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord'
+Outputs:
+  UrlForAPI:
+    Description: Root URL of the API gateway
+    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}'

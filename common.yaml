@@ -1,0 +1,161 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Processing part of Streaming Data Platform solution
+Metadata:
+  Authors:
+    Description: German Osin (gosin@provectus.com), Rustam Gimadiev (rgimadiev@provectus.com), Andrew Saushkin (asaushkin@provectus.com), Astamur Kirillin (akirillin@provectus.com)
+Parameters:
+  AnalyticalDBName:
+    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
+    Default: fdsdb
+    Type: String
+  ServicePrefix:
+    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
+    ConstraintDescription: Prefix should be DNS compliant
+    Default: testing
+    Type: String
+  S3BucketName:
+    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
+    ConstraintDescription: Bucket name must not contain uppercase characters or underscores
+    Default: fdsbucket
+    Type: String
+  LocationStreamName:
+    AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
+    ConstraintDescription: Should be a valid Kinesis topic name
+    Default: locations
+    Type: String
+Resources:
+  LogGroupJsonToParquetLambda:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}JsonToParquetConverter'
+  JsonToParquetLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}JsonToParquetLambdaRolePolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: AllowAccessToGlue
+                Effect: Allow
+                Action:
+                  - glue:GetDatabase
+                  - glue:GetPartition
+                  - glue:GetTables
+                  - glue:GetPartitions
+                  - glue:UpdateTable
+                  - glue:CreatePartition
+                  - glue:GetDatabases
+                  - glue:UpdatePartition
+                  - glue:GetTable
+                Resource:
+                  - '*'
+              - Sid: AllowAccessToKinesis
+                Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:DescribeStreamSummary
+                  - kinesis:GetRecords
+                  - kinesis:GetShardIterator
+                  - kinesis:ListShards
+                  - kinesis:ListStreams
+                  - kinesis:SubscribeToShard
+                  - kinesis:PutRecords
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Sid: AllowAccessToS3Bucket
+                Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                  - s3:PutObject
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3BucketName}'
+                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+  JsonToParquetLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./fds-lambda-compaction/target/fds-lambda-compaction-1.0-SNAPSHOT.jar
+      FunctionName: !Sub '${ServicePrefix}JsonToParquetConverter'
+      Environment:
+        Variables:
+          GLUE_CATALOG_ID: !Ref 'AWS::AccountId'
+          GLUE_DATABASE_NAME: !Ref 'AnalyticalDBName'
+      Handler: com.provectus.fds.compaction.JsonToParquetConverterLambda
+      MemorySize: 512
+      Timeout: 180
+      Role: !GetAtt 'JsonToParquetLambdaRole.Arn'
+      Runtime: java8
+  LogGroupLocationsIngestionLambda:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}LocationsHandler'
+  LocationsIngestionLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+          - PolicyName: !Sub '${ServicePrefix}LocationsIngestionLambdaRolePolicy'
+            PolicyDocument:
+              Version: 2012-10-17
+              Statement:
+              - Sid: kinesis
+                Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:DescribeStreamSummary
+                  - kinesis:GetRecords
+                  - kinesis:GetShardIterator
+                  - kinesis:ListShards
+                  - kinesis:ListStreams
+                  - kinesis:SubscribeToShard
+                  - kinesis:PutRecords
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+  LocationsIngestionLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ServicePrefix}LocationsHandler'
+      Role: !GetAtt 'LocationsIngestionLambdaRole.Arn'
+      CodeUri: ./fds-lambda-locations-ingestion/target/fds-lambda-locations-ingestion-1.0-SNAPSHOT.jar
+      Handler: com.provectus.fds.ingestion.LocationsHandler
+      Runtime: java8
+      MemorySize: 256
+      Timeout: 180
+      Environment:
+        Variables:
+          STREAM_NAME: !Sub '${ServicePrefix}${LocationStreamName}'
+Outputs:
+  LocationsIngestionLambdaArn:
+    Value: !GetAtt LocationsIngestionLambda.Arn
+  JsonToParquetLambdaArn:
+    Value: !GetAtt JsonToParquetLambda.Arn

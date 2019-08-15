@@ -1,0 +1,899 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Processing part of Streaming Data Platform solution
+Metadata:
+  Authors:
+    Description: German Osin (gosin@provectus.com), Rustam Gimadiev (rgimadiev@provectus.com), Andrew Saushkin (asaushkin@provectus.com), Astamur Kirillin (akirillin@provectus.com)
+Parameters:
+  AnalyticalDBName:
+    Type: String
+  BufInterval:
+    Type: Number
+  BufSize:
+    Type: Number
+  S3ResourceBucket:
+    Type: String
+  ServicePrefix:
+    Type: String
+  S3BucketName:
+    Type: String
+  ShardCount:
+    Type: Number
+  SinkWalkinStreamName:
+    AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
+    ConstraintDescription: Should be a valid Kinesis topic name
+    Default: walkins
+    Type: String
+  SinkWalkinClickStreamName:
+    AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
+    ConstraintDescription: Should be a valid Kinesis topic name
+    Default: walkins-clicks
+    Type: String
+  LocationStreamName:
+    AllowedPattern: '^[-a-zA-Z0-9_]{4,61}$'
+    ConstraintDescription: Should be a valid Kinesis topic name
+    Default: locations
+    Type: String
+  AggregationPeriod:
+    Type: Number
+  BidsSessionTimeout:
+    Type: Number
+  ClicksSessionTimeout:
+    Type: Number
+  LocationsSessionTimeout:
+    Type: Number
+Resources:
+  # Kinesis delivery stream for all raw events
+  BcnStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Sub '${ServicePrefix}-bcns'
+      ShardCount: !Ref 'ShardCount'
+  BidStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Sub '${ServicePrefix}-bids'
+      ShardCount: !Ref 'ShardCount'
+  ClickStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Sub '${ServicePrefix}-clicks'
+      ShardCount: !Ref 'ShardCount'
+  ImpressionStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Sub '${ServicePrefix}-impressions'
+      ShardCount: !Ref 'ShardCount'
+  AggregateStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Sub '${ServicePrefix}-aggregates'
+      ShardCount: !Ref 'ShardCount'
+  LocationStream:
+    DependsOn: 'AggregateStream'
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Sub '${ServicePrefix}-${LocationStreamName}'
+      ShardCount: !Ref 'ShardCount'
+  WalkinStream:
+    Type: AWS::Kinesis::Stream
+    DependsOn: 'AggregateStream'
+    Properties:
+      Name: !Sub '${ServicePrefix}-${SinkWalkinStreamName}'
+      ShardCount: !Ref 'ShardCount'
+  WalkinClickStream:
+    Type: AWS::Kinesis::Stream
+    DependsOn: 'AggregateStream'
+    Properties:
+      Name: !Sub '${ServicePrefix}-${SinkWalkinClickStreamName}'
+      ShardCount: !Ref 'ShardCount'
+  LogGroupApi:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/kinesisanalytics/${ServicePrefix}Api'
+  LogStreamApi:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Sub '${LogGroupApi}'
+      LogStreamName: 'LogStreamApi'
+  LogGroupKinesisAnalyticsApp:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/kinesisanalytics/${ServicePrefix}KinesisAnalyticsApp'
+  LogStreamKinesisAnalyticsApp:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Sub '${LogGroupKinesisAnalyticsApp}'
+      LogStreamName: 'LogStreamKinesisAnalyticsApp'
+  KinesisAnalyticsAppRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - kinesisanalytics.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}KinesisAccessPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: Kinesis
+                Effect: Allow
+                Action:
+                  - kinesis:*
+                Resource:
+                  - !GetAtt 'BcnStream.Arn'
+                  - !GetAtt 'BidStream.Arn'
+                  - !GetAtt 'ImpressionStream.Arn'
+                  - !GetAtt 'ClickStream.Arn'
+                  - !GetAtt 'AggregateStream.Arn'
+                  - !GetAtt 'LocationStream.Arn'
+                  - !GetAtt 'WalkinStream.Arn'
+                  - !GetAtt 'WalkinClickStream.Arn'
+              - Effect: Allow
+                Sid: S3BucketAccess
+                Action:
+                  - s3:ListBucket
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                  - s3:GetObjectVersion
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+                  - !Sub 'arn:aws:s3:::${S3ResourceBucket}/fds-flink-streaming.jar'
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}KinesisAccessPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: Kinesis
+                Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:PutRecord
+                  - kinesis:ListStreams
+                  - kinesis:PutRecords
+                Resource:
+                  - !GetAtt 'BcnStream.Arn'
+                  - !GetAtt 'LocationStream.Arn'
+  AppStarterLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}KinesisAccessPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: kinesisanalytics
+                Effect: Allow
+                Action:
+                  - kinesisanalytics:StartApplication
+                  - kinesisanalytics:DescribeApplication
+                Resource: !Sub 'arn:aws:kinesisanalytics:${AWS::Region}:${AWS::AccountId}:application/${ServicePrefix}Application'
+  AppStarterLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./fds-lambda-utils/target/fds-lambda-utils-1.0-SNAPSHOT.jar
+      FunctionName: !Sub '${ServicePrefix}AppStarter'
+      Handler: com.provectus.fds.utils.ApplicationStartLambda
+      MemorySize: 256
+      Timeout: 180
+      Role: !GetAtt 'AppStarterLambdaRole.Arn'
+      Runtime: java8
+  AppStarter:
+    Type: Custom::AppStarter
+    DependsOn: KinesisAnalyticsApp
+    Properties:
+      ServiceToken: !GetAtt 'AppStarterLambda.Arn'
+      ApplicationName: !Sub '${ServicePrefix}Application'
+  KinesisAnalyticsApp:
+    Type: AWS::KinesisAnalyticsV2::Application
+    Properties:
+      ApplicationName: !Sub '${ServicePrefix}Application'
+      ApplicationDescription: Flink joining & aggregation app
+      RuntimeEnvironment: FLINK-1_6
+      ServiceExecutionRole: !GetAtt 'KinesisAnalyticsAppRole.Arn'
+      ApplicationConfiguration:
+        ApplicationCodeConfiguration:
+          CodeContentType: ZIPFILE
+          CodeContent:
+            S3ContentLocation:
+              BucketARN: !Sub 'arn:aws:s3:::${S3ResourceBucket}'
+              FileKey: fds-flink-streaming.jar
+        EnvironmentProperties:
+          PropertyGroups:
+            - PropertyGroupId: SourceConfigProperties
+              PropertyMap:
+                source.aws.region: !Sub '${AWS::Region}'
+                source.stream.init.pos: 'TRIM_HORIZON'
+                source.bcn.stream.name: !Ref 'BcnStream'
+                source.location.stream.name: !Ref 'LocationStream'
+            - PropertyGroupId: SinkConfigProperties
+              PropertyMap:
+                sink.aws.region: !Sub '${AWS::Region}'
+                sink.aggregate.stream.name: !Ref 'AggregateStream'
+                sink.bid.stream.name: !Ref 'BidStream'
+                sink.impression.stream.name: !Ref 'ImpressionStream'
+                sink.click.stream.name: !Ref 'ClickStream'
+                sink.walkin.stream.name: !Ref 'WalkinStream'
+                sink.walkin.click.stream.name: !Ref 'WalkinClickStream'
+            - PropertyGroupId: AggregationProperties
+              PropertyMap:
+                aggregation.bids.session.timeout: !Sub '${BidsSessionTimeout}'
+                aggregation.clicks.session.timeout: !Sub '${ClicksSessionTimeout}'
+                aggregation.locations.session.timeout: !Sub '${LocationsSessionTimeout}'
+                aggregation.period: !Sub '${AggregationPeriod}'
+        FlinkApplicationConfiguration:
+          CheckpointConfiguration:
+            ConfigurationType: CUSTOM
+            CheckpointingEnabled: true
+            CheckpointInterval: 600000
+            MinPauseBetweenCheckpoints: 60000
+          ParallelismConfiguration:
+            ConfigurationType: CUSTOM
+            AutoScalingEnabled: true
+            ParallelismPerKPU: 4
+            Parallelism: 4
+          MonitoringConfiguration:
+            ConfigurationType: CUSTOM
+            MetricsLevel: PARALLELISM
+            LogLevel: INFO
+        ApplicationSnapshotConfiguration:
+          SnapshotsEnabled: false
+  KinesisAnalyticsAppCloudWatchLoggingOption:
+    Type: "AWS::KinesisAnalyticsV2::ApplicationCloudWatchLoggingOption"
+    Properties:
+      ApplicationName: !Ref KinesisAnalyticsApp
+      CloudWatchLoggingOption:
+        LogStreamARN:
+          !Join
+          - ':'
+          - - 'arn:aws:logs'
+            - !Ref AWS::Region
+            - !Ref AWS::AccountId
+            - 'log-group'
+            - !Ref LogGroupKinesisAnalyticsApp
+            - 'log-stream'
+            - !Ref LogStreamKinesisAnalyticsApp
+  LogGroupJsonNewLineAdderLambda:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}JsonNewLineAdder'
+  JsonNewLineAdderLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./fds-lambda-compaction/target/fds-lambda-compaction-1.0-SNAPSHOT.jar
+      FunctionName: !Sub '${ServicePrefix}JsonNewLineAdder'
+      Handler: com.provectus.fds.compaction.JsonNewLineAdderLambda
+      MemorySize: 128
+      Timeout: 180
+      Role: !GetAtt 'LambdaExecutionRole.Arn'
+      Runtime: java8
+  S3DeliveryAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - firehose.amazonaws.com
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}FirehoseS3AccessPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: AllowAccessToS3Bucket
+                Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                  - s3:PutObject
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3BucketName}'
+                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+              - Sid: JsonNewLineAdderAccess
+                Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                  - lambda:GetFunctionConfiguration
+                Resource:
+                  - !GetAtt 'JsonNewLineAdderLambda.Arn'
+                  - !Sub '${JsonNewLineAdderLambda.Arn}:*'
+              - Sid: glue
+                Effect: Allow
+                Action:
+                  - glue:GetDatabase
+                  - glue:GetPartition
+                  - glue:GetTables
+                  - glue:GetPartitions
+                  - glue:UpdateTable
+                  - glue:CreatePartition
+                  - glue:GetDatabases
+                  - glue:UpdatePartition
+                  - glue:GetTable
+                Resource:
+                  - '*'
+              - Sid: kinesis
+                Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:DescribeStreamSummary
+                  - kinesis:GetRecords
+                  - kinesis:GetShardIterator
+                  - kinesis:ListShards
+                  - kinesis:ListStreams
+                  - kinesis:SubscribeToShard
+                  - kinesis:PutRecords
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !GetAtt 'BcnStream.Arn'
+                  - !GetAtt 'BidStream.Arn'
+                  - !GetAtt 'ImpressionStream.Arn'
+                  - !GetAtt 'ClickStream.Arn'
+                  - !GetAtt 'AggregateStream.Arn'
+                  - !GetAtt 'LocationStream.Arn'
+                  - !GetAtt 'WalkinStream.Arn'
+                  - !GetAtt 'WalkinClickStream.Arn'
+  RawBcnsS3DeliveryStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub '${ServicePrefix}RawBcnsS3DelieveryStream'
+      DeliveryStreamType: KinesisStreamAsSource
+      KinesisStreamSourceConfiguration:
+        KinesisStreamARN: !GetAtt 'BcnStream.Arn'
+        RoleARN: !GetAtt 'S3DeliveryAccessRole.Arn'
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
+        BufferingHints:
+          IntervalInSeconds: !Ref 'BufInterval'
+          SizeInMBs: !Ref 'BufSize'
+        CompressionFormat: GZIP
+        Prefix: raw/bcns/
+        RoleARN: !GetAtt 'S3DeliveryAccessRole.Arn'
+        ProcessingConfiguration:
+          Enabled: true
+          Processors:
+            - Parameters:
+                - ParameterName: LambdaArn
+                  ParameterValue: !GetAtt 'JsonNewLineAdderLambda.Arn'
+                - ParameterName: RoleArn
+                  ParameterValue: !GetAtt 'S3DeliveryAccessRole.Arn'
+              Type: Lambda
+  JsonNewLineAdderLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:invokeFunction
+      FunctionName: !GetAtt 'JsonNewLineAdderLambda.Arn'
+      Principal: firehose.amazonaws.com
+      SourceArn: !GetAtt 'RawBcnsS3DeliveryStream.Arn'
+  RawImpressionsS3DeliveryStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub '${ServicePrefix}RawImpressionsS3DelieveryStream'
+      DeliveryStreamType: KinesisStreamAsSource
+      KinesisStreamSourceConfiguration:
+        KinesisStreamARN: !GetAtt 'ImpressionStream.Arn'
+        RoleARN: !GetAtt 'S3DeliveryAccessRole.Arn'
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
+        BufferingHints:
+          IntervalInSeconds: !Ref 'BufInterval'
+          SizeInMBs: !Ref 'BufSize'
+        CompressionFormat: GZIP
+        Prefix: raw/impressions/
+        RoleARN: !GetAtt 'S3DeliveryAccessRole.Arn'
+        ProcessingConfiguration:
+          Enabled: true
+          Processors:
+            - Parameters:
+                - ParameterName: LambdaArn
+                  ParameterValue: !GetAtt 'JsonNewLineAdderLambda.Arn'
+                - ParameterName: RoleArn
+                  ParameterValue: !GetAtt 'S3DeliveryAccessRole.Arn'
+              Type: Lambda
+  RawClicksS3DeliveryStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub '${ServicePrefix}RawClicksS3DelieveryStream'
+      DeliveryStreamType: KinesisStreamAsSource
+      KinesisStreamSourceConfiguration:
+        KinesisStreamARN: !GetAtt 'ClickStream.Arn'
+        RoleARN: !GetAtt 'S3DeliveryAccessRole.Arn'
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
+        BufferingHints:
+          IntervalInSeconds: !Ref 'BufInterval'
+          SizeInMBs: !Ref 'BufSize'
+        CompressionFormat: GZIP
+        Prefix: raw/clicks/
+        RoleARN: !GetAtt 'S3DeliveryAccessRole.Arn'
+        ProcessingConfiguration:
+          Enabled: true
+          Processors:
+            - Parameters:
+                - ParameterName: LambdaArn
+                  ParameterValue: !GetAtt 'JsonNewLineAdderLambda.Arn'
+                - ParameterName: RoleArn
+                  ParameterValue: !GetAtt 'S3DeliveryAccessRole.Arn'
+              Type: Lambda
+  RawAggregatesS3DeliveryStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub '${ServicePrefix}RawAggrefatesS3DelieveryStream'
+      DeliveryStreamType: KinesisStreamAsSource
+      KinesisStreamSourceConfiguration:
+        KinesisStreamARN: !GetAtt 'AggregateStream.Arn'
+        RoleARN: !GetAtt 'S3DeliveryAccessRole.Arn'
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !Sub 'arn:aws:s3:::${S3BucketName}'
+        BufferingHints:
+          IntervalInSeconds: !Ref 'BufInterval'
+          SizeInMBs: !Ref 'BufSize'
+        CompressionFormat: GZIP
+        Prefix: raw/aggregates/
+        RoleARN: !GetAtt 'S3DeliveryAccessRole.Arn'
+        ProcessingConfiguration:
+          Enabled: true
+          Processors:
+            - Parameters:
+                - ParameterName: LambdaArn
+                  ParameterValue: !GetAtt 'JsonNewLineAdderLambda.Arn'
+                - ParameterName: RoleArn
+                  ParameterValue: !GetAtt 'S3DeliveryAccessRole.Arn'
+              Type: Lambda
+  AnalyticalDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref 'AWS::AccountId'
+      DatabaseInput:
+        Name: !Ref 'AnalyticalDBName'
+        Description: Database to hold tables for SDP data
+  RawBcnsGlueTable:
+    DependsOn:
+      - AnalyticalDatabase
+    Type: AWS::Glue::Table
+    Properties:
+      DatabaseName: !Ref 'AnalyticalDBName'
+      CatalogId: !Ref 'AWS::AccountId'
+      TableInput:
+        Name: raw_bcns
+        Description: All input bcs in json format
+        TableType: EXTERNAL_TABLE
+        Parameters:
+          CrawlerSchemaDeserializerVersion: 1.0
+          CrawlerSchemaSerializerVersion: 1.0
+          classification: json
+          compressionType: GZIP
+          typeOfData: file
+        StorageDescriptor:
+          Location: !Sub 's3://${S3BucketName}/raw/bcns/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: true
+          NumberOfBuckets: -1
+          SerdeInfo:
+            SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
+          StoredAsSubDirectories: true
+          Columns:
+            - Name: tx_id
+              Type: string
+            - Name: type
+              Type: string
+            - Name: campaign_item_id
+              Type: bigint
+            - Name: domain
+              Type: string
+            - Name: creative_id
+              Type: string
+            - Name: app_uid
+              Type: string
+            - Name: creative_category
+              Type: string
+            - Name: win_price
+              Type: bigint
+  RawImpressionsGlueTable:
+    DependsOn:
+      - AnalyticalDatabase
+    Type: AWS::Glue::Table
+    Properties:
+      DatabaseName: !Ref 'AnalyticalDBName'
+      CatalogId: !Ref 'AWS::AccountId'
+      TableInput:
+        Name: raw_impressions
+        Description: All input imps in json format
+        TableType: EXTERNAL_TABLE
+        Parameters:
+          CrawlerSchemaDeserializerVersion: 1.0
+          CrawlerSchemaSerializerVersion: 1.0
+          classification: json
+          compressionType: GZIP
+          typeOfData: file
+        StorageDescriptor:
+          Location: !Sub 's3://${S3BucketName}/raw/impressions/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: true
+          NumberOfBuckets: -1
+          SerdeInfo:
+            SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
+          StoredAsSubDirectories: true
+          Columns:
+            - Name: tx_id
+              Type: string
+            - Name: campaign_item_id
+              Type: bigint
+            - Name: domain
+              Type: string
+            - Name: creative_id
+              Type: string
+            - Name: app_uid
+              Type: string
+            - Name: creative_category
+              Type: string
+            - Name: win_price
+              Type: bigint
+  RawClicksGlueTable:
+    DependsOn:
+      - AnalyticalDatabase
+    Type: AWS::Glue::Table
+    Properties:
+      DatabaseName: !Ref 'AnalyticalDBName'
+      CatalogId: !Ref 'AWS::AccountId'
+      TableInput:
+        Name: raw_clicks
+        Description: All input clicks in json format
+        TableType: EXTERNAL_TABLE
+        Parameters:
+          CrawlerSchemaDeserializerVersion: 1.0
+          CrawlerSchemaSerializerVersion: 1.0
+          classification: json
+          compressionType: GZIP
+          typeOfData: file
+        StorageDescriptor:
+          Location: !Sub 's3://${S3BucketName}/raw/clicks/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: true
+          NumberOfBuckets: -1
+          SerdeInfo:
+            SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
+          StoredAsSubDirectories: true
+          Columns:
+            - Name: tx_id
+              Type: string
+            - Name: campaign_item_id
+              Type: bigint
+            - Name: domain
+              Type: string
+            - Name: creative_id
+              Type: string
+            - Name: app_uid
+              Type: string
+            - Name: creative_category
+              Type: string
+            - Name: win_price
+              Type: bigint
+  RawAggregatesGlueTable:
+    DependsOn:
+      - AnalyticalDatabase
+    Type: AWS::Glue::Table
+    Properties:
+      DatabaseName: !Ref 'AnalyticalDBName'
+      CatalogId: !Ref 'AWS::AccountId'
+      TableInput:
+        Name: raw_aggregates
+        Description: All input aggregates in json format
+        TableType: EXTERNAL_TABLE
+        Parameters:
+          CrawlerSchemaDeserializerVersion: 1.0
+          CrawlerSchemaSerializerVersion: 1.0
+          classification: json
+          compressionType: GZIP
+          typeOfData: file
+        StorageDescriptor:
+          Location: !Sub 's3://${S3BucketName}/raw/aggregates/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Compressed: true
+          NumberOfBuckets: -1
+          SerdeInfo:
+            SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
+          StoredAsSubDirectories: true
+          Columns:
+            - Name: campaign_item_id
+              Type: bigint
+            - Name: period
+              Type: string
+            - Name: bids
+              Type: bigint
+            - Name: imps
+              Type: bigint
+            - Name: clicks
+              Type: bigint
+  ParquetBcnsGlueTable:
+    DependsOn:
+      - AnalyticalDatabase
+    Type: AWS::Glue::Table
+    Properties:
+      TableInput:
+        Description: All input bcns in parquet format
+        TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: year
+            Type: int
+          - Name: day
+            Type: int
+        StorageDescriptor:
+          Location: !Sub 's3://${S3BucketName}/parquet/bcns/'
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          Compressed: false
+          NumberOfBuckets: -1
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+            Parameters:
+              serialization.format: 1
+          StoredAsSubDirectories: false
+          Columns:
+            - Name: tx_id
+              Type: string
+            - Name: type
+              Type: string
+            - Name: campaign_item_id
+              Type: bigint
+            - Name: domain
+              Type: string
+            - Name: creative_id
+              Type: string
+            - Name: app_uid
+              Type: string
+            - Name: creative_category
+              Type: string
+            - Name: win_price
+              Type: bigint
+        Name: parquet_bcns
+      DatabaseName: !Ref 'AnalyticalDBName'
+      CatalogId: !Ref 'AWS::AccountId'
+  ParquetImpsGlueTable:
+    DependsOn:
+      - AnalyticalDatabase
+    Type: AWS::Glue::Table
+    Properties:
+      TableInput:
+        Description: All input imps in parquet format
+        TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: year
+            Type: int
+          - Name: day
+            Type: int
+        StorageDescriptor:
+          Location: !Sub 's3://${S3BucketName}/parquet/impressions/'
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          Compressed: false
+          NumberOfBuckets: -1
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+            Parameters:
+              serialization.format: 1
+          StoredAsSubDirectories: false
+          Columns:
+            - Name: tx_id
+              Type: string
+            - Name: campaign_item_id
+              Type: bigint
+            - Name: domain
+              Type: string
+            - Name: creative_id
+              Type: string
+            - Name: app_uid
+              Type: string
+            - Name: creative_category
+              Type: string
+            - Name: win_price
+              Type: bigint
+        Name: parquet_impressions
+      DatabaseName: !Ref 'AnalyticalDBName'
+      CatalogId: !Ref 'AWS::AccountId'
+  ParquetClickGlueTable:
+    DependsOn:
+      - AnalyticalDatabase
+    Type: AWS::Glue::Table
+    Properties:
+      TableInput:
+        Description: All input clicks in parquet format
+        TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: year
+            Type: int
+          - Name: day
+            Type: int
+        StorageDescriptor:
+          Location: !Sub 's3://${S3BucketName}/parquet/clicks/'
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          Compressed: false
+          NumberOfBuckets: -1
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+            Parameters:
+              serialization.format: 1
+          StoredAsSubDirectories: false
+          Columns:
+            - Name: tx_id
+              Type: string
+            - Name: campaign_item_id
+              Type: bigint
+            - Name: domain
+              Type: string
+            - Name: creative_id
+              Type: string
+            - Name: app_uid
+              Type: string
+            - Name: creative_category
+              Type: string
+            - Name: win_price
+              Type: bigint
+        Name: parquet_clicks
+      DatabaseName: !Ref 'AnalyticalDBName'
+      CatalogId: !Ref 'AWS::AccountId'
+  ParquetAggregatesGlueTable:
+    DependsOn:
+      - AnalyticalDatabase
+    Type: AWS::Glue::Table
+    Properties:
+      TableInput:
+        Description: All input aggregates in parquet format
+        TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: year
+            Type: int
+          - Name: day
+            Type: int
+        StorageDescriptor:
+          Location: !Sub 's3://${S3BucketName}/parquet/aggregates/'
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          Compressed: false
+          NumberOfBuckets: -1
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+            Parameters:
+              serialization.format: 1
+          StoredAsSubDirectories: false
+          Columns:
+            - Name: campaign_item_id
+              Type: bigint
+            - Name: period
+              Type: string
+            - Name: bids
+              Type: bigint
+            - Name: imps
+              Type: bigint
+            - Name: clicks
+              Type: bigint
+        Name: parquet_aggregates
+      DatabaseName: !Ref 'AnalyticalDBName'
+      CatalogId: !Ref 'AWS::AccountId'
+  AggregationDynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: campaign_item_id
+          AttributeType: N
+        - AttributeName: period
+          AttributeType: N
+      KeySchema:
+        - AttributeName: campaign_item_id
+          KeyType: HASH
+        - AttributeName: period
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  KinesisToDynamoDbIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowLambdaServiceToAssumeRole
+            Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}KinesisPeristerAccessPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:ListStreams
+                  - kinesis:ListTagsForStream
+                  - kinesis:GetShardIterator
+                  - kinesis:GetRecords
+                  - kinesis:PutRecord
+                  - kinesis:PutRecords
+                  - dynamoDB:PutItem
+                  - dynamoDB:UpdateItem
+                  - dynamodb:BatchGetItem
+                  - dynamoDB:Query
+                  - dynamoDB:Scan
+                  - dynamodb:BatchWriteItem
+                Resource:
+                  - !GetAtt 'AggregateStream.Arn'
+                  - !GetAtt 'AggregationDynamoTable.Arn'
+  LogGroupKinesisToDynamoDbLambda:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ServicePrefix}KinesisToDynamoDbPersister'
+  KinesisToDynamoDbLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./fds-lambda-dynamodb-persister/target/fds-lambda-dynamodb-persister-1.0-SNAPSHOT.jar
+      FunctionName: !Sub '${ServicePrefix}KinesisToDynamoDbPersister'
+      Environment:
+        Variables:
+          DYNAMO_TABLE: !Ref 'AggregationDynamoTable'
+      Handler: com.provectus.fds.dynamodb.DynamoDBPersisterLambda
+      MemorySize: 256
+      Timeout: 180
+      Role: !GetAtt 'KinesisToDynamoDbIAMRole.Arn'
+      Runtime: java8
+  KinesisToDynamoDbConsumer:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt 'AggregateStream.Arn'
+      FunctionName: !GetAtt 'KinesisToDynamoDbLambda.Arn'
+      StartingPosition: TRIM_HORIZON
+      Enabled: True
+Outputs:
+  AggregationDynamoTableName:
+    Value: !Ref AggregationDynamoTable

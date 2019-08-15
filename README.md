@@ -13,10 +13,10 @@
     1. [Reporting](#reporting)
 
 ## Overview
-Streaming Data Platform is a unified solution for real time streaming data pipelines, streams powered data lake and data driven microservices across enterprise. 
+Streaming Data Platform is a unified solution for real time streaming data pipelines, streams powered data lake and data driven microservices across enterprise.
 ### Use Cases
 The template is designed for the following initiatives:
-- Plug-n-play solution for processing and storing data streams in AWS 
+- Plug-n-play solution for processing and storing data streams in AWS
 - Migration of Hadoop based on-prem platform to AWS native streaming services
 - Migration of legacy Enterprise Service Bus or Data Integration architectures to AWS native platform
 - Rearchitecture of Data Warehouse workloads to handle growing data volume, velocity as well as to provide capabilities for realtime analytics
@@ -28,20 +28,20 @@ The template is designed for the following initiatives:
 
 ### How it works
 
-Streaming Data Platform is delivered as cloudformation template quick start. 
+Streaming Data Platform is delivered as cloudformation template quick start.
 
-Data ingestion layer supports API Gateway endpoint, SFTP, RDS Capture Data Changes, S3 events, DynamoDB, and other connectors. 
+Data ingestion layer supports API Gateway endpoint, SFTP, RDS Capture Data Changes, S3 events, DynamoDB, and other connectors.
 
-All data is streamed in Kinesis, partitioned by business key and split by separate kinesis streams for horizontal scalability. 
+All data is streamed in Kinesis, partitioned by business key and split by separate kinesis streams for horizontal scalability.
 
-Blueprint Kinesis Analytics processor is a point of customization to filter, enrich and aggregate incoming data. 
+Blueprint Kinesis Analytics processor is a point of customization to filter, enrich and aggregate incoming data.
 
-Ingested and processed messages are stored on S3 with minimum latency. 
+Ingested and processed messages are stored on S3 with minimum latency.
 
-Smart partitioning on S3 and columnar format enables subsecond SQL queries from Athena clients. 
+Smart partitioning on S3 and columnar format enables subsecond SQL queries from Athena clients.
 
-Each type of message is registered in AWS Glue with associated metadata for catologization and self-description purposes. 
-AWS Athena is an interactive ad-hoc SQL interface on top of these tables. Aggregated and processed data is stored in DynamoDB for online reporting capabilities. 
+Each type of message is registered in AWS Glue with associated metadata for catologization and self-description purposes.
+AWS Athena is an interactive ad-hoc SQL interface on top of these tables. Aggregated and processed data is stored in DynamoDB for online reporting capabilities.
 
 ### Region availability
 All services which was used in stack available only in the following AWS regions:
@@ -67,8 +67,8 @@ Deploy cloudformation stack:
 ```
 aws cloudformation deploy
     --template-file fds.yaml
-    --capabilities CAPABILITY_IAM
-    [ --parameter-overrides ServicePrefixName=<some-value> AnalyticalDBName=<some-value> S3Bucket=<some-value> AggregationPeriod=10 S3ResourceBucket=<some-value>]
+    --capabilities CAPABILITY_AUTO_EXPAND CAPABILITY_IAM
+    [ --parameter-overrides S3Bucket=<some-value> AggregationPeriod=10 S3ResourceBucket=<some-value>]
     --stack-name <stack-name>
 ```
 Stack outputs:
@@ -88,7 +88,7 @@ Test report is stored in `./fds-it/target/surefire-reports/`
 #### Performance
 [Gatling](https://gatling.io) is used for performance testing
 ```
-docker run -it --rm -e JAVA_OPTS="-Dduration=60 -DbaseUrl=<UrlForAPI> -Dgatling.core.simulationClass=basic.ApiPerformanceTest" -v  `pwd`/gatling:/opt/gatling/user-files -v `pwd`/gatling/results:/opt/gatling/results -v `pwd`/gatling/conf:/opt/gatling/conf denvazh/gatling 
+docker run -it --rm -e JAVA_OPTS="-Dduration=60 -DbaseUrl=<UrlForAPI> -Dgatling.core.simulationClass=basic.ApiPerformanceTest" -v  `pwd`/gatling:/opt/gatling/user-files -v `pwd`/gatling/results:/opt/gatling/results -v `pwd`/gatling/conf:/opt/gatling/conf denvazh/gatling
 ```
 Test report would be stored in `./gatling/results/`
 ## User Guide
@@ -191,12 +191,12 @@ properties:
   bids:
     type: integer
 ```
-#### Realtime Reporting 
+#### Realtime Reporting
 Realtime reporting for particular as Ad Campaign is available via API Gateway:
 
 ```$xslt
 curl -o bid-report.json '<UrlForReports>/reports/campaigns/<campaign_item_id>'
-``` 
+```
 
 #### Analytical Queries
 Kinesis Streams are snapshotted and compacted in S3 for Data Lake type of workloads.

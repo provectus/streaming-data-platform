@@ -38,19 +38,19 @@ class ApiPerformanceTest extends Simulation {
     .exec(
       http("Bid request")
         .post("/bid")
-        .body(StringBody("""{"win_price": 0, "appuid": "${Appuid}", "campaign_item_id": ${Campaign_item_id}, "creative_category": "${Creative_category}", "creative_id":"${Creative_id}", "txid":"${Txid}", "domain":"${Domain}"}""")).asJson
+        .body(StringBody("""{"win_price": 0, "app_uid": "${Appuid}", "campaign_item_id": ${Campaign_item_id}, "creative_category": "${Creative_category}", "creative_id":"${Creative_id}", "tx_id":"${Txid}", "domain":"${Domain}"}""")).asJson
         .check(status.is(200))
     )
     .exec(
         http("Impression request")
           .post("/impression")
-          .body(StringBody("""{"txid":"${Txid}", "win_price": 10 }""")).asJson
+          .body(StringBody("""{"tx_id":"${Txid}", "win_price": 10 }""")).asJson
           .check(status.is(200))
     )
     .exec(
       http("Click request")
         .post("/click")
-        .body(StringBody("""{"txid":"${Txid}"}""")).asJson
+        .body(StringBody("""{"tx_id":"${Txid}"}""")).asJson
         .check(status.is(200))
     )
   setUp(scn.inject(rampUsersPerSec(1) to(10) during(duration)).protocols(httpProtocol))

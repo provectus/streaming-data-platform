@@ -1,0 +1,217 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Reporting part of Streaming Data Platform solution
+Metadata:
+  Authors:
+    Description: German Osin (gosin@provectus.com), Rustam Gimadiev (rgimadiev@provectus.com), Andrew Saushkin (asaushkin@provectus.com), Astamur Kirillin (akirillin@provectus.com)
+Parameters:
+  ServicePrefix:
+    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
+    ConstraintDescription: Prefix should be DNS compliant
+    Default: testing
+    Type: String
+  AggregationDynamoTableName:
+    Type: String
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}KinesisAccessPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: dynamo
+                Effect: Allow
+                Action:
+                  - dynamodb:BatchGetItem
+                  - dynamoDB:Query
+                  - dynamoDB:Scan
+                Resource:
+                  - '*'
+  ApiGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub '${ServicePrefix}ReportingLambdaPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: ReportingLambdaAccess
+                Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                  - lambda:GetFunctionConfiguration
+                Resource:
+                  - !GetAtt 'ReportingLambda.Arn'
+                  - !Sub '${ReportingLambda.Arn}:*'
+  CloudWatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "apigateway.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+
+  ApiGatewayAccount:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        "Fn::GetAtt":
+          - CloudWatchRole
+          - Arn
+  # Reporting API
+  ReportingApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub '${ServicePrefix}ReportingApi'
+      Description: API used for reporting requests
+      FailOnWarnings: false
+      Body:
+        openapi: 3.0.0
+        components:
+          schemas:
+            Aggregation:
+              title: Aggregation
+              type: object
+              properties:
+                campaign_item_id:
+                  required: true
+                  type: integer
+                period:
+                  type: integer
+                clicks:
+                  type: integer
+                imps:
+                  type: integer
+                bids:
+                  type: integer
+        info:
+          title: Reporting API
+          version: '2016-03-31T18:25:32Z'
+        paths:
+          /reports/campaigns/{campaign_item_id}:
+            get:
+              parameters:
+                - in: path
+                  name: campaign_item_id
+                  schema:
+                    type: integer
+                  required: true
+              responses:
+                '200':
+                  description: 200 response
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Aggregation'
+
+              x-amazon-apigateway-integration:
+                credentials: !GetAtt 'ApiGatewayRole.Arn'
+                httpMethod: POST
+                requestParameters:
+                  integration.request.header.Content-Type: '''application/x-amz-json-1.1'''
+                responses:
+                  default:
+                    statusCode: '200'
+                type: AWS_PROXY
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ReportingLambda.Arn}/invocations'
+          /reports/campaigns/{campaign_item_id}/period:
+            get:
+              parameters:
+                - in: path
+                  name: campaign_item_id
+                  schema:
+                    type: integer
+                  required: true
+                - in: query
+                  name: timezone
+                  schema:
+                    type: string
+                - in: query
+                  name: period
+                  schema:
+                    type: string
+                - in: query
+                  name: from
+                  schema:
+                    type: integer
+                - in: query
+                  name: to
+                  schema:
+                    type: integer
+              responses:
+                '200':
+                  description: 200 response
+                  content:
+                    application/json:
+                      schema:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Aggregation'
+              x-amazon-apigateway-integration:
+                credentials: !GetAtt 'ApiGatewayRole.Arn'
+                httpMethod: POST
+                requestParameters:
+                  integration.request.header.Content-Type: '''application/x-amz-json-1.1'''
+                responses:
+                  default:
+                    statusCode: '200'
+                type: AWS_PROXY
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ReportingLambda.Arn}/invocations'
+  ReportingLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./fds-lambda-reports/target/fds-lambda-reports-1.0-SNAPSHOT.jar
+      FunctionName: !Sub '${ServicePrefix}ReportsHandler'
+      Environment:
+        Variables:
+          DYNAMO_TABLE: !Ref 'AggregationDynamoTableName'
+      Handler: com.provectus.fds.reports.ApiHandler
+      MemorySize: 256
+      Timeout: 180
+      Role: !GetAtt 'LambdaExecutionRole.Arn'
+      Runtime: java8
+  LogGroupApi:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/kinesisanalytics/${ServicePrefix}ReportingApi'
+  ReportingApiGatewayStage:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref 'ReportingApi'
+      StageName: !Sub '${ServicePrefix}'
+      StageDescription:
+        AccessLogSetting:
+          DestinationArn: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupApi}'
+Outputs:
+  UrlForReports:
+    Description: Root URL of the reports gateway
+    Value: !Sub 'https://${ReportingApi}.execute-api.${AWS::Region}.amazonaws.com/${ServicePrefix}'
