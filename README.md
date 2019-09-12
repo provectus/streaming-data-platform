@@ -14,6 +14,16 @@
 
 ## Overview
 Streaming Data Platform is a unified solution for real time streaming data pipelines, streams powered data lake and data driven microservices across enterprise.
+It unifies ingestion, persisting, processing and machine learning layers of your data lake.
+
+Data ingestion layer supports API Gateway endpoint, SFTP, RDS Capture Data Changes, S3 events, DynamoDB, and other connectors.
+
+All data is streamed in Kinesis, partitioned by business key and split by separate kinesis streams for horizontal scalability.
+
+Ingested and processed messages are stored on S3 with minimum latency. 
+Smart partitioning on S3 and columnar format enables subsecond SQL queries from Athena clients.
+     
+
 ### Use Cases
 The template is designed for the following initiatives:
 - Plug-n-play solution for processing and storing data streams in AWS
@@ -28,20 +38,20 @@ The template is designed for the following initiatives:
 
 ### How it works
 
-Streaming Data Platform is delivered as cloudformation template quick start.
+API Gateway provides endpoints for real time messages ingestion. Using simple rest endpoint you can ingest your real-time at high throughput.
+All events are going to kinsesis data streams and processing in Blueprint Kinesis Analytics processor, 
+it is a point of customization to filter, enrich and aggregate incoming data.
 
-Data ingestion layer supports API Gateway endpoint, SFTP, RDS Capture Data Changes, S3 events, DynamoDB, and other connectors.
+After kinesis, data land on S3 buckets in columnar format partitioned by date time. Smart partitioning system eventually merge 
+them into bigger files to provide subsecond SQL queries.
 
-All data is streamed in Kinesis, partitioned by business key and split by separate kinesis streams for horizontal scalability.
-
-Blueprint Kinesis Analytics processor is a point of customization to filter, enrich and aggregate incoming data.
-
-Ingested and processed messages are stored on S3 with minimum latency.
-
-Smart partitioning on S3 and columnar format enables subsecond SQL queries from Athena clients.
+Aggregated messages stored in sorted manner to Key Value database, and provide aggregated reports by reporting endpoints in API Gateway.   
 
 Each type of message is registered in AWS Glue with associated metadata for catologization and self-description purposes.
 AWS Athena is an interactive ad-hoc SQL interface on top of these tables. Aggregated and processed data is stored in DynamoDB for online reporting capabilities.
+
+Streaming Data Platform provides blueprint machine learning path, with feature collection and continuous model retraining algorithm on top of SageMaker.
+As as blueprint it implements prediction of the probability winning the bid by the specified price. 
 
 ### Region availability
 All services which was used in stack available only in the following AWS regions:
