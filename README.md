@@ -72,7 +72,7 @@ aws cloudformation package
     --s3-bucket <s3-bucket-name>
     --output-template-file fds.yaml
 ```
-Deploy cloudformation stack:
+Deploy a cloudformation stack:
 ```
 aws cloudformation deploy
     --template-file fds.yaml
