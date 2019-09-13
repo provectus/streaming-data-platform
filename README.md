@@ -53,7 +53,9 @@ it implements prediction of the probability, winning the bid by the specified pr
  
 
 ### Region availability
-All services which was used in stack available only in the following AWS regions:
+All services which were used in the stack are available only in the following
+
+AWS regions:
 - Northern Virginia (`us-east-1`)
 - Ohio (`us-east-2`)
 - Oregon (`us-west-2`)
