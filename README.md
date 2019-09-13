@@ -13,38 +13,47 @@
     1. [Reporting](#reporting)
 
 ## Overview
-Streaming Data Platform is a unified solution for real time streaming data pipelines, streams powered data lake and data driven microservices across enterprise.
+The Streaming Data Platform is a unified solution that enables real-time data analytics and serves as a 
+foundational service for AI solutions. Provectus’ streaming-first architecture powers and provides governance for a 
+data lake ecosystem. It consolidates data pipelines and improves scalability in the cloud for real-time analysis. 
+These well-architected solutions accelerate time-to-market and mitigate technology risks.
+
+Streaming Data Platform is delivered as an AWS CloudFormation template quick start.
+     
+
 ### Use Cases
 The template is designed for the following initiatives:
-- Plug-n-play solution for processing and storing data streams in AWS
+- Plug-n-play solution for processing and storing data streams in the AWS cloud
 - Migration of Hadoop based on-prem platform to AWS native streaming services
 - Migration of legacy Enterprise Service Bus or Data Integration architectures to AWS native platform
-- Rearchitecture of Data Warehouse workloads to handle growing data volume, velocity as well as to provide capabilities for realtime analytics
+- Rearchitecture of Data Warehouse workloads to handle growing data volume and velocity, and to provide capabilities for real-time analytics
 - Rearchitecture of slow, inconsistent and always-out-of-date data marts in existing Data Lake or Data Warehouse
-- Rearchitecture of duplicated and disjointed realtime and batch pipelines
+- Rearchitecture of duplicated and disjointed real-time and batch pipelines
 
 ### Architecture
 ![diagram.svg](images/diagram.svg)
 
 ### How it works
 
-Streaming Data Platform is delivered as cloudformation template quick start.
+SDP provides API Gateway endpoints for ingestion of real time-messages at high throughput.
 
-Data ingestion layer supports API Gateway endpoint, SFTP, RDS Capture Data Changes, S3 events, DynamoDB, and other connectors.
+All events are pushed to Kinesis Data Streams and are processed in the Blueprint Kinesis Analytics processor, 
+which serves as a point of customization to filter, enrich, and aggregate incoming data.
 
-All data is streamed in Kinesis, partitioned by business key and split by separate kinesis streams for horizontal scalability.
+Data lands in S3 buckets in a columnar format, partitioned by date time. 
+Smart partitioning system eventually merges them into bigger files to provide sub-second SQL queries on top of Athena.
 
-Blueprint Kinesis Analytics processor is a point of customization to filter, enrich and aggregate incoming data.
+Aggregated messages are sorted and stored in DynamoDB. They can be accessed by reporting endpoints in API Gateway. 
+Each type of message is registered in AWS Glue with associated metadata for catalogizing and self-description purposes. 
+AWS Athena acts as an interactive ad-hoc SQL interface on top of those tables. 
 
-Ingested and processed messages are stored on S3 with minimum latency.
-
-Smart partitioning on S3 and columnar format enables subsecond SQL queries from Athena clients.
-
-Each type of message is registered in AWS Glue with associated metadata for catologization and self-description purposes.
-AWS Athena is an interactive ad-hoc SQL interface on top of these tables. Aggregated and processed data is stored in DynamoDB for online reporting capabilities.
+Streaming Data Platform provides a blueprint machine learning path, 
+with feature collection and continuous model retraining algorithm on top of SageMaker. As a blueprint,
+it implements prediction of the probability, winning the bid by the specified price.
+ 
 
 ### Region availability
-All services which was used in stack available only in the following AWS regions:
+All services which were used in the stack are available only in the following AWS regions:
 - Northern Virginia (`us-east-1`)
 - Ohio (`us-east-2`)
 - Oregon (`us-west-2`)
@@ -63,7 +72,7 @@ aws cloudformation package
     --s3-bucket <s3-bucket-name>
     --output-template-file fds.yaml
 ```
-Deploy cloudformation stack:
+Deploy a cloudformation stack:
 ```
 aws cloudformation deploy
     --template-file fds.yaml
@@ -76,13 +85,12 @@ Stack outputs:
 - `UrlForReports` - URL for retrieving reports
 ### Test
 #### Integration
-The integration test would be launched in `us-west-2` region by default.
+The integration test is launched in the `us-west-2` region by default.
 ```
 mvn -fn verify -DresourceBucket=<temporaryBucket>
 ```
 
-Where `temporaryBucket` is a bucket for resources which needed to create the stack.
-You may remove it after stack creation will finish.
+Where `temporaryBucket` is a bucket for resources required to create the stack. You may remove it once stack creation is finished.
 
 Test report is stored in `./fds-it/target/surefire-reports/`
 #### Performance
@@ -92,7 +100,7 @@ docker run -it --rm -e JAVA_OPTS="-Dduration=60 -DbaseUrl=<UrlForAPI> -Dgatling.
 ```
 Test report would be stored in `./gatling/results/`
 ## User Guide
-An architecture is generic enough to support any business use case. For the demo purposes a canonical Adtech use case is implemented.
+An architecture is generic enough to support any business use case. For demonstration purposes, a canonical Adtech use case is implemented.
 ### Data Ingestion
 The following data streams are available:
 - [Bid](#bid)
@@ -172,7 +180,9 @@ properties:
 ```
 
 ### Reporting
-Reports are being calculated in Kinesis and stored in `Aggregation` Stream. Aggregated stream is exposed for [realtime consumers](#realtime-reporting) as well as for [offline queries](#analytical-queries).
+Reports are calculated in Amazon Kinesis and stored in `Aggregatio` Stream. 
+Aggregated stream is exposed to [realtime consumers](#realtime-reporting), 
+as well as to [offline queries](#analytical-queries).
 
 Aggregation Schema:
 ```
@@ -192,6 +202,7 @@ properties:
     type: integer
 ```
 #### Realtime Reporting
+
 Realtime reporting for particular as Ad Campaign is available via API Gateway:
 
 ```$xslt
@@ -199,8 +210,7 @@ curl -o bid-report.json '<UrlForReports>/reports/campaigns/<campaign_item_id>'
 ```
 
 #### Analytical Queries
-Kinesis Streams are snapshotted and compacted in S3 for Data Lake type of workloads.
-Each table stores data streams (Bids, Clicks, Impressions and Aggregations) data type in json or [parquet](https://parquet.apache.org/).
+Kinesis Streams are snapshotted and compacted in Amazon S3 for a Data Lake type of workloads. Each table stores a data streams (Bids, Clicks, Impressions, and Aggregations) data type in json or [parquet](https://parquet.apache.org/).
 
 The following tables are available for Athena queries:
 - parquet_aggregates and raw_aggregates
