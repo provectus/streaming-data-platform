@@ -31,7 +31,7 @@ The template is designed for the following initiatives:
 - Rearchitecture of duplicated and disjointed real-time and batch pipelines
 
 ### Architecture
-![diagram.svg](images/diagram.svg)
+![diagram.svg](images/diagram.png)
 
 ### How it works
 
