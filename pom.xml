@@ -51,13 +51,13 @@
             </snapshots>
             <id>release</id>
             <name>libs-release</name>
-            <url>http://3.122.127.16/artifactory/libs-release</url>
+            <url>http://artifactory.provectus.com/artifactory/libs-release</url>
         </repository>
         <repository>
             <snapshots/>
             <id>snapshot</id>
             <name>libs-snapshot</name>
-            <url>http://3.122.127.16/artifactory/libs-snapshot</url>
+            <url>http://artifactory.provectus.com/artifactory/libs-snapshot</url>
         </repository>
         <repository>
             <id>palantir</id>
