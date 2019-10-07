@@ -11,6 +11,7 @@
 1. [User Guide](#user-guide)
     1. [Data Ingestion](#data-ingestion)
     1. [Reporting](#reporting)
+    1. [Machine Learning](#machine-learning)
 
 ## Overview
 The Streaming Data Platform is a unified solution that enables real-time data analytics and serves as a 
@@ -83,6 +84,8 @@ aws cloudformation deploy
 Stack outputs:
 - `UrlForAPI` - URL for injection requests
 - `UrlForReports` - URL for retrieving reports
+- `UrlForPredictions` - URL for retrieving predictions
+
 ### Test
 #### Integration
 The integration test is launched in the `us-west-2` region by default.
@@ -217,3 +220,28 @@ The following tables are available for Athena queries:
 - parquet_bcns and raw_bcns
 - parquet_clicks and raw_clicks
 - parquet_impressions and raw_impressions
+
+#### Machine Learning
+
+Streaming Data Platform has a feature called Continuous Model 
+ Training. It's mean that the learning model will retrain as soon as 
+ new data is arrived by the Streaming Data Platform.
+
+ You can learn more about SageMaker response format 
+ [here](https://docs.aws.amazon.com/en_us/sagemaker/latest/dg/LL-in-formats.html)
+
+
+```bash
+ curl -d \
+   '{"campaignItemId":"realCompaignItemId","domain":"realDomain","creativeId":"realCreativeId","creativeCategory":"realCreativeCategory","winPrice":prefferedPrice}' -H "Content-Type: application/json" \
+   -X POST ${UrlForPredictions}
+ ```
+
+ And the result of this statement may be like this: 
+
+ ```json
+ {"predictions": [{"score": 0.9999716281890869, "predicted_label": 1.0}]}
+ ```
+
+
+ 
