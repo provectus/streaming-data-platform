@@ -1,0 +1,28 @@
+version: 2
+jobs:
+  jobs/build:
+    docker:
+      - image: circleci/openjdk:8-jdk-stretch
+        working_directory: ~/circleci
+
+    steps:
+      - checkout
+      - run: echo $CIRCLE_TAG
+      - run: sudo apt-get update && sudo apt-get install -y python3-pip
+      - run: sudo pip3 install awscli
+      - run: mvn -B package
+      - run: ./create-stack.sh -p -c -b streaming-data-platform-releases -r us-west-2 -v $CIRCLE_TAG
+
+workflows:
+  version: 2
+  build_on_tag:
+    jobs:
+      - jobs/build:
+          filters:
+            # ignore any commit on any branch by default
+            branches:
+              ignore: /.*/
+            # only act on version tags
+            tags:
+              only: /^v[0-9]+(\.[0-9]+)*$/
+
