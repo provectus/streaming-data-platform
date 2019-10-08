@@ -11,9 +11,8 @@
     <packaging>jar</packaging>
 
     <properties>
-        <resourceBucket>streaming-data-platform-releases</resourceBucket>
-        <platformVersion>v0.0.0</platformVersion>
-        <awsRegion>us-west2</awsRegion>
+        <resourceBucket>itstack-artifacts</resourceBucket>
+        <awsRegion>us-west-2</awsRegion>
     </properties>
 
     <artifactId>fds-it</artifactId>
@@ -133,8 +132,8 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>../create-stack.sh</executable>
-                            <commandlineArgs>-p -c -b ${resourceBucket} -r ${awsRegion} -v {platformVersion}
+                            <executable>../stack.sh</executable>
+                            <commandlineArgs>-p -t -c -b ${resourceBucket} -r ${awsRegion} -v ${version}
                             </commandlineArgs>
                         </configuration>
                     </execution>

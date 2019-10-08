@@ -9,5 +9,5 @@ if [[ $GOAL == "mvn" ]]
 	then OPTS="-m"
 fi
 
-$PROJECT_DIR/create-stack.sh $OPTS -r fds-lambda-java -s $SALT
+$PROJECT_DIR/stack.sh $OPTS -r fds-lambda-java -s $SALT
 
