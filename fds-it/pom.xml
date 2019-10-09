@@ -12,6 +12,7 @@
 
     <properties>
         <resourceBucket>itstack-artifacts</resourceBucket>
+        <awsRegion>us-west-2</awsRegion>
     </properties>
 
     <artifactId>fds-it</artifactId>
@@ -131,20 +132,9 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>../create-stack.sh</executable>
-                            <commandlineArgs>-p -d -c -b ${resourceBucket} -r us-west-2
+                            <executable>../stack.sh</executable>
+                            <commandlineArgs>-p -t -c -b ${resourceBucket} -r ${awsRegion} -v ${version}
                             </commandlineArgs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>CleanUp S3</id>
-                        <phase>post-integration-test</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>aws</executable>
-                            <commandlineArgs>s3 rb s3://${resourceBucket} --force</commandlineArgs>
                         </configuration>
                     </execution>
                 </executions>

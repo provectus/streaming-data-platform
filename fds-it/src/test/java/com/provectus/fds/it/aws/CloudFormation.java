@@ -58,10 +58,7 @@ public class CloudFormation implements AutoCloseable {
         List<Parameter> parameters = Arrays.asList(
                 new Parameter()
                         .withParameterKey("AggregationPeriod")
-                        .withParameterValue("2"),
-                new Parameter()
-                        .withParameterKey("S3ResourceBucket")
-                        .withParameterValue(resourceBucket)
+                        .withParameterValue("2")
         );
         createRequest.setParameters(parameters);
         CreateStackResult createResult = this.stackBuilder.createStack(createRequest);
@@ -157,8 +154,7 @@ public class CloudFormation implements AutoCloseable {
          * Firstly, we must remove the bucket because the bucket is not
          * empty now and the stack will not be deleted successfully.
          */
-        new BucketRemover().removeBucket(region, s3bucket);
-        System.out.println(String.format("S3 bucket %s was removed successfully", s3bucket));
+        new BucketRemover(region).removeBucketWithRetries(s3bucket, 30);
 
         DeleteStackRequest deleteStackRequest = new DeleteStackRequest();
         deleteStackRequest.setStackName(this.stack.getStackId());

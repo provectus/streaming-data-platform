@@ -24,11 +24,6 @@ Parameters:
   LogLevel:
     Default: debug
     Type: String
-  S3ResourceBucket:
-    AllowedPattern: '^[-a-zA-Z0-9]{4,61}$'
-    ConstraintDescription: Bucket name must not contain uppercase characters or underscores
-    Default: fds-lambda-java
-    Type: String
   AnalyticalDBName:
     Type: String
 Resources:
@@ -296,8 +291,8 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:s3:::${S3BucketName}'
                   - !Sub 'arn:aws:s3:::${S3BucketName}/*'
-                  - !Sub 'arn:aws:s3:::${S3ResourceBucket}'
-                  - !Sub 'arn:aws:s3:::${S3ResourceBucket}/*'
+                  - !Sub 'arn:aws:s3:::@S3ResourceBucket@'
+                  - !Sub 'arn:aws:s3:::@S3ResourceBucket@/*'
 
   ApiGateway:
     Type: "AWS::ApiGateway::RestApi"
@@ -455,7 +450,7 @@ Resources:
     Properties:
       ExecutionRoleArn: !GetAtt 'SageMakerRole.Arn'
       PrimaryContainer:
-        ModelDataUrl: !Sub 's3://${S3ResourceBucket}/model.tar.gz'
+        ModelDataUrl: !Sub 's3://@S3ResourceBucket@/@PlatformVersion@/model.tar.gz'
         Image: !Sub "174872318107.dkr.ecr.${AWS::Region}.amazonaws.com/linear-learner:latest"
       ModelName: !Sub "${ServicePrefix}Model"
 

@@ -1,0 +1,52 @@
+version: 2
+jobs:
+  jobs/release:
+    docker:
+      - image: circleci/openjdk:8-jdk-stretch
+        working_directory: ~/circleci
+
+    steps:
+      - checkout
+      - run: echo $CIRCLE_TAG
+      - run: sudo apt-get update && sudo apt-get install -y python3-pip
+      - run: sudo pip3 install awscli
+      - run: mvn -B package
+      - run: ./stack.sh -p -c -b streaming-data-platform-releases -r us-west-2 -v $CIRCLE_TAG
+
+  jobs/integration-test:
+    docker:
+      - image: circleci/openjdk:8-jdk-stretch
+        working_directory: ~/circleci
+
+    steps:
+      - checkout
+      - run: sudo apt-get update && sudo apt-get install -y python3-pip
+      - run: sudo pip3 install awscli
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            - v1-dependencies-
+      - run: mvn -B -s settings.xml package
+      - run: mvn -B -s settings.xml verify -DresourceBucket=fdp-itstack-us-west-2
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "pom.xml" }}
+
+workflows:
+  version: 2
+  build_on_tag:
+    jobs:
+      - jobs/release:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
+
+      - jobs/integration-test:
+          filters:
+            branches:
+              only: /.*/
+            tags:
+              ignore: /.*/

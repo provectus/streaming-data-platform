@@ -11,8 +11,6 @@ Parameters:
     Type: Number
   BufSize:
     Type: Number
-  S3ResourceBucket:
-    Type: String
   ServicePrefix:
     Type: String
   S3BucketName:
@@ -145,7 +143,7 @@ Resources:
                   - s3:GetObjectVersion
                 Resource:
                   - !Sub 'arn:aws:s3:::${S3BucketName}/*'
-                  - !Sub 'arn:aws:s3:::${S3ResourceBucket}/fds-flink-streaming.jar'
+                  - !Sub 'arn:aws:s3:::@S3ResourceBucket@/@PlatformVersion@/fds-flink-streaming.jar'
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -226,8 +224,8 @@ Resources:
           CodeContentType: ZIPFILE
           CodeContent:
             S3ContentLocation:
-              BucketARN: !Sub 'arn:aws:s3:::${S3ResourceBucket}'
-              FileKey: fds-flink-streaming.jar
+              BucketARN: !Sub 'arn:aws:s3:::@S3ResourceBucket@'
+              FileKey: '@PlatformVersion@/fds-flink-streaming.jar'
         EnvironmentProperties:
           PropertyGroups:
             - PropertyGroupId: SourceConfigProperties
