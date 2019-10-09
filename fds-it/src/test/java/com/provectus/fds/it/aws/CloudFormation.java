@@ -154,8 +154,7 @@ public class CloudFormation implements AutoCloseable {
          * Firstly, we must remove the bucket because the bucket is not
          * empty now and the stack will not be deleted successfully.
          */
-        new BucketRemover().removeBucket(region, s3bucket);
-        System.out.println(String.format("S3 bucket %s was removed successfully", s3bucket));
+        new BucketRemover(region).removeBucketWithRetries(s3bucket, 30);
 
         DeleteStackRequest deleteStackRequest = new DeleteStackRequest();
         deleteStackRequest.setStackName(this.stack.getStackId());

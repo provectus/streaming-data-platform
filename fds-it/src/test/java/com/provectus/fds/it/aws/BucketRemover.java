@@ -1,6 +1,5 @@
 package com.provectus.fds.it.aws;
 
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
@@ -13,13 +12,34 @@ import java.util.Iterator;
  * Code derived from AWS example:
  * https://docs.aws.amazon.com/en_us/AmazonS3/latest/dev/delete-or-empty-bucket.html
  */
-public class BucketRemover {
+class BucketRemover {
 
-    public void removeBucket(String clientRegion, String bucketName) {
+    private final AmazonS3 s3Client;
 
-        AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
+    BucketRemover(String clientRegion) {
+        s3Client = AmazonS3ClientBuilder.standard()
                 .withRegion(clientRegion)
                 .build();
+    }
+
+    private boolean checkIfBucketExists(String bucketName) {
+        return s3Client.doesBucketExistV2(bucketName);
+    }
+
+    void removeBucketWithRetries(String bucketName, int retries) {
+        int i = 0;
+        for ( ; checkIfBucketExists(bucketName) && i < retries; i++) {
+            removeBucket(bucketName);
+        }
+
+        if (checkIfBucketExists(bucketName)) {
+            System.out.printf("WARNING: Oh-oh... Despite of %d tries bucket '%s' was not removed properly\n", retries, bucketName);
+        } else {
+            System.out.printf("SUCCESS: Bucket '%s' was removed successfully after %d retries", bucketName, i);
+        }
+    }
+
+    private void removeBucket(String bucketName) {
 
         // Delete all objects from the bucket. This is sufficient
         // for unversioned buckets. For versioned buckets, when you attempt to delete objects, Amazon S3 inserts
@@ -28,9 +48,8 @@ public class BucketRemover {
         // the bucket (see below for an example).
         ObjectListing objectListing = s3Client.listObjects(bucketName);
         while (true) {
-            Iterator<S3ObjectSummary> objIter = objectListing.getObjectSummaries().iterator();
-            while (objIter.hasNext()) {
-                s3Client.deleteObject(bucketName, objIter.next().getKey());
+            for (S3ObjectSummary s3ObjectSummary : objectListing.getObjectSummaries()) {
+                s3Client.deleteObject(bucketName, s3ObjectSummary.getKey());
             }
 
             // If the bucket contains many objects, the listObjects() call
@@ -47,9 +66,7 @@ public class BucketRemover {
         // Delete all object versions (required for versioned buckets).
         VersionListing versionList = s3Client.listVersions(new ListVersionsRequest().withBucketName(bucketName));
         while (true) {
-            Iterator<S3VersionSummary> versionIter = versionList.getVersionSummaries().iterator();
-            while (versionIter.hasNext()) {
-                S3VersionSummary vs = versionIter.next();
+            for (S3VersionSummary vs : versionList.getVersionSummaries()) {
                 s3Client.deleteVersion(bucketName, vs.getKey(), vs.getVersionId());
             }
 
