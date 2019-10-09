@@ -137,17 +137,6 @@
                             </commandlineArgs>
                         </configuration>
                     </execution>
-                    <execution>
-                        <id>CleanUp S3</id>
-                        <phase>post-integration-test</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>aws</executable>
-                            <commandlineArgs>s3 rb s3://${resourceBucket} --force</commandlineArgs>
-                        </configuration>
-                    </execution>
                 </executions>
             </plugin>
         </plugins>
