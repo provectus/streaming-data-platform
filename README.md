@@ -20,7 +20,8 @@ data lake ecosystem. It consolidates data pipelines and improves scalability in 
 These well-architected solutions accelerate time-to-market and mitigate technology risks.
 
 Streaming Data Platform is delivered as an AWS CloudFormation template quick start.
-     
+ 
+[![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=streaming-data-platform&templateURL=https://streaming-data-platform-releases.s3-us-west-2.amazonaws.com/v1.0.0/fds.template)
 
 ### Use Cases
 The template is designed for the following initiatives:
