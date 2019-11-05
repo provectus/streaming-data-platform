@@ -1,0 +1,18 @@
+project:
+  name: streaming-data-platform
+  regions:
+    - us-east-1
+    - us-east-2
+    - us-west-2
+    - eu-west-1
+    - eu-central-1
+  template: ./fds.yaml
+tests:
+  sdp-json:
+    regions:
+      - us-east-1
+      - us-east-2
+      - us-west-2
+      - eu-west-1
+      - eu-central-1
+    

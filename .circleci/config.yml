@@ -22,12 +22,15 @@ jobs:
       - checkout
       - run: sudo apt-get update && sudo apt-get install -y python3-pip
       - run: sudo pip3 install awscli
+      - run: sudo pip3 install taskcat
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "pom.xml" }}
             - v1-dependencies-
       - run: mvn -B -s settings.xml package
       - run: mvn -B -s settings.xml verify -DresourceBucket=fdp-itstack-us-west-2
+      - run: taskcat lint
+      - run: taskcat test run
       - save_cache:
           paths:
             - ~/.m2
