@@ -9,7 +9,7 @@ jobs:
       - checkout
       - run: echo 'deb http://ftp.de.debian.org/debian testing main' | sudo tee /etc/apt/sources.list
       - run: echo 'APT::Default-Release "stable";' | sudo tee -a /etc/apt/apt.conf.d/00local
-      - run: sudo apt-get update && sudo apt-get install -y python3-pip
+      - run: sudo apt-get update && sudo apt-get install -t testing -y python3-pip
       - run: sudo pip3 install taskcat
       - run: sudo pip3 install awscli
       - run: mvn -B package
@@ -24,7 +24,7 @@ jobs:
       - checkout
       - run: echo 'deb http://ftp.de.debian.org/debian testing main' | sudo tee /etc/apt/sources.list
       - run: echo 'APT::Default-Release "stable";' | sudo tee -a /etc/apt/apt.conf.d/00local
-      - run: sudo apt-get update && sudo apt-get install -y python3-pip
+      - run: sudo apt-get update && sudo apt-get install -t testing -y python3-pip
       - run: sudo pip3 install taskcat
       - run: sudo pip3 install awscli
       - restore_cache:
