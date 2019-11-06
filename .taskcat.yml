@@ -1,5 +1,5 @@
 project:
-  name: streaming-data-platform
+  name: sdp
   regions:
     - us-east-1
     - us-east-2
@@ -8,11 +8,12 @@ project:
     - eu-central-1
   template: ./fds.yaml
 tests:
-  sdp-json:
+  t1:
+    parameters: {}
     regions:
-      - us-east-1
-      - us-east-2
+      #- us-east-1
+      #- us-east-2
       - us-west-2
-      - eu-west-1
-      - eu-central-1
+      #- eu-west-1
+      #- eu-central-1
     
