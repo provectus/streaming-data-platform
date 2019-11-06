@@ -138,6 +138,11 @@ if [[ ! -z "${copyResources}" ]]; then
         s3://${resourceBucket}/${platformVersion}/fds-flink-streaming.jar
 fi
 
+
+# Run taskcat after packaging templates
+taskcat -d lint
+taskcat -d test run
+
 if [[ -z "${onlyPackage}" ]]; then
     echo "Deploying to the stack ${stackname} ..."
 
