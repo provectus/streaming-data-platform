@@ -91,7 +91,7 @@ Resources:
     Properties:
       TemplateURL: './ml.yaml'
       Parameters:
-        ServicePrefix: !Ref AWS::StackName
+        ServicePrefix: !Ref ServicePrefix
         S3BucketName:  !Sub 'sdp-${ServicePrefix}-bucket'
         AnalyticalDBName: !Sub '${ServicePrefix}-db'
         JsonToParquetLambdaArn: !GetAtt common.Outputs.JsonToParquetLambdaArn
@@ -103,7 +103,7 @@ Resources:
     Properties:
       TemplateURL: './processing.yaml'
       Parameters:
-        ServicePrefix: !Ref AWS::StackName
+        ServicePrefix: !Ref ServicePrefix
         AnalyticalDBName: !Sub '${ServicePrefix}-db'
         LocationStreamName: !Sub '${ServicePrefix}-locations'
         S3BucketName: !GetAtt ml.Outputs.S3BucketName
@@ -119,7 +119,7 @@ Resources:
     Properties:
       TemplateURL: './injection.yaml'
       Parameters:
-          ServicePrefix: !Ref AWS::StackName
+          ServicePrefix: !Ref ServicePrefix
           BcnStreamName: !Sub '${ServicePrefix}-bcns'
           LocationStreamName: !Sub '${ServicePrefix}-locations'
   reporting:
@@ -127,7 +127,7 @@ Resources:
     Properties:
       TemplateURL: './reporting.yaml'
       Parameters:
-        ServicePrefix: !Ref AWS::StackName
+        ServicePrefix: !Ref ServicePrefix
         AggregationDynamoTableName: !GetAtt processing.Outputs.AggregationDynamoTableName
 Outputs:
   UrlForAPI:
