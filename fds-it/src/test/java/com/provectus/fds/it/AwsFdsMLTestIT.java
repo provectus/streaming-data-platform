@@ -30,14 +30,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
-    final static String stackName = String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-", "")).substring(0, 30);
-    final static String servicePrefix = String.format("sdp-%s",
-            UUID.randomUUID().toString().substring(0, 7));
+
+    static final String servicePrefix = String.format("sdp-%s", UUID.randomUUID().toString().substring(0, 7));
+    static final String stackName = String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-", "")).substring(0, 30);
 
     @BeforeClass
     public static void beforeClass() throws Exception {
         String bucketName = String.format("fds%s", stackName);
-
 
         cloudFormation = new CloudFormation(REGION, stackName
                 , new File("../fds.yaml"), servicePrefix

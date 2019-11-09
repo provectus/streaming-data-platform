@@ -25,12 +25,12 @@ public class CloudFormation implements AutoCloseable {
         this.region = region;
         this.stackName = stackName;
         this.templateFile = templateFile;
+        this.servicePrefix = servicePrefix;
         this.stackBuilder = AmazonCloudFormationClientBuilder.standard()
                 .withRegion(region)
                 .build();
         this.stack = createStack();
         this.outputs = this.getOutputsMap();
-        this.servicePrefix = servicePrefix;
     }
 
     public Output getOutput(String key) {
