@@ -115,9 +115,6 @@ preprocess processing
 
 echo Packaging fds-template.yaml to fds.yaml with bucket ${resourceBucket}
 
-ls -la
-ls -l ./fds-lambda-locations-ingestion/target/fds-lambda-locations-ingestion-1.0-SNAPSHOT.jar
-
 ${AWS_CLI} cloudformation package  \
     --template-file ${PROJECT_DIR}/fds-template.yaml \
     --s3-bucket ${resourceBucket} \
@@ -138,11 +135,6 @@ if [[ ! -z "${copyResources}" ]]; then
         s3://${resourceBucket}/${platformVersion}/fds-flink-streaming.jar
 fi
 
-
-# Run taskcat after packaging templates
-taskcat -d lint
-taskcat -d test run
-
 if [[ -z "${onlyPackage}" ]]; then
     echo "Deploying to the stack ${stackname} ..."
 
@@ -154,12 +146,15 @@ if [[ -z "${onlyPackage}" ]]; then
         exit 1
     fi
 
+    service_prefix="sdp-$(cat /dev/urandom | tr -dc 'a-z' | fold -w 7 | head -n 1)"
+
     ${AWS_CLI} --region ${regionName} cloudformation deploy \
         --s3-bucket ${resourceBucket} \
         --s3-prefix ${platformVersion} \
         --template-file ${PROJECT_DIR}/fds.yaml \
         --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
-        --stack-name ${stackname}
+        --stack-name ${stackname} \
+        --parameter-overrides ServicePrefix=${service_prefix}
 
     ${AWS_CLI} --region ${regionName} cloudformation \
         describe-stacks --stack-name ${stackname}

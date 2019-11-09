@@ -58,7 +58,11 @@ public class CloudFormation implements AutoCloseable {
         List<Parameter> parameters = Arrays.asList(
                 new Parameter()
                         .withParameterKey("AggregationPeriod")
-                        .withParameterValue("2")
+                        .withParameterValue("2"),
+                new Parameter()
+                        .withParameterKey("ServicePrefix")
+                        .withParameterValue(String.format("sdp-%s",
+                                UUID.randomUUID().toString().substring(0, 7)))
         );
         createRequest.setParameters(parameters);
         CreateStackResult createResult = this.stackBuilder.createStack(createRequest);

@@ -43,3 +43,6 @@ dependency-reduced-pom.xml
 .taskcat/
 taskcat_outputs/
 .envrc
+
+.taskcat.yml
+
