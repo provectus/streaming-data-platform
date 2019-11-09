@@ -19,9 +19,9 @@ public class CloudFormation implements AutoCloseable {
 
     private final String region;
     private String s3bucket;
+    private final String servicePrefix;
 
-
-    public CloudFormation(String region, String stackName, File templateFile) throws InterruptedException {
+    public CloudFormation(String region, String stackName, File templateFile, String servicePrefix) throws InterruptedException {
         this.region = region;
         this.stackName = stackName;
         this.templateFile = templateFile;
@@ -30,6 +30,7 @@ public class CloudFormation implements AutoCloseable {
                 .build();
         this.stack = createStack();
         this.outputs = this.getOutputsMap();
+        this.servicePrefix = servicePrefix;
     }
 
     public Output getOutput(String key) {
@@ -61,8 +62,7 @@ public class CloudFormation implements AutoCloseable {
                         .withParameterValue("2"),
                 new Parameter()
                         .withParameterKey("ServicePrefix")
-                        .withParameterValue(String.format("sdp-%s",
-                                UUID.randomUUID().toString().substring(0, 7)))
+                        .withParameterValue(servicePrefix)
         );
         createRequest.setParameters(parameters);
         CreateStackResult createResult = this.stackBuilder.createStack(createRequest);

@@ -31,13 +31,16 @@ import static org.junit.Assert.assertTrue;
 
 public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
     final static String stackName = String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-", "")).substring(0, 30);
+    final static String servicePrefix = String.format("sdp-%s",
+            UUID.randomUUID().toString().substring(0, 7));
 
     @BeforeClass
     public static void beforeClass() throws Exception {
         String bucketName = String.format("fds%s", stackName);
 
+
         cloudFormation = new CloudFormation(REGION, stackName
-                , new File("../fds.yaml")
+                , new File("../fds.yaml"), servicePrefix
         );
         reportUrl = cloudFormation.getOutput(URL_FOR_REPORTS).getOutputValue();
         apiUrl = cloudFormation.getOutput(URL_FOR_API).getOutputValue();
@@ -90,7 +93,7 @@ public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
         ByteBuffer bodyBuffer = ByteBuffer.wrap(body.getBytes());
 
         InvokeEndpointRequest request = new InvokeEndpointRequest()
-                .withEndpointName(String.format("%sEndpoint", stackName))
+                .withEndpointName(String.format("%sEndpoint", servicePrefix))
                 .withContentType("text/csv")
                 .withBody(bodyBuffer);
 
