@@ -56,6 +56,8 @@ public class CloudFormation implements AutoCloseable {
         List<String> capabilities = Arrays.asList(Capability.CAPABILITY_IAM.name(), Capability.CAPABILITY_AUTO_EXPAND.name());
         createRequest.setCapabilities(capabilities);
 
+        System.out.println("ServicePrefix is: " + servicePrefix);
+
         List<Parameter> parameters = Arrays.asList(
                 new Parameter()
                         .withParameterKey("AggregationPeriod")
