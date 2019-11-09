@@ -27,6 +27,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -t testing -y python3-pip
       - run: sudo pip3 install taskcat
       - run: sudo pip3 install awscli
+      - run: pip3 show taskcat
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "pom.xml" }}
