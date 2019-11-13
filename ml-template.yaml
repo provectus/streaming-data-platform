@@ -26,6 +26,22 @@ Parameters:
     Type: String
   AnalyticalDBName:
     Type: String
+
+Mappings:
+  Algorithm:
+    us-west-1:
+      LinearLerner: 632365934929.dkr.ecr.us-west-1.amazonaws.com
+    us-west-2:
+      LinearLerner: 174872318107.dkr.ecr.us-west-2.amazonaws.com
+    us-east-1:
+      LinearLerner: 382416733822.dkr.ecr.us-east-1.amazonaws.com
+    us-east-2:
+      LinearLerner: 404615174143.dkr.ecr.us-east-2.amazonaws.com
+    eu-west-1:
+      LinearLerner: 438346466558.dkr.ecr.eu-west-1.amazonaws.com
+    eu-central-1:
+      LinearLerner: 664544806723.dkr.ecr.eu-central-1.amazonaws.com
+
 Resources:
   # S3 bucket for storing parquets and raw files
   S3Bucket:
@@ -451,7 +467,11 @@ Resources:
       ExecutionRoleArn: !GetAtt 'SageMakerRole.Arn'
       PrimaryContainer:
         ModelDataUrl: !Sub 's3://@S3ResourceBucket@/@PlatformVersion@/model.tar.gz'
-        Image: !Sub "174872318107.dkr.ecr.${AWS::Region}.amazonaws.com/linear-learner:latest"
+        Image:
+          !Join
+            - ''
+            - - !FindInMap [Algorithm, !Ref "AWS::Region", LinearLerner]
+              - '/linear-learner:latest'
       ModelName: !Sub "${ServicePrefix}Model"
 
   LambdaExecutionRole:
