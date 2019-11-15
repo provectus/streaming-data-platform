@@ -19,9 +19,16 @@ foundational service for AI solutions. Provectus’ streaming-first architecture
 data lake ecosystem. It consolidates data pipelines and improves scalability in the cloud for real-time analysis. 
 These well-architected solutions accelerate time-to-market and mitigate technology risks.
 
-Streaming Data Platform is delivered as an AWS CloudFormation template quick start.
- 
-[![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=streaming-data-platform&templateURL=https://streaming-data-platform-releases.s3-us-west-2.amazonaws.com/v1.0.0/fds.template)
+Streaming Data Platform is delivered as an AWS CloudFormation template quick start. Resources in the stack depend on 
+the region. Use a table below to launch the stack in your region:
+
+| Region  | Launch stack |
+| ------------- | ------------- |
+| us-east-1  | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=streaming-data-platform&templateURL=https://streaming-data-platform-releases-us-east-1.s3-us-east-1.amazonaws.com/v1.1.0/fds.template)  |
+| us-east-2  | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/new?stackName=streaming-data-platform&templateURL=https://streaming-data-platform-releases-us-east-2.s3-us-east-2.amazonaws.com/v1.1.0/fds.template)  |
+| us-west-2  | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=streaming-data-platform&templateURL=https://streaming-data-platform-releases-us-west-2.s3-us-west-2.amazonaws.com/v1.1.0/fds.template)  |
+| eu-west-1  | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/new?stackName=streaming-data-platform&templateURL=https://streaming-data-platform-releases-eu-west-1.s3-eu-west-1.amazonaws.com/v1.1.0/fds.template)  |
+| eu-central-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/new?stackName=streaming-data-platform&templateURL=https://streaming-data-platform-releases-eu-central-1.s3-eu-central-1.amazonaws.com/v1.1.0/fds.template)  |
 
 ### Use Cases
 The template is designed for the following initiatives:

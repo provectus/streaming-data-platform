@@ -1,4 +1,4 @@
-package com.provectus.fds.it.aws;
+package com.provectus.fds.it;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;

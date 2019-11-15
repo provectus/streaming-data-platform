@@ -1,11 +1,10 @@
-package com.provectus.fds.it.aws;
+package com.provectus.fds.it;
 
 import com.amazonaws.services.cloudformation.AmazonCloudFormation;
 import com.amazonaws.services.cloudformation.AmazonCloudFormationClientBuilder;
 import com.amazonaws.services.cloudformation.model.*;
 import com.amazonaws.services.cloudformation.model.Stack;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
 import java.io.*;
 import java.util.*;
@@ -19,12 +18,13 @@ public class CloudFormation implements AutoCloseable {
 
     private final String region;
     private String s3bucket;
+    private final String servicePrefix;
 
-
-    public CloudFormation(String region, String stackName, File templateFile) throws InterruptedException {
+    public CloudFormation(String region, String stackName, File templateFile, String servicePrefix) throws InterruptedException {
         this.region = region;
         this.stackName = stackName;
         this.templateFile = templateFile;
+        this.servicePrefix = servicePrefix;
         this.stackBuilder = AmazonCloudFormationClientBuilder.standard()
                 .withRegion(region)
                 .build();
@@ -55,10 +55,15 @@ public class CloudFormation implements AutoCloseable {
         List<String> capabilities = Arrays.asList(Capability.CAPABILITY_IAM.name(), Capability.CAPABILITY_AUTO_EXPAND.name());
         createRequest.setCapabilities(capabilities);
 
+        System.out.println("ServicePrefix is: " + servicePrefix);
+
         List<Parameter> parameters = Arrays.asList(
                 new Parameter()
                         .withParameterKey("AggregationPeriod")
-                        .withParameterValue("2")
+                        .withParameterValue("2"),
+                new Parameter()
+                        .withParameterKey("ServicePrefix")
+                        .withParameterValue(servicePrefix)
         );
         createRequest.setParameters(parameters);
         CreateStackResult createResult = this.stackBuilder.createStack(createRequest);

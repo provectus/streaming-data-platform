@@ -17,6 +17,7 @@ Metadata:
           - ClicksSessionTimeout
           - LocationsSessionTimeout
           - LogLevel
+          - ServicePrefix
     ParameterLabels:
       - BufInterval:
           default: Buffering interval
@@ -34,6 +35,8 @@ Metadata:
           default: Session length (in minutes) for joing locations with clicks and impressions
       - LogLevel:
           default: Default log level in lamdas
+      - ServicePrefix:
+          default: Prefix for the stack resources
 Parameters:
   BufInterval:
     Default: 60
@@ -59,6 +62,8 @@ Parameters:
   LogLevel:
     Default: debug
     Type: String
+  ServicePrefix:
+    Type: String
 Rules:
   RegionSupport:
     Assertions:
@@ -77,18 +82,18 @@ Resources:
     Properties:
       TemplateURL: './common.yaml'
       Parameters:
-        ServicePrefix: !Ref AWS::StackName
-        AnalyticalDBName: !Sub '${AWS::StackName}-db'
-        S3BucketName: !Sub 'sdp-${AWS::StackName}-bucket'
-        LocationStreamName: !Sub '${AWS::StackName}-locations'
+        ServicePrefix: !Ref ServicePrefix
+        AnalyticalDBName: !Sub '${ServicePrefix}-db'
+        S3BucketName: !Sub 'sdp-${ServicePrefix}-bucket'
+        LocationStreamName: !Sub '${ServicePrefix}-locations'
   ml:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: './ml.yaml'
       Parameters:
-        ServicePrefix: !Ref AWS::StackName
-        S3BucketName:  !Sub 'sdp-${AWS::StackName}-bucket'
-        AnalyticalDBName: !Sub '${AWS::StackName}-db'
+        ServicePrefix: !Ref ServicePrefix
+        S3BucketName:  !Sub 'sdp-${ServicePrefix}-bucket'
+        AnalyticalDBName: !Sub '${ServicePrefix}-db'
         JsonToParquetLambdaArn: !GetAtt common.Outputs.JsonToParquetLambdaArn
         LocationsIngestionLambdaArn: !GetAtt common.Outputs.LocationsIngestionLambdaArn
         LogLevel: !Ref LogLevel
@@ -98,9 +103,9 @@ Resources:
     Properties:
       TemplateURL: './processing.yaml'
       Parameters:
-        ServicePrefix: !Ref AWS::StackName
-        AnalyticalDBName: !Sub '${AWS::StackName}-db'
-        LocationStreamName: 'locations'
+        ServicePrefix: !Ref ServicePrefix
+        AnalyticalDBName: !Sub '${ServicePrefix}-db'
+        LocationStreamName: !Sub '${ServicePrefix}-locations'
         S3BucketName: !GetAtt ml.Outputs.S3BucketName
         BufInterval: !Ref BufInterval
         BufSize: !Ref BufSize
@@ -114,15 +119,15 @@ Resources:
     Properties:
       TemplateURL: './injection.yaml'
       Parameters:
-          ServicePrefix: !Ref AWS::StackName
-          BcnStreamName: !Sub '${AWS::StackName}-bcns'
-          LocationStreamName: !Sub '${AWS::StackName}-locations'
+          ServicePrefix: !Ref ServicePrefix
+          BcnStreamName: !Sub '${ServicePrefix}-bcns'
+          LocationStreamName: !Sub '${ServicePrefix}-locations'
   reporting:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: './reporting.yaml'
       Parameters:
-        ServicePrefix: !Ref AWS::StackName
+        ServicePrefix: !Ref ServicePrefix
         AggregationDynamoTableName: !GetAtt processing.Outputs.AggregationDynamoTableName
 Outputs:
   UrlForAPI:
