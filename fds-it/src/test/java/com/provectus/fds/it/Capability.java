@@ -1,4 +1,4 @@
-package com.provectus.fds.it.aws;
+package com.provectus.fds.it;
 
 public enum  Capability {
     CAPABILITY_IAM,

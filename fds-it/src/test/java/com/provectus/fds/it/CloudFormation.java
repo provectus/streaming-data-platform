@@ -1,11 +1,10 @@
-package com.provectus.fds.it.aws;
+package com.provectus.fds.it;
 
 import com.amazonaws.services.cloudformation.AmazonCloudFormation;
 import com.amazonaws.services.cloudformation.AmazonCloudFormationClientBuilder;
 import com.amazonaws.services.cloudformation.model.*;
 import com.amazonaws.services.cloudformation.model.Stack;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
 import java.io.*;
 import java.util.*;

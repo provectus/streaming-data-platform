@@ -90,12 +90,7 @@
                         <configuration>
                             <skip>false</skip>
                             <includes>
-                                <!--
-                                At this moment AwsFdsMLTestIT.java cover all of the cases
-                                of the integration testing. Other tests were blocked while
-                                wasting a lot of time.
-                                -->
-                                <include>**/AwsFdsMLTestIT.java</include>
+                                <include>**/*TestIT.java</include>
                             </includes>
                             <excludes>
                                 <exclude>**/Test.java</exclude>

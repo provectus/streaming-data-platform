@@ -2,13 +2,12 @@ package com.provectus.fds.it;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.provectus.fds.it.aws.CloudFormation;
 import org.asynchttpclient.AsyncHttpClient;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 import static org.asynchttpclient.Dsl.config;
 
-abstract class AbstarctFdsTestIt {
+abstract class AbstarctIntegration {
 
     static final String URL_FOR_API = "UrlForAPI";
     static final String URL_FOR_REPORTS = "UrlForReports";

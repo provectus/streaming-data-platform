@@ -10,7 +10,15 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y python3-pip
       - run: sudo pip3 install awscli
       - run: mvn -B package
-      - run: ./stack.sh -p -c -b streaming-data-platform-releases -r us-west-2 -v $CIRCLE_TAG
+      - run:
+        - |
+          for region in "us-east-1 us-east-2 us-west-2 eu-west-1 eu-central-1"; do
+            export AWS_DEFAULT_REGION=$region
+            ./stack.sh -p -c \
+              -b streaming-data-platform-releases-${AWS_DEFAULT_REGION} \
+              -r ${AWS_DEFAULT_REGION} \
+              -v $CIRCLE_TAG
+          done
 
   jobs/integration-test:
     docker:

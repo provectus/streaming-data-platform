@@ -5,7 +5,6 @@ import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntimeClientBuild
 import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointRequest;
 import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointResult;
 import com.provectus.fds.dynamodb.models.Aggregation;
-import com.provectus.fds.it.aws.CloudFormation;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -29,7 +28,7 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class AwsFdsMLTestIT extends AbstarctFdsTestIt {
+public class AwsFdsTestIT extends AbstarctIntegration {
 
     static final String servicePrefix = String.format("sdp-%s", UUID.randomUUID().toString().substring(0, 7));
     static final String stackName = String.format("%s%s", STACK_NAME_PREFIX, UUID.randomUUID().toString().replace("-", "")).substring(0, 30);
