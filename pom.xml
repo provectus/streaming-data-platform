@@ -34,7 +34,7 @@
         <lz4.version>1.5.1</lz4.version>
 
         <!-- Tests  -->
-        <junit.version>4.12</junit.version>
+        <junit.version>4.13.1</junit.version>
         <hamcrest.version>2.1</hamcrest.version>
         <awaitility.version>3.1.5</awaitility.version>
         <flinkspector.version>0.9.2</flinkspector.version>
