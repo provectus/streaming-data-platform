@@ -22,7 +22,7 @@
         <com.fasterxml.jackson.version>2.9.8</com.fasterxml.jackson.version>
         <org.apache.parquet.version>1.10.0</org.apache.parquet.version>
         <flink.version>1.6.3</flink.version>
-        <hadoop.version>2.7.3</hadoop.version>
+        <hadoop.version>2.10.1</hadoop.version>
         <io.airlift.version>0.36</io.airlift.version>
 
         <!-- Logging -->
