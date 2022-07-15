@@ -15,7 +15,7 @@
 
         <aws.lambda.version>1.2.0</aws.lambda.version>
         <aws.lambda.events.version>2.2.4</aws.lambda.events.version>
-        <aws.java.sdk.version>1.11.253</aws.java.sdk.version>
+        <aws.java.sdk.version>1.12.261</aws.java.sdk.version>
         <aws.kinesisanalytics.version>1.0.1</aws.kinesisanalytics.version>
         <amazon.kinesis.producer.version>0.12.11</amazon.kinesis.producer.version>
         <async.http.client.version>2.6.0</async.http.client.version>
